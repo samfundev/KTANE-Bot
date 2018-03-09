@@ -1,0 +1,20 @@
+{
+  "name": "KTANE-Bot",
+  "version": "1.0.0",
+  "description": "A discord bot for /r/KTANE.",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "type NUL >> database.sqlite3 & if not exist tokens.json type tokens.template.json >> tokens.json"
+  },
+  "dependencies": {
+    "discord.js": "11.2.1",
+    "discord.js-commando": "0.9.0",
+    "node-cron": "^1.2.1",
+    "request": "^2.81.0",
+    "sqlite": "2.8.0"
+  },
+  "repository": "samfun123/KTANE-Bot",
+  "author": "samfun123",
+  "license": "MIT"
+}

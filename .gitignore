@@ -1,0 +1,5 @@
+/node_modules/
+
+# Unique per installation
+tokens.json
+database.sqlite3
