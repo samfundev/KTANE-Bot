@@ -6,22 +6,22 @@ const request = require("request");
 const tokens = require("./tokens");
 
 const streamingRoleID = "421415867381710859";
+const voiceMutedRoleID = "426080215123623936";
 
 const client = new commando.Client({
 	owner: "76052829285916672",
 	commandPrefix: "!",
 	nonCommandEditable: false,
-	unknownCommandResponse: false
+	unknownCommandResponse: false,
+	fetchAllMembers: true
 });
 
 client
 	.on("error", console.error)
 	.on("warn", console.warn)
 	.on("debug", console.log)
-	.on("ready", () => {
-		console.log(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`);
-		checkVideos();
-	})
+	.on("ready", () => console.log(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`))
+	.on("providerReady", () => scheduledTask())
 	.on("disconnect", () => { console.warn("Disconnected!"); })
 	.on("reconnecting", () => { console.warn("Reconnecting..."); })
 	.on("commandError", (cmd, err) => {
@@ -44,6 +44,10 @@ client
 				}
 			});
 		}
+	})
+	.on("voiceStateUpdate", (_, newMember) => {
+		let muted = newMember.roles.has(voiceMutedRoleID);
+		if (muted != newMember.serverMute) newMember.setMute(false);
 	});
 
 client.setProvider(
@@ -52,7 +56,8 @@ client.setProvider(
 
 client.registry
 	.registerGroups([
-		["profiles", "Profile Management"]
+		["profiles", "Profile Management"],
+		["administration", "Administration"],
 	])
 	.registerDefaults()
 	.registerCommandsIn(path.join(__dirname, "commands"));
