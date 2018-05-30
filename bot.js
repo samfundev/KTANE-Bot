@@ -5,6 +5,8 @@ const sqlite = require("sqlite");
 const request = require("request");
 const tokens = require("./tokens");
 
+const streamingRoleID = "421415867381710859";
+
 const client = new commando.Client({
 	owner: "76052829285916672",
 	commandPrefix: "!",
@@ -56,7 +58,8 @@ client.registry
 	.registerCommandsIn(path.join(__dirname, "commands"));
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
-function checkVideos() {
+function scheduledTask() {
+	// Scan for new tutorial videos by Elias
 	request({
 		url: "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=UUFJpcaokKY8uo_nXxAIkyjg&key=" + tokens.youtubeAPIKey,
 		json: true
@@ -66,7 +69,7 @@ function checkVideos() {
 
 		let lastTime = client.provider.get("global", "lastVideoScan");
 		if (lastTime != undefined) {
-			for (let item of json.items) {
+			for (let item of json.items.reverse()) {
 				let snippet = item.snippet;
 				if (snippet.title.startsWith("KTANE - How to - ") && new Date(snippet.publishedAt).getTime() >= lastTime) {
 					videoBot.send(`Elias uploaded a new tutorial **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
@@ -78,7 +81,21 @@ function checkVideos() {
 			console.error("Unable to get last scan time!");
 		}
 	});
+
+	// Scan for new or ended KTANE streams
+	client.guilds.forEach(guild => {
+		if (!guild.available) return;
+
+		guild.members.forEach(member => {
+			let hasRole = member.roles.has(streamingRoleID);
+			let game = member.presence.game;
+			let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
+			if (game && game.streaming) console.log(game);
+			if (hasRole && !streamingGame) member.removeRole(streamingRoleID).catch(console.error);
+			else if (!hasRole && streamingGame) member.addRole(streamingRoleID).catch(console.error);
+		});
+	});
 }
-require("node-cron").schedule("*/5 * * * *", checkVideos);
+require("node-cron").schedule("*/5 * * * *", scheduledTask);
 
 client.login(tokens.botToken);
