@@ -1111,15 +1111,6 @@
 				"string-width": "1.0.2"
 			}
 		},
-		"winser": {
-			"version": "1.0.3",
-			"resolved": "https://registry.npmjs.org/winser/-/winser-1.0.3.tgz",
-			"integrity": "sha1-TrrP+Wp+W0bUdoR3P0v3cjmjec8=",
-			"requires": {
-				"async": "0.9.0",
-				"stdio": "0.2.2"
-			}
-		},
 		"wrappy": {
 			"version": "1.0.2",
 			"resolved": "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz",
