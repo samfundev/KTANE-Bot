@@ -5,11 +5,15 @@ const sqlite = require("sqlite");
 const request = require("request");
 const tokens = require("./tokens");
 
+const streamingRoleID = "421415867381710859";
+const voiceMutedRoleID = "426080215123623936";
+
 const client = new commando.Client({
 	owner: "76052829285916672",
 	commandPrefix: "!",
 	nonCommandEditable: false,
-	unknownCommandResponse: false
+	unknownCommandResponse: false,
+	fetchAllMembers: true
 });
 
 client
@@ -18,7 +22,7 @@ client
 	.on("debug", console.log)
 	.on("ready", () => {
 		console.log(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`);
-		checkVideos();
+		scheduledTask();
 	})
 	.on("disconnect", () => { console.warn("Disconnected!"); })
 	.on("reconnecting", () => { console.warn("Reconnecting..."); })
@@ -42,43 +46,75 @@ client
 				}
 			});
 		}
+	})
+	.on("voiceStateUpdate", (_, newMember) => {
+		let muted = newMember.roles.has(voiceMutedRoleID);
+		if (muted != newMember.serverMute) newMember.setMute(false);
 	});
+
+client.registry
+	.registerGroups([
+		["profiles", "Profile Management"],
+		["administration", "Administration"],
+	])
+	.registerDefaults()
+	.registerCommandsIn(path.join(__dirname, "commands"));
 
 client.setProvider(
 	sqlite.open(path.join(__dirname, "database.sqlite3")).then(db => new commando.SQLiteProvider(db))
 ).catch(console.error);
 
-client.registry
-	.registerGroups([
-		["profiles", "Profile Management"]
-	])
-	.registerDefaults()
-	.registerCommandsIn(path.join(__dirname, "commands"));
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
-function checkVideos() {
-	request({
-		url: "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=UUFJpcaokKY8uo_nXxAIkyjg&key=" + tokens.youtubeAPIKey,
-		json: true
-	}, function(err, resp, json) {
-		if (err) { console.error(err); return; }
-		if (resp.statusCode != 200) console.error(resp.statusCode);
+function scheduledTask() {
+    // Scan for new tutorial videos
 
-		let lastTime = client.provider.get("global", "lastVideoScan");
-		if (lastTime != undefined) {
-			for (let item of json.items) {
-				let snippet = item.snippet;
-				if (snippet.title.startsWith("KTANE - How to - ") && new Date(snippet.publishedAt).getTime() >= lastTime) {
-					videoBot.send(`Elias uploaded a new tutorial **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
-				}
-			}
+    for (let videoChannel of tokens.tutorialVideoChannels) {
+        request({
+            url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
+            json: true
+        }, function(err, resp, json) {
+            if (err) { console.error(err); return; }
+            if (resp.statusCode != 200) console.error(resp.statusCode);
 
-			client.provider.set("global", "lastVideoScan", Date.now());
-		} else {
-			console.error("Unable to get last scan time!");
-		}
-	});
+            let lastVideoScans = client.provider.get("global", "lastVideoScans");
+            if (lastVideoScans === undefined) {
+                console.log("lastVideoScans is undefined");
+                return;
+            }
+            lastVideoScans = JSON.parse(lastVideoScans);
+
+            for (let item of json.items.reverse()) {
+                let snippet = item.snippet;
+                let time = new Date(snippet.publishedAt);
+                let lastScan = (videoChannel.name in lastVideoScans) ? new Date(lastVideoScans[videoChannel.name]) : null;
+                if (snippet.title.startsWith("KTANE - How to - ") && (lastScan === null || time.getTime() >= lastScan.getTime())) {
+                    videoBot.send(`New tutorial video: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+                }
+            }
+
+            console.log(`Video channel ${videoChannel.name} checked`);
+            lastVideoScans[videoChannel.name] = new Date();
+            client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
+
+        });
+    }
+
+    // Scan for new or ended KTANE streams
+    client.guilds.forEach(guild => {
+        if (!guild.available) return;
+
+        guild.members.forEach(member => {
+            let hasRole = member.roles.has(streamingRoleID);
+            let game = member.presence.game;
+            let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
+            if (game && game.streaming) console.log(game);
+            if (hasRole && !streamingGame) member.removeRole(streamingRoleID).catch(console.error);
+            else if (!hasRole && streamingGame) member.addRole(streamingRoleID).catch(console.error);
+        });
+    });
 }
-require("node-cron").schedule("*/5 * * * *", checkVideos);
 
 client.login(tokens.botToken);
+
+require("node-cron").schedule("*/5 * * * *", scheduledTask);
