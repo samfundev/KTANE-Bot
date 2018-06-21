@@ -65,52 +65,52 @@ client.setProvider(
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 function scheduledTask() {
-    // Scan for new tutorial videos
+	// Scan for new tutorial videos
 
-    for (let videoChannel of tokens.tutorialVideoChannels) {
-        request({
-            url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
-            json: true
-        }, function(err, resp, json) {
-            if (err) { console.error(err); return; }
-            if (resp.statusCode != 200) console.error(resp.statusCode);
+	for (let videoChannel of tokens.tutorialVideoChannels) {
+		request({
+			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
+			json: true
+		}, function(err, resp, json) {
+			if (err) { console.error(err); return; }
+			if (resp.statusCode != 200) console.error(resp.statusCode);
 
-            let lastVideoScans = client.provider.get("global", "lastVideoScans");
-            if (lastVideoScans === undefined) {
-                console.log("lastVideoScans is undefined");
-                return;
-            }
-            lastVideoScans = JSON.parse(lastVideoScans);
+			let lastVideoScans = client.provider.get("global", "lastVideoScans");
+			if (lastVideoScans === undefined) {
+				console.log("lastVideoScans is undefined");
+				return;
+			}
+			lastVideoScans = JSON.parse(lastVideoScans);
 
-            for (let item of json.items.reverse()) {
-                let snippet = item.snippet;
-                let time = new Date(snippet.publishedAt);
-                let lastScan = (videoChannel.name in lastVideoScans) ? new Date(lastVideoScans[videoChannel.name]) : null;
-                if (snippet.title.startsWith("KTANE - How to - ") && (lastScan === null || time.getTime() >= lastScan.getTime())) {
-                    videoBot.send(`New tutorial video: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
-                }
-            }
+			for (let item of json.items.reverse()) {
+				let snippet = item.snippet;
+				let time = new Date(snippet.publishedAt);
+				let lastScan = (videoChannel.name in lastVideoScans) ? new Date(lastVideoScans[videoChannel.name]) : null;
+				if (snippet.title.startsWith("KTANE - How to - ") && (lastScan === null || time.getTime() >= lastScan.getTime())) {
+					videoBot.send(`New tutorial video: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+				}
+			}
 
-            console.log(`Video channel ${videoChannel.name} checked`);
-            lastVideoScans[videoChannel.name] = new Date();
-            client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
+			console.log(`Video channel ${videoChannel.name} checked`);
+			lastVideoScans[videoChannel.name] = new Date();
+			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
 
-        });
-    }
+		});
+	}
 
-    // Scan for new or ended KTANE streams
-    client.guilds.forEach(guild => {
-        if (!guild.available) return;
+	// Scan for new or ended KTANE streams
+	client.guilds.forEach(guild => {
+		if (!guild.available) return;
 
-        guild.members.forEach(member => {
-            let hasRole = member.roles.has(streamingRoleID);
-            let game = member.presence.game;
-            let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
-            if (game && game.streaming) console.log(game);
-            if (hasRole && !streamingGame) member.removeRole(streamingRoleID).catch(console.error);
-            else if (!hasRole && streamingGame) member.addRole(streamingRoleID).catch(console.error);
-        });
-    });
+		guild.members.forEach(member => {
+			let hasRole = member.roles.has(streamingRoleID);
+			let game = member.presence.game;
+			let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
+			if (game && game.streaming) console.log(game);
+			if (hasRole && !streamingGame) member.removeRole(streamingRoleID).catch(console.error);
+			else if (!hasRole && streamingGame) member.addRole(streamingRoleID).catch(console.error);
+		});
+	});
 }
 
 client.login(tokens.botToken);
