@@ -84,14 +84,20 @@ function scheduledTask() {
 				let snippet = item.snippet;
 				let time = new Date(snippet.publishedAt);
 				let lastScan = (videoChannel.name in lastVideoScans) ? new Date(lastVideoScans[videoChannel.name]) : null;
-				if (snippet.title.startsWith("KTANE - How to - ") && (lastScan === null || time.getTime() >= lastScan.getTime())) {
-					videoBot.send(`New tutorial video: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+				if (snippet.title.startsWith("KTANE - How to - ")) {
+					if (lastScan === null || time.getTime() >= lastScan.getTime()) {
+						videoBot.send(`New tutorial video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+						console.log(`Announced ${videoChannel.name} video ${snippet.title}.`);
+					} else {
+						console.log(`Not announcing ${videoChannel.name} video ${snippet.title} because time is ${time}; last scan was ${lastScan}.`);
+					}
 				}
 			}
 
-			console.log(`Video channel ${videoChannel.name} checked`);
+			console.log(`Video channel ${videoChannel.name} checked. Last check was ${lastVideoScans[videoChannel.name]}.`);
 			lastVideoScans[videoChannel.name] = new Date();
 			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
+
 		});
 	}
 
