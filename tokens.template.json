@@ -1,5 +1,21 @@
 {
 	"botToken": "",
 	"annoucementWebhook": { "id": "", "token": "" },
-	"youtubeAPIKey": ""
+	"youtubeAPIKey": "",
+	"tutorialVideoChannels": [
+		{
+			"name": "",
+			"id": ""
+		}
+	],
+	"roleIDs": {
+		"streaming": "",
+		"voiceMuted": "",
+		"assignable": [
+			{
+				"aliases": [""], 
+				"roleID": ""
+			}
+		]
+	}
 }

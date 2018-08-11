@@ -5,9 +5,6 @@ const sqlite = require("sqlite");
 const request = require("request");
 const tokens = require("./tokens");
 
-const streamingRoleID = "421415867381710859";
-const voiceMutedRoleID = "426080215123623936";
-
 const client = new commando.Client({
 	owner: "76052829285916672",
 	commandPrefix: "!",
@@ -30,7 +27,7 @@ client
 	})
 	.on("message", (message) => {
 		if (message.channel.name == "voice-text") {
-			message.attachments.some(function(attachment) {
+			message.attachments.some(attachment => {
 				var file = attachment.filename;
 				if (file.includes("output_log") || file.includes("Player.log")) {
 					message.channel.send({
@@ -46,14 +43,14 @@ client
 		}
 	})
 	.on("voiceStateUpdate", (_, newMember) => {
-		let muted = newMember.roles.has(voiceMutedRoleID);
+		let muted = newMember.roles.has(tokens.roleIDs.voiceMuted);
 		if (muted != newMember.serverMute) newMember.setMute(false);
 	});
 
 client.registry
 	.registerGroups([
-		["profiles", "Profile Management"],
-		["administration", "Administration"],
+		["public", "Public"],
+		["administration", "Administration"]
 	])
 	.registerDefaults()
 	.registerCommandsIn(path.join(__dirname, "commands"));
@@ -62,6 +59,7 @@ client.setProvider(
 	sqlite.open(path.join(__dirname, "database.sqlite3")).then(db => new commando.SQLiteProvider(db))
 ).catch(console.error);
 
+client.dispatcher.addInhibitor(msg => msg.guild != null && !["bot-commands", "moderators-only", "admins-only"].includes(msg.channel.name) ? "Commands are not allowed in this channel." : false)
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 function scheduledTask() {
@@ -94,7 +92,6 @@ function scheduledTask() {
 			console.log(`Video channel ${videoChannel.name} checked`);
 			lastVideoScans[videoChannel.name] = new Date();
 			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
-
 		});
 	}
 
@@ -103,12 +100,12 @@ function scheduledTask() {
 		if (!guild.available) return;
 
 		guild.members.forEach(member => {
-			let hasRole = member.roles.has(streamingRoleID);
+			let hasRole = member.roles.has(tokens.roleIDs.streaming);
 			let game = member.presence.game;
 			let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
 			if (game && game.streaming) console.log(game);
-			if (hasRole && !streamingGame) member.removeRole(streamingRoleID).catch(console.error);
-			else if (!hasRole && streamingGame) member.addRole(streamingRoleID).catch(console.error);
+			if (hasRole && !streamingGame) member.removeRole(tokens.roleIDs.streamingRoleID).catch(console.error);
+			else if (!hasRole && streamingGame) member.addRole(tokens.roleIDs.streamingRoleID).catch(console.error);
 		});
 	});
 }

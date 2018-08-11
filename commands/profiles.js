@@ -29,7 +29,7 @@ module.exports = [
 			super(client, {
 				name: "add-profile",
 				aliases: ["addprofile", "profileadd"],
-				group: "profiles",
+				group: "public",
 				memberName: "add-profile",
 				description: "Allows you to add Mod Selector profiles.",
 				examples: ["profileadd [name]", "addprofile [name]"],
@@ -103,7 +103,7 @@ module.exports = [
 			super(client, {
 				name: "get-profile",
 				aliases: ["getprofile", "profileget"],
-				group: "profiles",
+				group: "public",
 				memberName: "get-profile",
 				description: "Allows you to get Mod Selector profiles.",
 				examples: ["profileget [name]", "getprofile [name]"],
