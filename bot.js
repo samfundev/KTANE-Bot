@@ -33,7 +33,7 @@ client
 					message.channel.send({
 						embed: {
 							"title": "Logfile Analyzer Link",
-							"description": "[" + file + "](https://ktane.timwi.de/More/Logfile%20Analyzer.html#url=" + attachment.url + ")",
+							"description": "[" + file + "](https://ktane.timwi.de/lfa#url=" + attachment.url + ")",
 							"color": 1689625
 						}
 					});
