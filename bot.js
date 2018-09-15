@@ -3,6 +3,7 @@ const commando = require("discord.js-commando");
 const path = require("path");
 const sqlite = require("sqlite");
 const request = require("request");
+const logger = require("./log");
 const tokens = require("./tokens");
 
 const client = new commando.Client({
@@ -14,16 +15,16 @@ const client = new commando.Client({
 });
 
 client
-	.on("error", console.error)
-	.on("warn", console.warn)
-	.on("debug", console.log)
-	.on("ready", () => console.log(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`))
+	.on("error", logger.error)
+	.on("warn", logger.warn)
+	.on("debug", logger.info)
+	.on("ready", () => logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`))
 	.on("providerReady", () => scheduledTask())
-	.on("disconnect", () => { console.warn("Disconnected!"); })
-	.on("reconnecting", () => { console.warn("Reconnecting..."); })
+	.on("disconnect", () => { logger.warn("Disconnected!"); })
+	.on("reconnecting", () => { logger.warn("Reconnecting..."); })
 	.on("commandError", (cmd, err) => {
 		if(err instanceof commando.FriendlyError) return;
-		console.error(`Error in command ${cmd.groupID}:${cmd.memberName}`, err);
+		logger.error(`Error in command ${cmd.groupID}:${cmd.memberName}`, err);
 	})
 	.on("message", (message) => {
 		if (message.channel.name == "voice-text") {
@@ -57,7 +58,7 @@ client.registry
 
 client.setProvider(
 	sqlite.open(path.join(__dirname, "database.sqlite3")).then(db => new commando.SQLiteProvider(db))
-).catch(console.error);
+).catch(logger.error);
 
 client.dispatcher.addInhibitor(msg => msg.guild != null && !["bot-commands", "moderators-only", "admins-only"].includes(msg.channel.name) ? "Commands are not allowed in this channel." : false)
 
@@ -70,12 +71,12 @@ function scheduledTask() {
 			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
 			json: true
 		}, function(err, resp, json) {
-			if (err) { console.error(err); return; }
-			if (resp.statusCode != 200) console.error(resp.statusCode);
+			if (err) { logger.error(err); return; }
+			if (resp.statusCode != 200) { logger.error(`Failed to get videos, status code: ${resp.statusCode}`); return; }
 
 			let lastVideoScans = client.provider.get("global", "lastVideoScans");
 			if (lastVideoScans === undefined) {
-				console.log("lastVideoScans is undefined");
+				logger.info("lastVideoScans is undefined");
 				return;
 			}
 			lastVideoScans = JSON.parse(lastVideoScans);
@@ -87,17 +88,16 @@ function scheduledTask() {
 				if (snippet.title.startsWith("KTANE - How to - ")) {
 					if (lastScan === null || time.getTime() >= lastScan.getTime()) {
 						videoBot.send(`New tutorial video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
-						console.log(`Announced ${videoChannel.name} video ${snippet.title}.`);
+						logger.info(`Announced ${videoChannel.name} video ${snippet.title}.`);
 					} else {
-						console.log(`Not announcing ${videoChannel.name} video ${snippet.title} because time is ${time}; last scan was ${lastScan}.`);
+						logger.info(`Not announcing ${videoChannel.name} video ${snippet.title} because time is ${time}; last scan was ${lastScan}.`);
 					}
 				}
 			}
 
-			console.log(`Video channel ${videoChannel.name} checked. Last check was ${lastVideoScans[videoChannel.name]}.`);
+			logger.info(`Video channel ${videoChannel.name} checked. Last check was ${lastVideoScans[videoChannel.name]}.`);
 			lastVideoScans[videoChannel.name] = new Date();
 			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
-
 		});
 	}
 
@@ -109,9 +109,9 @@ function scheduledTask() {
 			let hasRole = member.roles.has(tokens.roleIDs.streaming);
 			let game = member.presence.game;
 			let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
-			if (game && game.streaming) console.log(game);
-			if (hasRole && !streamingGame) member.removeRole(tokens.roleIDs.streamingRoleID).catch(console.error);
-			else if (!hasRole && streamingGame) member.addRole(tokens.roleIDs.streamingRoleID).catch(console.error);
+			if (game && game.streaming) logger.info(game);
+			if (hasRole && !streamingGame) member.removeRole(tokens.roleIDs.streamingRoleID).catch(logger.error);
+			else if (!hasRole && streamingGame) member.addRole(tokens.roleIDs.streamingRoleID).catch(logger.error);
 		});
 	});
 }

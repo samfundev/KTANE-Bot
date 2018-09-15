@@ -7,7 +7,7 @@
     "rules": {
         "semi": ["error", "always"],
         "indent": ["error", "tab"],
-        "no-console": ["error", { "allow": ["log", "warn", "error"] }],
+        "no-console": "error",
         "no-mixed-spaces-and-tabs": ["error", "smart-tabs"],
         "yoda": "error"
     }

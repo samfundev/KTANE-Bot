@@ -1,5 +1,6 @@
 const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
+const logger = require("./../log");
 
 module.exports = [
 	class RoleCommand extends commando.Command {
@@ -29,18 +30,18 @@ module.exports = [
 				if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
 					const role = msg.guild.roles.get(roleData.roleID);
 					if (role == undefined) {
-						console.error(`Unable to find role based on ID: ${roleData.roleID}`);
+						logger.error(`Unable to find role based on ID: ${roleData.roleID}`);
 						return;
 					}
 
 					if (msg.member.roles.has(roleData.roleID)) {
 						msg.member.removeRole(role)
 							.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
-							.catch(console.error);
+							.catch(logger.error);
 					} else {
 						msg.member.addRole(role)
 							.then(() => msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`))
-							.catch(console.error);
+							.catch(logger.error);
 					}
 
 					break;
