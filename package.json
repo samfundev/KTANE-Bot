@@ -8,11 +8,11 @@
     "install": "type NUL >> database.sqlite3 & if not exist tokens.json type tokens.template.json >> tokens.json"
   },
   "dependencies": {
-    "discord.js": "11.2.1",
-    "discord.js-commando": "0.9.0",
-    "node-cron": "^1.2.1",
-    "request": "^2.81.0",
-    "sqlite": "2.8.0"
+    "discord.js": "11.4.2",
+    "discord.js-commando": "0.10.0",
+    "node-cron": "2.0.1",
+    "request": "2.88.0",
+    "sqlite": "3.0.0"
   },
   "repository": "samfun123/KTANE-Bot",
   "author": "samfun123",
