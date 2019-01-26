@@ -30,9 +30,15 @@ module.exports = [
 		run(msg, args) {
 			if (args.target.highestRole.comparePositionTo(msg.member.highestRole) < 0) {
 				let muted = args.target.roles.has(tokens.roleIDs.voiceMuted);
-				
-				if (muted) args.target.removeRole(tokens.roleIDs.voiceMuted).then(() => msg.reply(`${args.target.user.username} has been unmuted.`)).catch(() => msg.reply("Unable to unmute."));
-				else args.target.addRole(tokens.roleIDs.voiceMuted).then(() => msg.reply(`${args.target.user.username} has been muted.`)).catch(() => msg.reply("Unable to mute."));
+
+				if (muted)
+					args.target.removeRole(tokens.roleIDs.voiceMuted)
+						.then(() => msg.reply(`${args.target.user.username} has been unmuted.`))
+						.catch(error => { console.log(error); msg.reply("Unable to unmute."); });
+				else
+					args.target.addRole(tokens.roleIDs.voiceMuted)
+						.then(() => msg.reply(`${args.target.user.username} has been muted.`))
+						.catch(error => { console.log(error); msg.reply("Unable to mute."); });
 
 				if (args.target.voiceChannel) args.target.setMute(!muted).catch(() => msg.reply("Unable to change server mute status."));
 			} else msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);

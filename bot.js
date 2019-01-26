@@ -45,7 +45,8 @@ client
 	})
 	.on("voiceStateUpdate", (_, newMember) => {
 		let muted = newMember.roles.has(tokens.roleIDs.voiceMuted);
-		if (muted != newMember.serverMute) newMember.setMute(false);
+		if (muted != newMember.serverMute)
+			newMember.setMute(muted);
 	});
 
 client.registry
