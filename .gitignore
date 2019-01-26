@@ -1,4 +1,6 @@
 /node_modules/
+/daemon/
+output.log
 
 # Unique per installation
 tokens.json

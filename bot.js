@@ -85,9 +85,10 @@ function scheduledTask() {
 				let snippet = item.snippet;
 				let time = new Date(snippet.publishedAt);
 				let lastScan = (videoChannel.name in lastVideoScans) ? new Date(lastVideoScans[videoChannel.name]) : null;
-				if (snippet.title.startsWith("KTANE - How to - ")) {
+				if (snippet.title.toLowerCase().indexOf("ktane") !== -1 ||
+					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") !== -1) {
 					if (lastScan === null || time.getTime() >= lastScan.getTime()) {
-						videoBot.send(`New tutorial video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+						videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
 						logger.info(`Announced ${videoChannel.name} video ${snippet.title}.`);
 					} else {
 						logger.info(`Not announcing ${videoChannel.name} video ${snippet.title} because time is ${time}; last scan was ${lastScan}.`);
