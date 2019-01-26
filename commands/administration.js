@@ -24,7 +24,7 @@ module.exports = [
 		}
 
 		hasPermission(msg) {
-			return msg.member.hasPermission("MUTE_MEMBERS") && (msg.channel.name == "moderators-only" || msg.channel.name == "admins-only" || msg.channel.name == "bot-commands");
+			return msg.member.hasPermission("MUTE_MEMBERS");
 		}
 
 		run(msg, args) {
