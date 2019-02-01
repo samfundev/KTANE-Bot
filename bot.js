@@ -108,12 +108,20 @@ function scheduledTask() {
 		if (!guild.available) return;
 
 		guild.members.forEach(member => {
-			let hasRole = member.roles.has(tokens.roleIDs.streaming);
 			let game = member.presence.game;
-			let streamingGame = (game && game.streaming && (game.name.toLowerCase().includes("keep talking and nobody explodes") || game.name.toLowerCase().includes("ktane")));
-			if (game && game.streaming) logger.info(game);
-			if (hasRole && !streamingGame) member.removeRole(tokens.roleIDs.streamingRoleID).catch(logger.error);
-			else if (!hasRole && streamingGame) member.addRole(tokens.roleIDs.streamingRoleID).catch(logger.error);
+			if (game)
+			{
+				let streamingKTANE = game.streaming && (
+					(game.name + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
+					(game.name + game.details).toLowerCase().includes("ktane"));
+				let hasRole = member.roles.has(tokens.roleIDs.streaming);
+				if (game.streaming)
+					logger.info(streamingKTANE ? "Streaming KTANE" : "Streaming NON-KTANE", game, hasRole ? "has role" : "does not have role");
+				if (hasRole && !streamingKTANE)
+					member.removeRole(tokens.roleIDs.streaming).catch(logger.error);
+				else if (!hasRole && streamingKTANE)
+					member.addRole(tokens.roleIDs.streaming).catch(logger.error);
+			}
 		});
 	});
 }
