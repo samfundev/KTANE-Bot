@@ -53,11 +53,11 @@ module.exports = [
 		constructor(client) {
 			super(client, {
 				name: "rolelist",
-				aliases: ["rolelist", "rl"],
+				aliases: ["rolelist", "rl", "roles"],
 				group: "public",
 				memberName: "role-list",
 				description: "DMs you a list of all the roles that can be used with the role command.",
-				examples: ["rolelist", "rl"],
+				examples: ["rolelist", "rl", "roles"],
 				guildOnly: true,
 				throttling: {
 					usages: 1,

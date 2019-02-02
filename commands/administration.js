@@ -1,5 +1,6 @@
 const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
+const logger = require("./../log");
 
 module.exports = [
 	class VoiceMuteCommand extends commando.Command {
@@ -42,6 +43,61 @@ module.exports = [
 
 				if (args.target.voiceChannel) args.target.setMute(!muted).catch(() => msg.reply("Unable to change server mute status."));
 			} else msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
+		}
+	},
+	class ToggleRoleCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "toggle-role",
+				aliases: ["togglerole", "tr"],
+				group: "administration",
+				memberName: "toggle-role",
+				description: "Toggles a role for a user.",
+				examples: ["togglerole <user> <role>", "tg <user> <role>"],
+				guildOnly: true,
+
+				args: [
+					{
+						key: "target",
+						prompt: "Who should get the role?",
+						type: "member"
+					},
+					{
+						key: "role",
+						prompt: "What role do you want to toggle?",
+						type: "string"
+					}
+				]
+			});
+		}
+
+		hasPermission(msg) {
+			return msg.member.highestRole.comparePositionTo(msg.guild.roles.get(tokens.roleIDs.moderator)) >= 0;
+		}
+
+		run(msg, args) {
+			const targetRole = args.role.toLowerCase();
+			for (let roleData of tokens.roleIDs.modAssignable) {
+				if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
+					const role = msg.guild.roles.get(roleData.roleID);
+					if (role == undefined) {
+						logger.error(`Unable to find role based on ID: ${roleData.roleID}`);
+						return;
+					}
+
+					if (msg.member.roles.has(roleData.roleID)) {
+						msg.member.removeRole(role)
+							.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
+							.catch(logger.error);
+					} else {
+						msg.member.addRole(role)
+							.then(() => msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`))
+							.catch(logger.error);
+					}
+
+					break;
+				}
+			}
 		}
 	}
 ];
