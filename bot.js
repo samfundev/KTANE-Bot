@@ -105,7 +105,8 @@ function scheduledTask() {
 
 	// Scan for new or ended KTANE streams
 	client.guilds.forEach(guild => {
-		if (!guild.available) return;
+		if (!guild.available)
+			return;
 
 		guild.members.forEach(member => {
 			let game = member.presence.game;
@@ -114,7 +115,7 @@ function scheduledTask() {
 				(game.name + game.details).toLowerCase().includes("ktane"));
 			let hasRole = member.roles.has(tokens.roleIDs.streaming);
 			if (game && game.streaming)
-				logger.info(member.name, streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE", game, hasRole ? "has role" : "does not have role");
+				logger.info(member.user.username, streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE", game);
 			if (hasRole && !streamingKTANE)
 				member.removeRole(tokens.roleIDs.streaming).catch(logger.error);
 			else if (!hasRole && streamingKTANE)
