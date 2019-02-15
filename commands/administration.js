@@ -85,13 +85,13 @@ module.exports = [
 						return;
 					}
 
-					if (msg.member.roles.has(roleData.roleID)) {
-						msg.member.removeRole(role)
-							.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
+					if (args.target.roles.has(roleData.roleID)) {
+						args.target.removeRole(role)
+							.then(() => msg.channel.send(`Removed the "${role.name}" role from ${args.target.user.username}.`))
 							.catch(logger.error);
 					} else {
-						msg.member.addRole(role)
-							.then(() => msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`))
+						args.target.addRole(role)
+							.then(() => msg.channel.send(`Gave the "${role.name}" role to ${args.target.user.username}.`))
 							.catch(logger.error);
 					}
 
