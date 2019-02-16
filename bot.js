@@ -78,7 +78,7 @@ client
 				let names = [ "Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu" ];
 				function convert(i)
 				{
-					return i < names.length ? names[i] : `${names[i % names.length]} ${convert(names[(i / names.length)|0] - 1)}`;
+					return i < names.length ? names[i] : `${convert((i / names.length)|0 - 1)} ${names[i % names.length]}`;
 				}
 				let ix = 0, name;
 				do
