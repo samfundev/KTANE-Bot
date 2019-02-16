@@ -43,10 +43,74 @@ client
 			});
 		}
 	})
-	.on("voiceStateUpdate", (_, newMember) => {
+	.on("voiceStateUpdate", (oldMember, newMember) => {
+
+		// VOICE-MUTING
 		let muted = newMember.roles.has(tokens.roleIDs.voiceMuted);
 		if (muted != newMember.serverMute)
 			newMember.setMute(muted);
+
+		// PROCESS AUTO-MANAGED CATEGORIES (adding/removing channels as needed)
+		if (oldMember.voiceChannel === newMember.voiceChannel)
+			return;
+
+		var catProcessed = null;
+
+		function processAutoManagedCategories(member)
+		{
+			if (!member)
+				return;
+			let vc = member.voiceChannel;
+			if (!vc)
+				return;
+			let cat = vc.parent;
+			if (!cat || !(vc.parentID in tokens.autoManagedCategories) || cat === catProcessed)
+				return;
+			catProcessed = cat;
+
+			let prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
+			let ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
+			let channels = cat.children.array().filter(ch => ch.type === 'voice' && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
+			let numEmpty = channels.filter(ch => ch.members === 0).length;
+			if (numEmpty < 1)
+			{
+				// Create a new channel within this category
+				let names = [ "Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu" ];
+				function convert(i)
+				{
+					return i < names.length ? names[i] : `${names[i % names.length]} ${convert(names[(i / names.length)|0] - 1)}`;
+				}
+				let ix = 0, name;
+				do
+				{
+					name = `${prefix} ${convert(ix)}`;
+					ix++;
+				}
+				while (channels.filter(ch => ch.channel.name === name).length > 0);
+
+				cat.guild.createChannel(name, 'voice', null, 'AutoManage: create new empty channel')
+					.then(newChannel => { newChannel.setParent(cat); })
+					.catch(logger.error);
+			}
+			else if (numEmpty > 1)
+			{
+				// Delete unused channels in this category except the first one
+				var oneFound = false;
+				for (let i = 0; i < channels.length; i++)
+				{
+					if (channels[i].members === 0)
+					{
+						if (oneFound)
+							channels[i].channel.delete('AutoManage: delete unused channel');
+						else
+							oneFound = true;
+					}
+				}
+			}
+		}
+
+		processAutoManagedCategories(oldMember);
+		processAutoManagedCategories(newMember);
 	});
 
 client.registry
