@@ -71,6 +71,10 @@ client
 			let prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
 			let ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
 			let channels = cat.children.array().filter(ch => ch.type === 'voice' && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
+			channels.sort((c1, c2) => c1.channel.name < c2.channel.name ? -1 : c1.channel.name > c2.channel.name ? 1 : 0);
+
+			let logmsg = `Channels are: ${channels.map(obj => `${obj.channel.name}=${obj.members}`).join(', ')}`;
+
 			let numEmpty = channels.filter(ch => ch.members === 0).length;
 			if (numEmpty < 1)
 			{
@@ -88,6 +92,7 @@ client
 				}
 				while (channels.filter(ch => ch.channel.name === name).length > 0);
 
+				logmsg += `; creating ${name}`;
 				cat.guild.createChannel(name, 'voice', null, 'AutoManage: create new empty channel')
 					.then(newChannel => { newChannel.setParent(cat); })
 					.catch(logger.error);
@@ -101,12 +106,17 @@ client
 					if (channels[i].members === 0)
 					{
 						if (oneFound)
+						{
+							logmsg += `; deleting ${channels[i].channel.name}`;
 							channels[i].channel.delete('AutoManage: delete unused channel');
+						}
 						else
 							oneFound = true;
 					}
 				}
 			}
+
+			logger.info(logmsg);
 		}
 
 		processAutoManagedCategories(oldMember);
