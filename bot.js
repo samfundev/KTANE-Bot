@@ -4,6 +4,7 @@ const path = require("path");
 const sqlite = require("sqlite");
 const request = require("request");
 const logger = require("./log");
+const WorkshopScanner = require("./workshop");
 const tokens = require("./tokens");
 
 const client = new commando.Client({
@@ -138,6 +139,9 @@ client.setProvider(
 client.dispatcher.addInhibitor(msg => msg.guild != null && !["bot-commands", "staff-only", "audit-log", "bot-test"].includes(msg.channel.name) ? "Commands are not allowed in this channel." : false)
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
+let workshopScanner;
+sqlite.open(path.join(__dirname, "database.sqlite3")).then(async db => workshopScanner = new WorkshopScanner(db));
+
 function scheduledTask() {
 	// Scan for new tutorial videos
 
@@ -196,6 +200,9 @@ function scheduledTask() {
 				member.addRole(tokens.roleIDs.streaming).catch(logger.error);
 		});
 	});
+
+	// Scan for new mods or changes
+	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
 }
 
 client.login(tokens.botToken);
