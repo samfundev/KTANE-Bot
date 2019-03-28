@@ -18,7 +18,7 @@ function matchAll(regex, string) {
 	while ((matches = regex.exec(string)) !== null) {
 		allMatches.push(matches);
 	}
-	
+
 	return allMatches;
 }
 
@@ -54,7 +54,7 @@ class WorkshopScanner {
 
 	async set_page_index(page_index) {
 		const sql = "UPDATE page_id SET page_id = " + page_index;
-		
+
 		await this.DB.run(sql);
 	}
 
@@ -86,7 +86,7 @@ class WorkshopScanner {
 		logger.info(`Found ${workshop_mod_entries.length} workshop entry matches`);
 
 		const entries_to_check = {};
-		for (let match_index = 0; match_index < workshop_mod_entries.length; match_index++) { 
+		for (let match_index = 0; match_index < workshop_mod_entries.length; match_index++) {
 			let workshop_mod_entry_object;
 			const workshop_mod_entry = workshop_mod_entries[match_index];
 			const workshop_mod_entry_json = workshop_mod_entry[4];
@@ -102,14 +102,14 @@ class WorkshopScanner {
 			workshop_mod_entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
 
 			const discord_id = await this.get_author_discord_id(workshop_mod_entry_object.author_steamid);
-			workshop_mod_entry_object.author_discordid = discord_id;			
+			workshop_mod_entry_object.author_discordid = discord_id;
 			if (discord_id !== false)
 			{
-				//print "<div class='msg'>Found workshop mod <span class='title'>" . workshop_mod_entry_object.title . "</span> <span class='mod_id'>" . workshop_mod_entry_object.id . "</span> by <span class='author'>" . workshop_mod_entry_object.author . " (" . workshop_mod_entry_object.author_steamid . ") &lt;@" . discord_id . "&gt;</span></div>";		
+				//print "<div class='msg'>Found workshop mod <span class='title'>" . workshop_mod_entry_object.title . "</span> <span class='mod_id'>" . workshop_mod_entry_object.id . "</span> by <span class='author'>" . workshop_mod_entry_object.author . " (" . workshop_mod_entry_object.author_steamid . ") &lt;@" . discord_id . "&gt;</span></div>";
 			}
 			else
 			{
-				//print "<div class='msg'>Found workshop mod <span class='title'>" . workshop_mod_entry_object.title . "</span> <span class='mod_id'>" . workshop_mod_entry_object.id . "</span> by <span class='author'>" . workshop_mod_entry_object.author . " (" . workshop_mod_entry_object.author_steamid . ") ** No Discord ID matched **</span></div>";		
+				//print "<div class='msg'>Found workshop mod <span class='title'>" . workshop_mod_entry_object.title . "</span> <span class='mod_id'>" . workshop_mod_entry_object.id . "</span> by <span class='author'>" . workshop_mod_entry_object.author . " (" . workshop_mod_entry_object.author_steamid . ") ** No Discord ID matched **</span></div>";
 			}
 
 			entries_to_check[workshop_mod_entry_object.id] = workshop_mod_entry_object;
@@ -171,7 +171,7 @@ class WorkshopScanner {
 				if (await this.post_discord_new_mod(mod_id, entry.title, entry.description, author, image) !== false)
 				{
 					logger.info("Discord post added!");
-					await this.insert_mod(mod_id, changelog[0]);				
+					await this.insert_mod(mod_id, changelog[0]);
 				}
 			}
 			else
@@ -188,9 +188,9 @@ class WorkshopScanner {
 				{
 					author = "<@" + entry.author_discordid + ">";
 				}
-				
+
 				if (await this.update_mod(mod_id, changelog[0]) === true)
-				{			
+				{
 					if (await this.post_discord_update_mod(mod_id, entry.title, author, changelog[1], image) !== false)
 					{
 						logger.info("Discord post added!");
@@ -284,7 +284,7 @@ class WorkshopScanner {
 		});
 
 		embed.setColor("#00aa00");
-		
+
 		const data = {
 			content: ":new: A new mod has been uploaded to the Steam Workshop! It's called **" + mod_title + "**, by " + author + ":",
 			options: {
@@ -304,14 +304,14 @@ class WorkshopScanner {
 		//mod_title = /(@)(everyone|here|someone|supereveryone)/.replace(mod_title, "$2");
 		//changelog_description = /(@)(everyone|here|someone|supereveryone)/.replace(changelog_description, "$2");
 		//author = /(@)(everyone|here|someone|supereveryone)/.replace(author, "$2");
-		
+
 		const embed = new Discord.RichEmbed({
 			title: mod_title,
 			url: "http://steamcommunity.com/sharedfiles/filedetails/?id=" + mod_id,
 			fields: [
 				{
 					name: "Changelog Details",
-					value: decodeURI(changelog_description.replace(/<br/>/g, "\n").substring(0, 1000)),
+					value: decodeURI(changelog_description.replace(/<br\s*\/>/g, "\n").substring(0, 1000)),
 				},
 			],
 		});
@@ -336,7 +336,7 @@ class WorkshopScanner {
 	async post_discord(data, is_major)
 	{
 		const webhook_client = is_major ? major_webhook : minor_webhook;
-		
+
 		try {
 			return await webhook_client.send(data.content, data.options).then(() => true).catch(error => { logger.error(error); return false; });
 		} catch (exception) {
