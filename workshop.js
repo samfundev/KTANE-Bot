@@ -3,6 +3,7 @@ const { get } = require("request");
 const logger = require("./log");
 const { promisify } = require("util");
 const tokens = require("./tokens");
+const Html5Entities = require("html-entities").Html5Entities;
 
 const getAsync = promisify(get);
 
@@ -277,7 +278,7 @@ class WorkshopScanner {
 			fields: [
 				{
 					name: "Description",
-					value: decodeURI(mod_description.replace(/<br \/>/g, "\n").replace("\n\n", "\n").substring(0, 1000)),
+					value: Html5Entities.decode(mod_description.replace(/<br \/>/g, "\n").replace("\n\n", "\n")).substring(0, 1000),
 				},
 			],
 			image: image,
@@ -311,7 +312,7 @@ class WorkshopScanner {
 			fields: [
 				{
 					name: "Changelog Details",
-					value: decodeURI(changelog_description.replace(/<br\s*\/>/g, "\n").substring(0, 1000)),
+					value: Html5Entities.decode(changelog_description.replace(/<br\s*\/>/g, "\n")).substring(0, 1000),
 				},
 			],
 		});
