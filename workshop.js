@@ -278,7 +278,7 @@ class WorkshopScanner {
 			fields: [
 				{
 					name: "Description",
-					value: Html5Entities.decode(mod_description.replace(/<br \/>/g, "\n").replace("\n\n", "\n")).substring(0, 1000),
+					value: Html5Entities.decode(mod_description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n")).substring(0, 1000),
 				},
 			],
 			image: image,
@@ -312,7 +312,7 @@ class WorkshopScanner {
 			fields: [
 				{
 					name: "Changelog Details",
-					value: Html5Entities.decode(changelog_description.replace(/<br\s*\/>/g, "\n")).substring(0, 1000),
+					value: Html5Entities.decode(changelog_description.replace(/<br\s*\/?>/g, "\n")).substring(0, 1000),
 				},
 			],
 		});
