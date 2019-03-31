@@ -281,10 +281,9 @@ class WorkshopScanner {
 					value: Html5Entities.decode(mod_description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n")).substring(0, 1000),
 				},
 			],
-			image: image,
 		});
 
-		embed.setColor("#00aa00");
+		embed.setColor("#00aa00").setImage(image);
 
 		const data = {
 			content: ":new: A new mod has been uploaded to the Steam Workshop! It's called **" + mod_title + "**, by " + author + ":",
