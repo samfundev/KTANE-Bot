@@ -1,6 +1,7 @@
 const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
 const logger = require("./../log");
+const sqlite = require("sqlite");
 
 module.exports = [
 	class VoiceMuteCommand extends commando.Command {
@@ -98,6 +99,45 @@ module.exports = [
 					break;
 				}
 			}
+		}
+	},
+	class SetSteamIDCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "set-steam-id",
+				aliases: ["setsteamid", "setid"],
+				group: "administration",
+				memberName: "set-steam-id",
+				description: "Sets a Steam ID to Discord ID pair for the announcements.",
+				examples: ["setsteamid <steam-id> <discord-id>", "setid <steam-id> <discord-id>"],
+				guildOnly: true,
+
+				args: [
+					{
+						key: "steamid",
+						prompt: "What is the steam ID?",
+						type: "string"
+					},
+					{
+						key: "discordid",
+						prompt: "What is the discord ID?",
+						type: "string"
+					}
+				]
+			});
+		}
+
+		hasPermission(msg) {
+			return msg.member.highestRole.comparePositionTo(msg.guild.roles.get(tokens.roleIDs.moderator)) >= 0;
+		}
+
+		run(msg, args) {
+			sqlite.open("database.sqlite3", { cached: true })
+				.then(db => 
+					db.run("INSERT INTO 'author_lookup' (steam_id, discord_id) VALUES(?, ?) ON CONFLICT(steam_id) DO UPDATE SET discord_id=excluded.discord_id", args.steamid, args.discordid)
+						.then(() => msg.reply(`Set "${args.steamid}" to "${args.discordid}".`))
+						.catch(error => { msg.reply("Failed to set."); logger.error(error); })
+				);
 		}
 	}
 ];

@@ -133,14 +133,14 @@ client.registry
 	.registerCommandsIn(path.join(__dirname, "commands"));
 
 client.setProvider(
-	sqlite.open(path.join(__dirname, "database.sqlite3")).then(db => new commando.SQLiteProvider(db))
+	sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(db => new commando.SQLiteProvider(db))
 ).catch(logger.error);
 
 client.dispatcher.addInhibitor(msg => msg.guild != null && !["bot-commands", "staff-only", "audit-log", "bot-test"].includes(msg.channel.name) ? "Commands are not allowed in this channel." : false)
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 let workshopScanner;
-sqlite.open(path.join(__dirname, "database.sqlite3")).then(async db => workshopScanner = new WorkshopScanner(db));
+sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db));
 
 function scheduledTask() {
 	// Scan for new tutorial videos
