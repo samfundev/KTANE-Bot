@@ -69,6 +69,10 @@ client
 				return;
 			catProcessed = cat;
 
+			let names = tokens.autoManagedCategories[vc.parentID].names;
+			if (!names)
+				names = [ "Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu" ];
+
 			let prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
 			let ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
 			let channels = cat.children.array().filter(ch => ch.type === 'voice' && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
@@ -79,13 +83,20 @@ client
 			let numEmpty = channels.filter(ch => ch.members === 0).length;
 			if (numEmpty < 1)
 			{
-				// Create a new channel within this category
-				let names = [ "Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu" ];
+				let ix = 0, name;
 				function convert(i)
 				{
 					return i < names.length ? names[i] : `${convert((i / names.length)|0 - 1)} ${names[i % names.length]}`;
 				}
-				let ix = 0, name;
+
+				// Rename the 0th channel if it's different
+				if (channels.length === 1 && channels[0].channel.name !== `${prefix} ${convert(0)}`)
+				{
+					channels[0].channel.setName(`${prefix} ${convert(0)}`);
+					ix = 1;
+				}
+
+				// Create a new channel within this category
 				do
 				{
 					name = `${prefix} ${convert(ix)}`;
