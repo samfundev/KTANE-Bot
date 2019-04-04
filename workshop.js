@@ -133,7 +133,7 @@ class WorkshopScanner {
 		const entries_to_image = [];
 		for (const workshop_mod_entry of workshop_image_entries)
 		{
-			entries_to_image.push(workshop_mod_entry[1]);
+			entries_to_image.unshift(workshop_mod_entry[1]);
 			logger.info(`Found workshop image ${workshop_mod_entry[1]}`);
 		}
 
