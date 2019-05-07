@@ -328,7 +328,7 @@ class WorkshopScanner {
 			}
 		};
 
-		const major_regex = /major change|rule breaking change|manual reprint required|manual reprint necessary/ig;
+		const major_regex = /major change|major update|rule[- ]breaking change|manual reprint required|manual reprint necessary/ig;
 		const major_matches = matchAll(major_regex, changelog_description);
 		return await this.post_discord(data, major_matches.length > 0);
 	}
