@@ -1,21 +1,24 @@
 {
 	"botToken": "",
 	"annoucementWebhook": { "id": "", "token": "" },
+	"majorWebhook": { "id": "", "token": "" },
+	"minorWebhook": { "id": "", "token": "" },
 	"youtubeAPIKey": "",
 	"tutorialVideoChannels": [
-		{
-			"name": "",
-			"id": ""
-		}
+		{ "name": "", "mention": "", "id": "" }
 	],
 	"roleIDs": {
 		"streaming": "",
 		"voiceMuted": "",
+        "moderator": "",
 		"assignable": [
-			{
-				"aliases": [""], 
-				"roleID": ""
-			}
-		]
-	}
+			{ "aliases": [""], "roleID": "" }
+		],
+        "modAssignable": [
+            { "aliases": [""], "roleID": "" }
+        ]
+	},
+    "autoManagedCategories": {
+        "": { "channelPrefix": "", "names": null }
+    }
 }
