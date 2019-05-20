@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const commando = require("discord.js-commando");
+const cron = require("node-cron");
 const path = require("path");
 const sqlite = require("sqlite");
 const request = require("request");
@@ -19,7 +20,17 @@ client
 	.on("error", logger.error)
 	.on("warn", logger.warn)
 	.on("debug", logger.info)
-	.on("ready", () => logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`))
+	.on("ready", () => {
+		logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`)
+	
+		// Scan for new or ended KTANE streams to catch anyone before we started up
+		client.guilds.forEach(guild => {
+			if (!guild.available)
+				return;
+
+			guild.members.forEach(checkStreamingStatus);
+		});
+	})
 	.on("providerReady", () => scheduledTask())
 	.on("disconnect", () => { logger.warn("Disconnected!"); })
 	.on("reconnecting", () => { logger.warn("Reconnecting..."); })
@@ -133,6 +144,10 @@ client
 
 		processAutoManagedCategories(oldMember);
 		processAutoManagedCategories(newMember);
+	})
+	.on("presenceUpdate", (oldMember, newMember) => {
+		// Check any presence changes for a potential streamer
+		checkStreamingStatus(newMember);
 	});
 
 client.registry
@@ -155,7 +170,6 @@ sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(asy
 
 function scheduledTask() {
 	// Scan for new tutorial videos
-
 	for (let videoChannel of tokens.tutorialVideoChannels) {
 		request({
 			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
@@ -191,31 +205,26 @@ function scheduledTask() {
 			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
 		});
 	}
+}
 
-	// Scan for new or ended KTANE streams
-	client.guilds.forEach(guild => {
-		if (!guild.available)
-			return;
-
-		guild.members.forEach(member => {
-			let game = member.presence.game;
-			let streamingKTANE = game && game.streaming && (
-				(game.name + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
-				(game.name + game.details).toLowerCase().includes("ktane"));
-			let hasRole = member.roles.has(tokens.roleIDs.streaming);
-			if (game && game.streaming)
-				logger.info(member.user.username, streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE", game);
-			if (hasRole && !streamingKTANE)
-				member.removeRole(tokens.roleIDs.streaming).catch(logger.error);
-			else if (!hasRole && streamingKTANE)
-				member.addRole(tokens.roleIDs.streaming).catch(logger.error);
-		});
-	});
-
-	// Scan for new mods or changes
-	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
+function checkStreamingStatus(member) {
+	let game = member.presence.game;
+	let streamingKTANE = game && game.streaming && (
+		(game.name + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
+		(game.name + game.details).toLowerCase().includes("ktane"));
+	let hasRole = member.roles.has(tokens.roleIDs.streaming);
+	if (game && game.streaming)
+		logger.info(member.user.username, streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE", game);
+	if (hasRole && !streamingKTANE)
+		member.removeRole(tokens.roleIDs.streaming).catch(logger.error);
+	else if (!hasRole && streamingKTANE)
+		member.addRole(tokens.roleIDs.streaming).catch(logger.error);
 }
 
 client.login(tokens.botToken);
 
-require("node-cron").schedule("*/5 * * * *", scheduledTask);
+cron.schedule("*/5 * * * *", scheduledTask);
+cron.schedule("*/1 * * * *", () => {
+	// Scan for new mods or changes
+	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
+});
