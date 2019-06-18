@@ -169,9 +169,14 @@ class WorkshopScanner {
 
 			if (await this.insert_mod(mod_id, changelog[0]) === true)
 			{
-				if (await this.post_discord_new_mod(mod_id, entry.title, entry.description, author, image) !== false)
+				if (matchAll(/no bot announcement/ig, changelog[1]).length > 0)
 				{
-					logger.info("Discord post added!");
+					logger.info(`Discord post skipped because description contains "no bot announcement".`);
+					await this.insert_mod(mod_id, changelog[0]);
+				}
+				else if (await this.post_discord_new_mod(mod_id, entry.title, entry.description, author, image) !== false)
+				{
+					logger.info("Discord post added.");
 					await this.insert_mod(mod_id, changelog[0]);
 				}
 			}
@@ -192,9 +197,13 @@ class WorkshopScanner {
 
 				if (await this.update_mod(mod_id, changelog[0]) === true)
 				{
-					if (await this.post_discord_update_mod(mod_id, entry.title, author, changelog[1], image) !== false)
+					if (matchAll(/no bot announcement/ig, changelog[1]).length > 0)
 					{
-						logger.info("Discord post added!");
+						logger.info(`Discord post skipped because description contains "no bot announcement".`);
+					}
+					else if (await this.post_discord_update_mod(mod_id, entry.title, author, changelog[1], image) !== false)
+					{
+						logger.info("Discord post added.");
 					}
 				}
 				else
