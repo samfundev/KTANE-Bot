@@ -2,8 +2,8 @@ const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
 const logger = require("./../log");
 
-function getRole(role, assignableData, guildRoles) {
-	let targetRole = role.toLowerCase();
+function getRole(roleName, assignableData, guildRoles) {
+	let targetRole = roleName.toLowerCase();
 	for (let roleData of assignableData) {
 		if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
 			const role = guildRoles.get(roleData.roleID);
@@ -12,7 +12,7 @@ function getRole(role, assignableData, guildRoles) {
 				return;
 			}
 
-			return role;
+			return [ role, roleData ];
 		}
 	}
 }
@@ -51,8 +51,13 @@ module.exports = [
 		}
 
 		run(msg, args) {
-			const role = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
-			if (role !== undefined) {
+			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
+			if (roleInf !== undefined) {
+				const role = roleInf[0], roleData = roleInf[1];
+				if (roleData.prereq && !roleData.prereq.some(pre => msg.member.roles.has(pre))) {
+					msg.channel.send(`You can’t self-assign the "${role.name}" role because you don’t have any of its prerequisite roles.`);
+					return;
+				}
 				if (msg.member.roles.has(role.id)) {
 					msg.member.removeRole(role)
 						.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
@@ -108,10 +113,10 @@ module.exports = [
 		}
 
 		run(msg, args) {
-			const role = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
+			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
 			if (role !== undefined) {
+				const role = roleInf[0];
 				const members = shuffle(Array.from(role.members.values())).filter((_, index) => index < 10);
-
 				msg.channel.send(`Here is ${members.length} (of ${role.members.size}) users with the ${role.name} role:\n${members.map(member => ` - ${member.user.username}#${member.user.discriminator}`).join("\n")}`);
 			}
 		}
