@@ -8,7 +8,7 @@
     "install": "type NUL >> database.sqlite3 & if not exist tokens.json type tokens.template.json >> tokens.json"
   },
   "dependencies": {
-    "discord.js": "11.4.2",
+    "discord.js": "11.5.1",
     "discord.js-commando": "0.10.0",
     "html-entities": "^1.2.1",
     "node-cron": "2.0.1",

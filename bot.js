@@ -116,7 +116,10 @@ client
 				while (channels.filter(ch => ch.channel.name === name).length > 0);
 
 				logmsg += `; creating ${name}`;
-				cat.guild.createChannel(name, 'voice', null, 'AutoManage: create new empty channel')
+				cat.guild.createChannel(name, {
+					type: 'voice',
+					reason: 'AutoManage: create new empty channel'
+				})
 					.then(newChannel => { newChannel.setParent(cat); })
 					.catch(logger.error);
 			}
