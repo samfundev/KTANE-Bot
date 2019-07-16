@@ -114,7 +114,7 @@ module.exports = [
 
 		run(msg, args) {
 			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
-			if (role !== undefined) {
+			if (roleInf !== undefined) {
 				const role = roleInf[0];
 				const members = shuffle(Array.from(role.members.values())).filter((_, index) => index < 10);
 				msg.channel.send(`Here is ${members.length} (of ${role.members.size}) users with the ${role.name} role:\n${members.map(member => ` - ${member.user.username}#${member.user.discriminator}`).join("\n")}`);
