@@ -16,19 +16,26 @@ const client = new commando.Client({
 	fetchAllMembers: true
 });
 
+let voiceText = null;				// #voice-text text channel
+let screensharingLinksPosted = {};	// indexed by Snowflake
+
 client
 	.on("error", logger.error)
 	.on("warn", logger.warn)
 	.on("debug", logger.info)
 	.on("ready", () => {
 		logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`)
-	
+
 		// Scan for new or ended KTANE streams to catch anyone before we started up
 		client.guilds.forEach(guild => {
 			if (!guild.available)
 				return;
 
 			guild.members.forEach(checkStreamingStatus);
+			guild.channels.forEach(channel => {
+				if (channel.name === 'voice-text' && channel.type === 'text')
+					voiceText = channel;
+			});
 		});
 	})
 	.on("providerReady", () => scheduledTask())
@@ -134,6 +141,8 @@ client
 						if (oneFound)
 						{
 							logmsg += `; deleting ${channels[i].channel.name}`;
+							if (channels[i].channel.id in screensharingLinksPosted)
+								delete screensharingLinksPosted[channels[i].channel.id];
 							channels[i].channel.delete('AutoManage: delete unused channel');
 						}
 						else
@@ -147,6 +156,12 @@ client
 
 		processAutoManagedCategories(oldMember);
 		processAutoManagedCategories(newMember);
+
+		if (newMember && newMember.voiceChannel && !(newMember.voiceChannel.id in screensharingLinksPosted))
+		{
+			screensharingLinksPosted[newMember.voiceChannel.id] = true;
+			voiceText.send(`${newMember.voiceChannel.name} screen-sharing link: <http://www.discordapp.com/channels/${newMember.voiceChannel.guild.id}/${newMember.voiceChannel.id}>`);
+		}
 	})
 	.on("presenceUpdate", (oldMember, newMember) => {
 		// Check any presence changes for a potential streamer

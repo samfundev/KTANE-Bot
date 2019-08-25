@@ -5,3 +5,4 @@ output.log
 # Unique per installation
 tokens.json
 database.sqlite3
+database.sqlite3-journal
