@@ -166,6 +166,22 @@ client
 	.on("presenceUpdate", (oldMember, newMember) => {
 		// Check any presence changes for a potential streamer
 		checkStreamingStatus(newMember);
+	})
+	.on("raw", async event => {
+		if (event.t != "MESSAGE_REACTION_ADD") return;
+	
+		const { d: data } = event;
+		const channel = client.channels.get(data.channel_id);
+	
+		if (channel == null || channel.type != "text" || channel.name != "repo-requests") return;
+	
+		const message = await channel.fetchMessage(data.message_id);
+		const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
+		let reaction = message.reactions.get(emojiKey);
+	
+		if (reaction.emoji.name != "solved" || message.pinned) return;
+
+		message.delete().catch(console.error);
 	});
 
 client.registry
