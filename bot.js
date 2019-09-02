@@ -204,6 +204,7 @@ sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(asy
 
 function scheduledTask() {
 	// Scan for new tutorial videos
+	let nowTime = new Date();
 	for (let videoChannel of tokens.tutorialVideoChannels) {
 		request({
 			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
@@ -235,7 +236,7 @@ function scheduledTask() {
 			}
 
 			logger.info(`Video channel ${videoChannel.name} checked. Last check was ${lastVideoScans[videoChannel.name]}.`);
-			lastVideoScans[videoChannel.name] = new Date();
+			lastVideoScans[videoChannel.name] = nowTime;
 			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
 		});
 	}
