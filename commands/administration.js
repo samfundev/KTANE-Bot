@@ -157,9 +157,9 @@ module.exports = [
 		run(msg) {
 			for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus))
 				msg.channel.fetchMessage(menuMessageID)
-					.then(message => {
+					.then(async(message) => {
 						for (const emojiName in emojis) 
-							message.react(emojiName);
+							await message.react(emojiName);
 					})
 					.catch(() => {});
 
