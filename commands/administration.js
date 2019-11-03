@@ -139,5 +139,31 @@ module.exports = [
 						.catch(error => { msg.reply("Failed to set."); logger.error(error); })
 				);
 		}
+	},
+	class RefreshRoleMenuCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "refresh-rolemenu",
+				aliases: ["refreshrm", "refreshrolemenu"],
+				group: "administration",
+				memberName: "refresh-rolemenu",
+				description: "Refreshes a role menu.",
+				examples: ["refreshrm"],
+				guildOnly: true,
+				ownerOnly: true
+			});
+		}
+
+		run(msg) {
+			for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus))
+				msg.channel.fetchMessage(menuMessageID)
+					.then(message => {
+						for (const emojiName in emojis) 
+							message.react(emojiName);
+					})
+					.catch(() => {});
+
+			msg.delete().catch(() => {});
+		}
 	}
 ];

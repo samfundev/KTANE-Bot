@@ -168,20 +168,60 @@ client
 		checkStreamingStatus(newMember);
 	})
 	.on("raw", async event => {
-		if (event.t != "MESSAGE_REACTION_ADD") return;
+		if (event.t == "MESSAGE_REACTION_ADD" || event.t == "MESSAGE_REACTION_REMOVE")
+		{
+			const reactionAdded = event.t == "MESSAGE_REACTION_ADD";
+			const { d: data } = event;
+			const user = client.users.get(data.user_id);
+			const channel = client.channels.get(data.channel_id);
+	
+			if (channel == null || channel.type != "text") return;
+	
+			const message = await channel.fetchMessage(data.message_id);
+			const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
+			let reaction = message.reactions.get(emojiKey);
+	
+			if (channel.name == "repo-requests") {
+				if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
+		
+				message.delete().catch(logger.error);
+			} else {
+				for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
+					if (menuMessageID != message.id) 
+						continue;
 
-		const { d: data } = event;
-		const channel = client.channels.get(data.channel_id);
+					for (const [emojiName, roleID] of Object.entries(emojis)) {
+						if (reaction.emoji.name != emojiName)
+							continue;
+						
+						const guildMember = message.guild.member(user);
+						if (reactionAdded) {
+							guildMember.addRole(roleID).catch(logger.error);
+						} else {
+							guildMember.removeRole(roleID).catch(logger.error);
+						}
 
-		if (channel == null || channel.type != "text" || channel.name != "repo-requests") return;
+						// Schedule or unschedule removing the role in two hours
+						if (menuMessageID == "640563515945385984") {
+							let scheduledTasks = client.provider.get("global", "scheduledTasks", []);
 
-		const message = await channel.fetchMessage(data.message_id);
-		const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
-		let reaction = message.reactions.get(emojiKey);
+							if (reactionAdded) {
+								scheduledTasks.push(new ScheduledTask(Date.now() + 7200000, "removeReaction", {
+									channelID: data.channel_id,
+									messageID: data.message_id,
+									userID: data.user_id,
+									emojiKey: emojiKey
+								}));
+							} else {
+								scheduledTasks = scheduledTasks.filter(task => !(task.info.messageID == data.message_id && task.info.userID == data.user_id && task.info.emojiKey == emojiKey));
+							}
 
-		if (reaction.emoji.name != "solved" || message.pinned) return;
-
-		message.delete().catch(console.error);
+							client.provider.set("global", "scheduledTasks", scheduledTasks);
+						}
+					}
+				}
+			}
+		}
 	});
 
 client.registry
@@ -196,11 +236,23 @@ client.setProvider(
 	sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(db => new commando.SQLiteProvider(db))
 ).catch(logger.error);
 
-client.dispatcher.addInhibitor(msg => msg.guild != null && !["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name) ? "Commands are not allowed in this channel." : false);
+client.dispatcher.addInhibitor(msg => 
+	msg.guild != null && !["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name) &&
+	(msg.command == null || msg.command.memberName != "refresh-rolemenu") ?
+		"Commands are not allowed in this channel." : false
+);
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 let workshopScanner;
 sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db));
+
+class ScheduledTask {
+	constructor(timestamp, type, info) {
+		this.timestamp = timestamp;
+		this.type = type;
+		this.info = info;
+	}
+}
 
 function scheduledTask() {
 	// Scan for new tutorial videos
@@ -262,4 +314,32 @@ cron.schedule("*/5 * * * *", scheduledTask);
 cron.schedule("*/1 * * * *", () => {
 	// Scan for new mods or changes
 	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
+
+	// Remove roles after 2 hours
+	let scheduledTasks = client.provider.get("global", "scheduledTasks", []);
+
+	if (scheduledTasks.length == 0)
+		return;
+
+	scheduledTasks = scheduledTasks.filter(task => {
+		if (task.timestamp > Date.now())
+			return true;
+
+		const info = task.info;
+		
+		switch (task.type) {
+		case "removeReaction":
+			client.channels.get(info.channelID).fetchMessage(info.messageID).then(message => {
+				message.reactions.get(info.emojiKey).remove(info.userID).catch(logger.error);
+			});
+			break;
+		default:
+			logger.error("Unknown task type: " + task.type);
+			break;
+		}
+
+		return false;
+	});
+
+	client.provider.set("global", "scheduledTasks", scheduledTasks);
 });
