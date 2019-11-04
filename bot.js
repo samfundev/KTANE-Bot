@@ -174,26 +174,27 @@ client
 			const { d: data } = event;
 			const user = client.users.get(data.user_id);
 			const channel = client.channels.get(data.channel_id);
-	
+
 			if (channel == null || channel.type != "text") return;
-	
+
 			const message = await channel.fetchMessage(data.message_id);
 			const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
 			let reaction = message.reactions.get(emojiKey);
-	
+
 			if (channel.name == "repo-requests") {
 				if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
-		
+
 				message.delete().catch(logger.error);
 			} else {
 				for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
-					if (menuMessageID != message.id) 
+					const [channelID, msgID] = menuMessageID.split('/');
+					if (msgID != message.id)
 						continue;
 
 					for (const [emojiName, roleID] of Object.entries(emojis)) {
 						if (reaction.emoji.name != emojiName)
 							continue;
-						
+
 						const guildMember = message.guild.member(user);
 						if (reactionAdded) {
 							guildMember.addRole(roleID).catch(logger.error);
@@ -202,7 +203,7 @@ client
 						}
 
 						// Schedule or unschedule removing the role in two hours
-						if (menuMessageID == "640563515945385984") {
+						if (menuMessageID == "640560537205211146/640563515945385984" && data.user_id !== client.user.id) {
 							let scheduledTasks = client.provider.get("global", "scheduledTasks", []);
 
 							if (reactionAdded) {
@@ -236,7 +237,7 @@ client.setProvider(
 	sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(db => new commando.SQLiteProvider(db))
 ).catch(logger.error);
 
-client.dispatcher.addInhibitor(msg => 
+client.dispatcher.addInhibitor(msg =>
 	msg.guild != null && !["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name) &&
 	(msg.command == null || msg.command.memberName != "refresh-rolemenu") ?
 		"Commands are not allowed in this channel." : false
@@ -300,12 +301,19 @@ function checkStreamingStatus(member) {
 		(game.name + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
 		(game.name + game.details).toLowerCase().includes("ktane"));
 	let hasRole = member.roles.has(tokens.roleIDs.streaming);
-	if (game && game.streaming)
-		logger.info(member.user.username, streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE", game);
+	let actionTaken = null;
 	if (hasRole && !streamingKTANE)
+	{
 		member.removeRole(tokens.roleIDs.streaming).catch(logger.error);
+		actionTaken = '; removing streaming role';
+	}
 	else if (!hasRole && streamingKTANE)
+	{
 		member.addRole(tokens.roleIDs.streaming).catch(logger.error);
+		actionTaken = '; adding streaming role';
+	}
+	if (actionTaken !== null)
+		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`, game);
 }
 
 client.login(tokens.botToken);
@@ -326,7 +334,7 @@ cron.schedule("*/1 * * * *", () => {
 			return true;
 
 		const info = task.info;
-		
+
 		switch (task.type) {
 		case "removeReaction":
 			client.channels.get(info.channelID).fetchMessage(info.messageID).then(message => {

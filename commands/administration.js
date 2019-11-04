@@ -133,7 +133,7 @@ module.exports = [
 
 		run(msg, args) {
 			sqlite.open("database.sqlite3", { cached: true })
-				.then(db => 
+				.then(db =>
 					db.run("INSERT INTO 'author_lookup' (steam_id, discord_id) VALUES(?, ?) ON CONFLICT(steam_id) DO UPDATE SET discord_id=excluded.discord_id", args.steamid, args.discordid)
 						.then(() => msg.reply(`Set "${args.steamid}" to "${args.discordid}".`))
 						.catch(error => { msg.reply("Failed to set."); logger.error(error); })
@@ -156,14 +156,27 @@ module.exports = [
 
 		run(msg) {
 			for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus))
-				msg.channel.fetchMessage(menuMessageID)
+			{
+				const [channelID, msgID] = menuMessageID.split('/');
+				let channel = null;
+				for (let [id, ch] of msg.guild.channels)
+					if (id === channelID)
+						channel = ch;
+				if (!channel)
+				{
+					logger.error(`Cannot find channel ${channelID}. Channels are:`);
+					for (let [key, value] of msg.guild.channels)
+						logger.error(` -- ${key} = ${value}`)
+					continue;
+				}
+				channel.fetchMessage(msgID)
 					.then(async(message) => {
-						for (const emojiName in emojis) 
+						for (const emojiName in emojis)
 							await message.react(emojiName);
 					})
-					.catch(() => {});
-
-			msg.delete().catch(() => {});
+					.catch(logger.error);
+			}
+			msg.delete().catch(logger.error);
 		}
 	}
 ];
