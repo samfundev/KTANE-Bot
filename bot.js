@@ -181,7 +181,7 @@ client
 			const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
 			let reaction = message.reactions.get(emojiKey);
 
-			if (channel.name == "repo-requests") {
+			if (channel.id == "612414629179817985") {
 				if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
 
 				message.delete().catch(logger.error);
