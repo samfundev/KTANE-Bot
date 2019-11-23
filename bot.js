@@ -202,6 +202,7 @@ client
 							guildMember.removeRole(roleID).catch(logger.error);
 						}
 
+						/*
 						// Schedule or unschedule removing the role in two hours
 						if (menuMessageID == "640560537205211146/640563515945385984" && data.user_id !== client.user.id) {
 							let scheduledTasks = client.provider.get("global", "scheduledTasks", []);
@@ -219,6 +220,7 @@ client
 
 							client.provider.set("global", "scheduledTasks", scheduledTasks);
 						}
+						*/
 					}
 				}
 			}
