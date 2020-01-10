@@ -4,15 +4,15 @@ const logger = require("./../log");
 const sqlite = require("sqlite");
 
 module.exports = [
-	class VoiceMuteCommand extends commando.Command {
+	class MuteCommand extends commando.Command {
 		constructor(client) {
 			super(client, {
-				name: "voice-mute",
-				aliases: ["voicemute", "vm"],
+				name: "mute",
+				aliases: ["mute", "m"],
 				group: "administration",
-				memberName: "voice-mute",
-				description: "Toggles if someone is allowed to speak in voice channels.",
-				examples: ["voicemute <name>", "vm <user>"],
+				memberName: "mute",
+				description: "Toggles if someone is allowed to speak in text and voice channels.",
+				examples: ["mute <name>", "m <user>"],
 				guildOnly: true,
 
 				args: [
