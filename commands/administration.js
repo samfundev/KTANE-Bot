@@ -1,3 +1,4 @@
+const Discord = require("discord.js");
 const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
 const logger = require("./../log");
@@ -177,6 +178,64 @@ module.exports = [
 					.catch(logger.error);
 			}
 			msg.delete().catch(logger.error);
+		}
+	},
+	class MakeMajorCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "make-major",
+				aliases: ["makemajor", "mm"],
+				group: "administration",
+				memberName: "make-major",
+				description: "Makes a minor announcement message a major announcement.",
+				examples: ["makemajor <message-id>"],
+				guildOnly: true,
+
+				args: [
+					{
+						key: "messageid",
+						prompt: "What is the message ID?",
+						type: "string"
+					}
+				]
+			});
+		}
+
+		hasPermission(msg) {
+			return msg.member.highestRole.comparePositionTo(msg.guild.roles.get(tokens.roleIDs.moderator)) >= 0;
+		}
+
+		run(msg, args) {
+			msg.guild.channels.find(channel => channel.name == "mods-minor").fetchMessage(args.messageid).then(message => {
+				if (message.embeds.length != 1) {
+					msg.reply("Invalid number of embeds on target message.");
+					return;
+				}
+
+				const targetEmbed = message.embeds[0];
+
+				const embed = new Discord.RichEmbed({
+					title: targetEmbed.title,
+					url: targetEmbed.url,
+					fields: [
+						{
+							name: "Changelog Details",
+							value: targetEmbed.fields[0].value,
+						},
+					],
+				});
+		
+				embed.setColor("#0055aa");
+
+				new Discord.WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token).send(message.content, {
+					disableEveryone: true,
+					embeds: [
+						embed
+					],
+				});
+
+				message.delete().catch(logger.error);
+			}).catch(logger.error);
 		}
 	}
 ];
