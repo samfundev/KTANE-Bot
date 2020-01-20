@@ -320,9 +320,12 @@ function checkStreamingStatus(member) {
 
 client.login(tokens.botToken);
 
-cron.schedule("*/5 * * * *", scheduledTask);
+// The math below is based on this equation: 10000 (quota limit) = 1440 (minutes in a day) / minutes * channels * 3 (each request is 3 quota), solved for the variable minutes.
+// This is to prevent going over the YouTube API quota.
+cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length)} * * * *`, scheduledTask);
+
 cron.schedule("*/1 * * * *", () => {
-	// Scan for new mods or changes
+	// Scan another page for new mods or changes
 	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
 
 	// Remove roles after 2 hours
