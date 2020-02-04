@@ -382,6 +382,11 @@ class WorkshopScanner {
 			return;
 		}
 
+		if (entries_to_check.length != entries_to_image.length) {
+			logger.warn(`The number of entries (${entries_to_check.length}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned.`);
+			return;
+		}
+
 		let image_index = 0;
 		for (const mod_id in entries_to_check) {
 			const entry = entries_to_check[mod_id];
