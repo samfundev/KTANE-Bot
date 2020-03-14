@@ -237,5 +237,25 @@ module.exports = [
 				message.delete().catch(logger.error);
 			}).catch(logger.error);
 		}
+	},
+	class AgreeCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "agree",
+				aliases: ["agree", "iagree", "ia"],
+				group: "administration",
+				memberName: "agree",
+				description: "Accepts the rules of the server.",
+				examples: ["agree"],
+				guildOnly: true
+			});
+		}
+
+		run(msg) {
+			if (msg.member.roles.has("640569603344302107"))
+				return;
+
+			msg.member.addRole("640569603344302107");
+		}
 	}
 ];

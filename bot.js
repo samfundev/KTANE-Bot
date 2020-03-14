@@ -60,6 +60,11 @@ client
 					return true;
 				}
 			});
+		} else if (message.channel.name == "rules") {
+			if (message.member.highestRole.comparePositionTo(message.guild.roles.get(tokens.roleIDs.moderator)) >= 0)
+				return;
+
+			message.delete().catch(logger.error);
 		}
 	})
 	.on("voiceStateUpdate", (oldMember, newMember) => {
@@ -240,9 +245,9 @@ client.setProvider(
 ).catch(logger.error);
 
 client.dispatcher.addInhibitor(msg =>
-	msg.guild != null && !["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name) &&
-	(msg.command == null || msg.command.memberName != "refresh-rolemenu") ?
-		"Commands are not allowed in this channel." : false
+	msg.guild == null || ["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name) ||
+	(msg.command != null && (msg.command.memberName == "refresh-rolemenu" || (msg.command.memberName == "agree" && msg.channel.name == "rules"))) ?
+		false : "Commands are not allowed in this channel."
 );
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
