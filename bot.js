@@ -38,11 +38,19 @@ client
 			});
 		});
 	})
-	.on("providerReady", () => scheduledTask())
+	.on("providerReady", () => {
+		scheduledTask();
+
+		if (client.provider.get("global", "updating", false)) {
+			client.provider.remove("global", "updating");
+
+			client.fetchUser(client.owners[0].id).then(user => user.send("Update is complete."));
+		}
+	})
 	.on("disconnect", () => { logger.warn("Disconnected!"); })
 	.on("reconnecting", () => { logger.warn("Reconnecting..."); })
 	.on("commandError", (cmd, err) => {
-		if(err instanceof commando.FriendlyError) return;
+		if (err instanceof commando.FriendlyError) return;
 		logger.error(`Error in command ${cmd.groupID}:${cmd.memberName}`, err);
 	})
 	.on("message", (message) => {

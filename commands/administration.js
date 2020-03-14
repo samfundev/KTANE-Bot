@@ -3,6 +3,8 @@ const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
 const logger = require("./../log");
 const sqlite = require("sqlite");
+const { execSync } = require("child_process");
+const { elevate } = require("node-windows");
 
 module.exports = [
 	class MuteCommand extends commando.Command {
@@ -257,5 +259,49 @@ module.exports = [
 
 			msg.member.addRole("640569603344302107");
 		}
-	}
+	},
+	class UpdateCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "update",
+				aliases: ["update", "u"],
+				group: "administration",
+				memberName: "update",
+				description: "Updates the bot.",
+				examples: ["update"],
+				ownerOnly: true
+			});
+		}
+
+		run(msg) {
+			if (msg.guild != null)
+				return;
+
+			msg.client.provider.set("global", "updating", true);
+			elevate("update.bat");
+		}
+	},
+	class LogsCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "logs",
+				aliases: ["log", "l"],
+				group: "administration",
+				memberName: "logs",
+				description: "Gets the current bot logs.",
+				examples: ["logs"],
+				ownerOnly: true
+			});
+		}
+
+		run(msg) {
+			if (msg.guild != null)
+				return;
+
+			execSync("logs.bat");
+			msg.reply({ files: [{ attachment: "logs.7z" }] })
+				.then(() => require("fs").unlinkSync("logs.7z"))
+				.catch(logger.error);
+		}
+	},
 ];

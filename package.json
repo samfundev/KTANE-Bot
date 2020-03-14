@@ -12,6 +12,7 @@
     "discord.js-commando": "0.10.0",
     "html-entities": "^1.2.1",
     "node-cron": "2.0.1",
+    "node-windows": "^1.0.0-beta.1",
     "request": "2.88.0",
     "sqlite": "3.0.0"
   },
