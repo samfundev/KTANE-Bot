@@ -1,6 +1,4 @@
-const { appendFile } = require("fs");
 const { inspect } = require("util");
-const logFile = "output.log";
 
 const logger = {
 	log: (level = "log", ...data) => {
@@ -8,7 +6,6 @@ const logger = {
 
 		/* eslint-disable no-console */
 		console[level == "info" ? "log" : level](logMessage);
-		appendFile(logFile, logMessage + "\n", null, error => { if (error) console.error(error); });
 		/* eslint-enable no-console */
 	 },
 	 info: function() { logger.log("info", ...arguments); },
