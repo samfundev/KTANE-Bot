@@ -223,7 +223,7 @@ class WorkshopScanner {
 			return null;
 		}
 
-		const changelog_entries = /<p id="([0-9]+)">(.+)<\/p>/.exec(body);
+		const changelog_entries = /<p id="([0-9]+)">(.*)<\/p>/.exec(body);
 		if (changelog_entries.length === 0)
 		{
 			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
