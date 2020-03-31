@@ -18,6 +18,7 @@ const client = new commando.Client({
 
 let voiceText = null;				// #voice-text text channel
 let screensharingLinksPosted = {};	// indexed by Snowflake
+let voiceChannelsRenamed = {};
 
 client
 	.on("error", logger.error)
@@ -99,6 +100,7 @@ client
 			if (!cat || !(vc.parentID in tokens.autoManagedCategories) || cat === catProcessed)
 				return;
 			catProcessed = cat;
+			let channelsForceRename = !voiceChannelsRenamed[vc.parentID];
 
 			let names = tokens.autoManagedCategories[vc.parentID].names;
 			if (!names)
@@ -120,11 +122,15 @@ client
 					return i < names.length ? names[i] : `${convert(((i / names.length)|0) - 1)} ${names[i % names.length]}`;
 				}
 
-				// Rename the 0th channel if it's different
-				if (channels.length === 1 && channels[0].channel.name !== `${prefix} ${convert(0)}`)
+				// Rename the 0th channel if it's different, or all channels if channelsForceRename is true
+				if (channels.length === 1 || channelsForceRename)
 				{
-					channels[0].channel.setName(`${prefix} ${convert(0)}`);
-					ix = 1;
+					for (; ix < channels.length; ix++)
+					{
+						if (channels[ix].channel.name !== `${prefix} ${convert(ix)}`)
+							channels[ix].channel.setName(`${prefix} ${convert(ix)}`);
+					}
+					voiceChannelsRenamed[vc.parentID] = true;
 				}
 
 				// Create a new channel within this category
