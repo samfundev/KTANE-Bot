@@ -169,9 +169,9 @@ class WorkshopScanner {
 
 			if (await this.insert_mod(mod_id, changelog[0]) === true)
 			{
-				if (matchAll(/no bot announcement/ig, changelog[1]).length > 0)
+				if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog[1]).length > 0)
 				{
-					logger.info(`Discord post skipped because description contains "no bot announcement".`);
+					logger.info(`Discord post skipped because description contains ignore tag.`);
 					await this.insert_mod(mod_id, changelog[0]);
 				}
 				else if (await this.post_discord_new_mod(mod_id, entry.title, entry.description, author, image) !== false)
@@ -197,9 +197,9 @@ class WorkshopScanner {
 
 				if (await this.update_mod(mod_id, changelog[0]) === true)
 				{
-					if (matchAll(/no bot announcement/ig, changelog[1]).length > 0)
+					if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog[1]).length > 0)
 					{
-						logger.info(`Discord post skipped because description contains "no bot announcement".`);
+						logger.info(`Discord post skipped because description contains ignore tag.`);
 					}
 					else if (await this.post_discord_update_mod(mod_id, entry.title, author, changelog[1], image) !== false)
 					{
