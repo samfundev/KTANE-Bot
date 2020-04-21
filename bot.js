@@ -17,7 +17,6 @@ const client = new commando.Client({
 });
 
 let voiceText = null;				// #voice-text text channel
-let screensharingLinksPosted = {};	// indexed by Snowflake
 let voiceChannelsRenamed = {};
 
 client
@@ -160,8 +159,6 @@ client
 						if (oneFound)
 						{
 							logmsg += `; deleting ${channels[i].channel.name}`;
-							if (channels[i].channel.id in screensharingLinksPosted)
-								delete screensharingLinksPosted[channels[i].channel.id];
 							channels[i].channel.delete('AutoManage: delete unused channel');
 						}
 						else
@@ -175,12 +172,6 @@ client
 
 		processAutoManagedCategories(oldMember);
 		processAutoManagedCategories(newMember);
-
-		if (newMember && newMember.voiceChannel && !(newMember.voiceChannel.id in screensharingLinksPosted) && (newMember.voiceChannel.parentID in tokens.autoManagedCategories))
-		{
-			screensharingLinksPosted[newMember.voiceChannel.id] = true;
-			voiceText.send(`${newMember.voiceChannel.name} screen-sharing link: <http://www.discordapp.com/channels/${newMember.voiceChannel.guild.id}/${newMember.voiceChannel.id}>`);
-		}
 	})
 	.on("presenceUpdate", (oldMember, newMember) => {
 		// Check any presence changes for a potential streamer
