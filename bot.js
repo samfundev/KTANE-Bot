@@ -256,7 +256,7 @@ client.dispatcher.addInhibitor(msg =>
 
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 let workshopScanner;
-sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db));
+sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db, client));
 
 class ScheduledTask {
 	constructor(timestamp, type, info) {

@@ -4,6 +4,7 @@ const logger = require("./log");
 const { promisify } = require("util");
 const tokens = require("./tokens");
 const Html5Entities = require("html-entities").Html5Entities;
+const { DOMParser } = require("xmldom");
 
 const getAsync = promisify(get);
 
@@ -23,10 +24,21 @@ function matchAll(regex, string) {
 	return allMatches;
 }
 
+function getDate(updateString) {
+	const matches = /(\d{1,2}) ([A-z]{3})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
+	
+	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+	const year = matches[3] ? parseInt(matches[3]) : new Date().getFullYear();
+	const hours = parseInt(matches[4]) + (matches[6] == "pm" ? 12 : 0) + 8; // Time is shown in PST by default which is 8 hours less than UTC.
+	return new Date(Date.UTC(year, months.indexOf(matches[2]), parseInt(matches[1]), hours, parseInt(matches[5])));
+}
+
 class WorkshopScanner {
-	constructor(db) {
+	constructor(db, client) {
 		this.DB = db;
+		this.client = client
 		this.initialized = false;
+		this.avatarCache = {};
 	}
 
 	async init() {
@@ -62,7 +74,7 @@ class WorkshopScanner {
 	async scrape_workshop_list(page_number, number_per_page) {
 		const steam_appid = 341800;
 		const sort_mode = "mostrecent";
-		const workshop_url = `http://steamcommunity.com/workshop/browse/?appid=${steam_appid}&browsesort=${sort_mode}&section=readytouseitems&actualsort=${sort_mode}&p=${page_number}&numperpage=${number_per_page}`;
+		const workshop_url = `https://steamcommunity.com/workshop/browse/?appid=${steam_appid}&browsesort=${sort_mode}&section=readytouseitems&actualsort=${sort_mode}&p=${page_number}&numperpage=${number_per_page}`;
 
 		logger.info(`Beginning scrape of page ${page_number}`);
 
@@ -88,32 +100,35 @@ class WorkshopScanner {
 
 		const entries_to_check = {};
 		for (let match_index = 0; match_index < workshop_mod_entries.length; match_index++) {
-			let workshop_mod_entry_object;
+			let entry_object;
 			const workshop_mod_entry = workshop_mod_entries[match_index];
 			const workshop_mod_entry_json = workshop_mod_entry[4];
 
 			try {
-				workshop_mod_entry_object = JSON.parse(workshop_mod_entry_json);
+				entry_object = JSON.parse(workshop_mod_entry_json);
 			} catch (exception) {
 				logger.error(`Failed to JSON-parse a workshop entry, skipping; scraped contents were: ${workshop_mod_entry_json}`);
 				continue;
 			}
 
-			workshop_mod_entry_object.author = workshop_mod_entry[3];
-			workshop_mod_entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
-
-			const discord_id = await this.get_author_discord_id(workshop_mod_entry_object.author_steamid);
-			workshop_mod_entry_object.author_discordid = discord_id;
-			if (discord_id !== false)
-			{
-				//print "<div class='msg'>Found workshop mod <span class='title'>" . workshop_mod_entry_object.title . "</span> <span class='mod_id'>" . workshop_mod_entry_object.id . "</span> by <span class='author'>" . workshop_mod_entry_object.author . " (" . workshop_mod_entry_object.author_steamid . ") &lt;@" . discord_id . "&gt;</span></div>";
+			entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
+			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
+			
+			if (entry_object.author_discordid !== false) {
+				await this.client.fetchUser(entry_object.author_discordid)
+					.then(user => {
+						entry_object.author = user.username;
+						entry_object.avatar = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
+					})
+					.catch(logger.warn);
+			} else {
+				entry_object.author = workshop_mod_entry[3];
+				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
 			}
-			else
-			{
-				//print "<div class='msg'>Found workshop mod <span class='title'>" . workshop_mod_entry_object.title . "</span> <span class='mod_id'>" . workshop_mod_entry_object.id . "</span> by <span class='author'>" . workshop_mod_entry_object.author . " (" . workshop_mod_entry_object.author_steamid . ") ** No Discord ID matched **</span></div>";
-			}
 
-			entries_to_check[workshop_mod_entry_object.id] = workshop_mod_entry_object;
+			entry_object.authorMention = entry_object.author_discordid !== false ? `<@${entry_object.author_discordid}>` : entry_object.author;
+
+			entries_to_check[entry_object.id] = entry_object;
 		}
 
 		return entries_to_check;
@@ -151,6 +166,23 @@ class WorkshopScanner {
 		return false;
 	}
 
+	async get_steam_avatar(author_steam_id)
+	{
+		if (this.avatarCache.hasOwnProperty(author_steam_id))
+			return this.avatarCache[author_steam_id];
+
+		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
+		const { statusCode, body } = await getAsync(xml_url);
+		if (statusCode != 200) {
+			logger.error(`Failed to retrieve the steam avatar at ${decodeURI(xml_url)}`);
+			return null;
+		}
+
+		const avatar_url = new DOMParser().parseFromString(body, "text/xml").getElementsByTagName("avatarMedium")[0].textContent;
+		this.avatarCache[author_steam_id] = avatar_url;
+		return avatar_url;
+	}
+
 	async check_mod(mod_id, entry, image)
 	{
 		const changelog = await this.get_latest_changelog(mod_id);
@@ -161,54 +193,34 @@ class WorkshopScanner {
 
 		if (await this.is_mod_new(mod_id) === true)
 		{
-			let author = entry.author;
-			if (entry.author_discordid !== false)
+			if (await this.insert_mod(mod_id, changelog.id) === true)
 			{
-				author = `<@${entry.author_discordid}>`;
-			}
-
-			if (await this.insert_mod(mod_id, changelog[0]) === true)
-			{
-				if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog[1]).length > 0)
+				if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0)
 				{
 					logger.info(`Discord post skipped because description contains ignore tag.`);
-					await this.insert_mod(mod_id, changelog[0]);
+					await this.insert_mod(mod_id, changelog.id);
 				}
-				else if (await this.post_discord_new_mod(mod_id, entry.title, entry.description, author, image) !== false)
+				else if (await this.post_discord_new_mod(mod_id, entry, changelog, image) !== false)
 				{
 					logger.info("Discord post added.");
-					await this.insert_mod(mod_id, changelog[0]);
+					await this.insert_mod(mod_id, changelog.id);
 				}
-			}
-			else
-			{
-				//print mysqli_connect_error();
 			}
 		}
 		else
 		{
-			if (await this.is_mod_updated(mod_id, changelog[0]) === false)
+			if (await this.is_mod_updated(mod_id, changelog.id) === false)
 			{
-				let author = entry.author;
-				if (entry.author_discordid !== false)
+				if (await this.update_mod(mod_id, changelog.id) === true)
 				{
-					author = "<@" + entry.author_discordid + ">";
-				}
-
-				if (await this.update_mod(mod_id, changelog[0]) === true)
-				{
-					if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog[1]).length > 0)
+					if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0)
 					{
 						logger.info(`Discord post skipped because description contains ignore tag.`);
 					}
-					else if (await this.post_discord_update_mod(mod_id, entry.title, author, changelog[1], image) !== false)
+					else if (await this.post_discord_update_mod(mod_id, entry, changelog, image) !== false)
 					{
 						logger.info("Discord post added.");
 					}
-				}
-				else
-				{
-					//print mysqli_connect_error();
 				}
 			}
 		}
@@ -216,21 +228,25 @@ class WorkshopScanner {
 
 	async get_latest_changelog(mod_id)
 	{
-		const changelog_url = "http://steamcommunity.com/sharedfiles/filedetails/changelog/" + mod_id;
+		const changelog_url = `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}`;
 		const { statusCode, body } = await getAsync(changelog_url);
 		if (statusCode != 200) {
-			logger.error(`Failed to retrieve the changelog page at  ${decodeURI(changelog_url)}`);
+			logger.error(`Failed to retrieve the changelog page at ${decodeURI(changelog_url)}`);
 			return null;
 		}
 
-		const changelog_entries = /<p id="([0-9]+)">(.*)<\/p>/.exec(body);
+		const changelog_entries = /<div class="changelog headline">([^]+?)<\/div>[^]+?<p id="([0-9]+)">(.*)<\/p>/.exec(body);
 		if (changelog_entries === null)
 		{
 			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}\n${body}`);
 			return null;
 		}
 
-		return [changelog_entries[1], changelog_entries[2]];
+		return {
+			date: getDate(changelog_entries[1]),
+			id: changelog_entries[2],
+			description: changelog_entries[3],
+		}
 	}
 
 	async is_mod_new(mod_id)
@@ -274,28 +290,27 @@ class WorkshopScanner {
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async post_discord_new_mod(mod_id, mod_title, mod_description, author, image)
+	async post_discord_new_mod(mod_id, entry, changelog, image)
 	{
-		//Because @everyone and @here isn't protected in any way, I need to protect from them instead!
-		//mod_title = /(@)(everyone|here|someone|supereveryone)/.replace(mod_title, "$2");
-		//mod_description = /(@)(everyone|here|someone|supereveryone)/.replace(mod_description, "$2");
-		//author = /(@)(everyone|here|someone|supereveryone)/.replace(author, "$2");
-
 		const embed = new Discord.RichEmbed({
-			title: mod_title,
-			url: "http://steamcommunity.com/sharedfiles/filedetails/?id=" + mod_id,
-			fields: [
-				{
-					name: "Description",
-					value: Html5Entities.decode(mod_description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1")).substring(0, 1000),
-				},
-			],
+			title: entry.title,
+			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
+			description: Html5Entities.decode(entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1")).substring(0, 1000),
+			author: {
+				name: entry.author,
+				icon_url: entry.avatar,
+				url: `https://steamcommunity.com/${entry.author_steamid}`
+			},
+			image: {
+				url: image
+			},
+			timestamp: changelog.date
 		});
 
-		embed.setColor("#00aa00").setImage(image);
+		embed.setColor("#00aa00");
 
 		const data = {
-			content: ":new: A new mod has been uploaded to the Steam Workshop! It's called **" + mod_title + "**, by " + author + ":",
+			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${entry.authorMention}:`,
 			options: {
 				disableEveryone: true,
 				embeds: [
@@ -307,28 +322,27 @@ class WorkshopScanner {
 		return await this.post_discord(data, true);
 	}
 
-	async post_discord_update_mod(mod_id, mod_title, author, changelog_description)
+	async post_discord_update_mod(mod_id, entry, changelog, image)
 	{
-		//Because @everyone and @here isn't protected in any way, I need to protect from them instead!
-		//mod_title = /(@)(everyone|here|someone|supereveryone)/.replace(mod_title, "$2");
-		//changelog_description = /(@)(everyone|here|someone|supereveryone)/.replace(changelog_description, "$2");
-		//author = /(@)(everyone|here|someone|supereveryone)/.replace(author, "$2");
-
 		const embed = new Discord.RichEmbed({
-			title: mod_title,
-			url: "http://steamcommunity.com/sharedfiles/filedetails/?id=" + mod_id,
-			fields: [
-				{
-					name: "Changelog Details",
-					value: Html5Entities.decode(changelog_description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1")).substring(0, 1000),
-				},
-			],
+			title: entry.title,
+			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
+			description: Html5Entities.decode(changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1")).substring(0, 1000),
+			author: {
+				name: entry.author,
+				icon_url: entry.avatar,
+				url: `https://steamcommunity.com/${entry.author_steamid}`
+			},
+			thumbnail: {
+				url: image
+			},
+			timestamp: changelog.date
 		});
 
 		embed.setColor("#0055aa");
 
 		const data = {
-			content: ":loudspeaker: " + author + " has posted an update to **" + mod_title + "** on the Steam Workshop!",
+			content: `:loudspeaker: ${entry.authorMention} has posted an update to **${entry.title}** on the Steam Workshop!`,
 			options: {
 				disableEveryone: true,
 				embeds: [
@@ -338,7 +352,7 @@ class WorkshopScanner {
 		};
 
 		const major_regex = /major change|major update|rule[- ]breaking change|manual reprint( is)? (?:required|necessary|needed)|manual update|updated? manual/ig;
-		const major_matches = matchAll(major_regex, changelog_description);
+		const major_matches = matchAll(major_regex, changelog.description);
 		return await this.post_discord(data, major_matches.length > 0);
 	}
 
