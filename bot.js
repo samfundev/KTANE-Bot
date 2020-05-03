@@ -44,7 +44,7 @@ client
 		if (client.provider.get("global", "updating", false)) {
 			client.provider.remove("global", "updating");
 
-			client.fetchUser(client.owners[0].id).then(user => user.send("Update is complete."));
+			client.fetchUser(client.options.owner).then(user => user.send("Update is complete."));
 		}
 	})
 	.on("disconnect", () => { logger.warn("Disconnected!"); })
