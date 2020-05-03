@@ -383,7 +383,7 @@ class WorkshopScanner {
 		}
 
 		if (Object.keys(entries_to_check).length != entries_to_image.length) {
-			logger.warn(`The number of entries (${Object.keys(entries_to_check).length}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned.`);
+			logger.warn(`The number of entries (${Object.keys(entries_to_check).length}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned. Body: ${workshop_page}`);
 			return;
 		}
 
