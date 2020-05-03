@@ -224,9 +224,9 @@ class WorkshopScanner {
 		}
 
 		const changelog_entries = /<p id="([0-9]+)">(.*)<\/p>/.exec(body);
-		if (changelog_entries.length === 0)
+		if (changelog_entries === null)
 		{
-			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
+			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}\n${body}`);
 			return null;
 		}
 
