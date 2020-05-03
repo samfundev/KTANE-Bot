@@ -111,6 +111,9 @@ class WorkshopScanner {
 				continue;
 			}
 
+			entry_object.title = Html5Entities.decode(entry_object.title);
+			entry_object.description = Html5Entities.decode(entry_object.description);
+
 			entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
 			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
 			
@@ -295,7 +298,7 @@ class WorkshopScanner {
 		const embed = new Discord.RichEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
-			description: Html5Entities.decode(entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1")).substring(0, 1000),
+			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
 				name: entry.author,
 				icon_url: entry.avatar,
@@ -327,7 +330,7 @@ class WorkshopScanner {
 		const embed = new Discord.RichEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
-			description: Html5Entities.decode(changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1")).substring(0, 1000),
+			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
 				name: entry.author,
 				icon_url: entry.avatar,
