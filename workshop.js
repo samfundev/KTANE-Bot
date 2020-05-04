@@ -29,7 +29,7 @@ function getDate(updateString) {
 	
 	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 	const year = matches[3] ? parseInt(matches[3]) : new Date().getFullYear();
-	const hours = parseInt(matches[4]) + (matches[6] == "pm" ? 12 : 0) + 8; // Time is shown in PST by default which is 8 hours less than UTC.
+	const hours = parseInt(matches[4]) + (matches[6] == "pm" ? 12 : 0);
 	return new Date(Date.UTC(year, months.indexOf(matches[2]), parseInt(matches[1]), hours, parseInt(matches[5])));
 }
 
@@ -232,7 +232,11 @@ class WorkshopScanner {
 	async get_latest_changelog(mod_id)
 	{
 		const changelog_url = `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}`;
-		const { statusCode, body } = await getAsync(changelog_url);
+		const { statusCode, body } = await getAsync(changelog_url, {
+			headers: {
+				Cookie: "timezoneOffset=0,0"
+			}
+		});
 		if (statusCode != 200) {
 			logger.error(`Failed to retrieve the changelog page at ${decodeURI(changelog_url)}`);
 			return null;
