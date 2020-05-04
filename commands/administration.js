@@ -219,12 +219,16 @@ module.exports = [
 				const embed = new Discord.RichEmbed({
 					title: targetEmbed.title,
 					url: targetEmbed.url,
-					fields: [
-						{
-							name: "Changelog Details",
-							value: targetEmbed.fields[0].value,
-						},
-					],
+					description: targetEmbed.description,
+					author: {
+						name: targetEmbed.author.name,
+						icon_url: targetEmbed.author.iconURL,
+						url: targetEmbed.author.url
+					},
+					thumbnail: {
+						url: targetEmbed.thumbnail.url
+					},
+					timestamp: targetEmbed.timestamp
 				});
 		
 				embed.setColor("#0055aa");
