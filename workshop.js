@@ -3,7 +3,7 @@ const { get } = require("request");
 const logger = require("./log");
 const { promisify } = require("util");
 const tokens = require("./tokens");
-const Html5Entities = require("html-entities").Html5Entities;
+const  { Html5Entities } = require("html-entities");
 const { DOMParser } = require("xmldom");
 
 const getAsync = promisify(get);
@@ -252,7 +252,7 @@ class WorkshopScanner {
 		return {
 			date: getDate(changelog_entries[1]),
 			id: changelog_entries[2],
-			description: changelog_entries[3],
+			description: Html5Entities.decode(changelog_entries[3]),
 		}
 	}
 
