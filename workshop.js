@@ -39,6 +39,7 @@ class WorkshopScanner {
 		this.client = client
 		this.initialized = false;
 		this.avatarCache = {};
+		this.nameCache = {};
 	}
 
 	async init() {
@@ -89,7 +90,7 @@ class WorkshopScanner {
 	}
 
 	async find_workshop_mods(workshop_page) {
-		let workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]+?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
+		let workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
 
 		if (workshop_mod_entries.length === 0) {
 			logger.error("Failed to find any workshop entries");
@@ -125,7 +126,7 @@ class WorkshopScanner {
 					})
 					.catch(logger.warn);
 			} else {
-				entry_object.author = workshop_mod_entry[3];
+				entry_object.author = workshop_mod_entry[3] !== "" ? workshop_mod_entry[3] : await this.get_steam_name(entry_object.author_steamid);
 				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
 			}
 
@@ -171,26 +172,42 @@ class WorkshopScanner {
 
 	async get_steam_avatar(author_steam_id)
 	{
-		if (this.avatarCache.hasOwnProperty(author_steam_id))
-			return this.avatarCache[author_steam_id];
+		if (!this.avatarCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
+			return null;
+		}
+		
+		return this.avatarCache[author_steam_id];
+	}
 
+	async get_steam_name(author_steam_id)
+	{
+		if (!this.nameCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
+			return null;
+		}
+		
+		return this.nameCache[author_steam_id];
+	}
+
+	async get_steam_information(author_steam_id)
+	{
 		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
 		const { statusCode, body } = await getAsync(xml_url);
 		if (statusCode != 200) {
 			logger.error(`Failed to retrieve the steam avatar at ${decodeURI(xml_url)}`);
-			return null;
+			return false;
 		}
 
-		const avatar_url = new DOMParser().parseFromString(body, "text/xml").getElementsByTagName("avatarMedium")[0].textContent;
-		this.avatarCache[author_steam_id] = avatar_url;
-		return avatar_url;
+		const xml_document = new DOMParser().parseFromString(body, "text/xml");
+		this.avatarCache[author_steam_id] = xml_document.getElementsByTagName("avatarMedium")[0].textContent;
+		this.nameCache[author_steam_id] = xml_document.getElementsByTagName("steamID")[0].textContent;
+
+		return true;
 	}
 
 	async check_mod(mod_id, entry, image)
 	{
 		const changelog = await this.get_latest_changelog(mod_id);
-		if (changelog === null)
-		{
+		if (changelog === null) {
 			return;
 		}
 
