@@ -7,6 +7,7 @@ const request = require("request");
 const logger = require("./log");
 const WorkshopScanner = require("./workshop");
 const tokens = require("./tokens");
+const TaskManager = require("./task-manager");
 
 const client = new commando.Client({
 	owner: "76052829285916672",
@@ -15,6 +16,8 @@ const client = new commando.Client({
 	unknownCommandResponse: false,
 	fetchAllMembers: true
 });
+
+TaskManager.client = client;
 
 let voiceText = null;				// #voice-text text channel
 let voiceChannelsRenamed = {};
@@ -214,20 +217,16 @@ client
 						//*
 						// Schedule or unschedule removing the role in two hours
 						if (menuMessageID == "640560537205211146/640563515945385984" && data.user_id !== client.user.id) {
-							let scheduledTasks = client.provider.get("global", "scheduledTasks", []);
-
 							if (reactionAdded) {
-								scheduledTasks.push(new ScheduledTask(Date.now() + 7200000, "removeReaction", {
+								TaskManager.addTask(Date.now() + 7200000, "removeReaction", {
 									channelID: data.channel_id,
 									messageID: data.message_id,
 									userID: data.user_id,
 									emojiKey: emojiKey
-								}));
+								});
 							} else {
-								scheduledTasks = scheduledTasks.filter(task => !(task.info.messageID == data.message_id && task.info.userID == data.user_id && task.info.emojiKey == emojiKey));
+								TaskManager.removeTask("removeReaction", task => task.info.messageID == data.message_id && task.info.userID == data.user_id && task.info.emojiKey == emojiKey);
 							}
-
-							client.provider.set("global", "scheduledTasks", scheduledTasks);
 						}
 						/**/
 					}
@@ -257,14 +256,6 @@ client.dispatcher.addInhibitor(msg =>
 const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 let workshopScanner;
 sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db, client));
-
-class ScheduledTask {
-	constructor(timestamp, type, info) {
-		this.timestamp = timestamp;
-		this.type = type;
-		this.info = info;
-	}
-}
 
 function scheduledTask() {
 	// Scan for new tutorial videos
@@ -337,31 +328,6 @@ cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes
 	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
 
-	// Remove roles after 2 hours
-	let scheduledTasks = client.provider.get("global", "scheduledTasks", []);
-
-	if (scheduledTasks.length == 0)
-		return;
-
-	scheduledTasks = scheduledTasks.filter(task => {
-		if (task.timestamp > Date.now())
-			return true;
-
-		const info = task.info;
-
-		switch (task.type) {
-		case "removeReaction":
-			client.channels.get(info.channelID).fetchMessage(info.messageID).then(message => {
-				message.reactions.get(info.emojiKey).remove(info.userID).catch(logger.error);
-			});
-			break;
-		default:
-			logger.error("Unknown task type: " + task.type);
-			break;
-		}
-
-		return false;
-	});
-
-	client.provider.set("global", "scheduledTasks", scheduledTasks);
+	// Process tasks
+	TaskManager.processTasks();
 });

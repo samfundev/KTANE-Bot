@@ -2,9 +2,26 @@ const Discord = require("discord.js");
 const commando = require("discord.js-commando");
 const tokens = require("./../tokens");
 const logger = require("./../log");
+const TaskManager = require("./../task-manager");
 const sqlite = require("sqlite");
 const { execSync } = require("child_process");
 const { elevate } = require("node-windows");
+
+// All of these are in minutes.
+const durations = {
+	h: 60,
+	d: 1440,
+	w: 10080,
+	m: 43830,
+}
+
+function parseDuration(string) {
+	const matches = /(\d+(?:\.\d+)?)/.exec(args.duration);
+	if (matches == null || !durations.hasOwnProperty(matches[2]))
+		return null;
+
+	return 1000 * 60 * durations[matches[2]] * parseFloat(matches[1]);
+}
 
 module.exports = [
 	class MuteCommand extends commando.Command {
@@ -15,7 +32,7 @@ module.exports = [
 				group: "administration",
 				memberName: "mute",
 				description: "Toggles if someone is allowed to speak in text and voice channels.",
-				examples: ["mute <name>", "m <user>"],
+				examples: ["mute <name> (duration)", "m <user> (duration)"],
 				guildOnly: true,
 
 				args: [
@@ -23,7 +40,13 @@ module.exports = [
 						key: "target",
 						prompt: "Who should be muted?",
 						type: "member"
-					}
+					},
+					{
+						key: "duration",
+						prompt: "How long?",
+						type: "string",
+						default: ""
+					},
 				]
 			});
 		}
@@ -36,17 +59,73 @@ module.exports = [
 			if (args.target.highestRole.comparePositionTo(msg.member.highestRole) < 0) {
 				let muted = args.target.roles.has(tokens.roleIDs.voiceMuted);
 
-				if (muted)
+				const duration = parseDuration(args.duration);
+				if (args.duration != "" && duration == null) {
+					msg.reply("That's an invalid duration.");
+					return;
+				}
+
+				if (muted) {
 					args.target.removeRole(tokens.roleIDs.voiceMuted)
 						.then(() => msg.reply(`${args.target.user.username} has been unmuted.`))
 						.catch(error => { console.log(error); msg.reply("Unable to unmute."); });
-				else
+					
+					TaskManager.removeTask("removeRole", task => task.roleID == tokens.roleIDs.voiceMuted && task.memberID == args.target.id)
+				} else {
 					args.target.addRole(tokens.roleIDs.voiceMuted)
 						.then(() => msg.reply(`${args.target.user.username} has been muted.`))
 						.catch(error => { console.log(error); msg.reply("Unable to mute."); });
+					
+					TaskManager.addTask(Date.now(), "removeRole", { roleID: tokens.roleIDs.voiceMuted, memberID: args.target.id, guildID: msg.guild.id });
+				}
 
 				if (args.target.voiceChannel) args.target.setMute(!muted).catch(() => msg.reply("Unable to change server mute status."));
 			} else msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
+		}
+	},
+	class BanCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "ban",
+				aliases: ["ban", "b"],
+				group: "administration",
+				memberName: "ban",
+				description: "Bans someone for a specified duration.",
+				examples: ["ban <user> <duration>", "b <user> <duration>"],
+				guildOnly: true,
+
+				args: [
+					{
+						key: "target",
+						prompt: "Who should be banned?",
+						type: "member"
+					},
+					{
+						key: "duration",
+						prompt: "How long?",
+						type: "string"
+					}
+				]
+			});
+		}
+
+		hasPermission(msg) {
+			return msg.member.hasPermission("BAN_MEMBERS");
+		}
+
+		run(msg, args) {
+			const duration = parseDuration(args.duration);
+			if (duration == null) {
+				msg.reply("That's an invalid duration.");
+				return;
+			}
+
+			args.target.ban()
+				.then(() => {
+					msg.reply("The user has been banned.");
+					TaskManager.addTask(Date.now() + duration, "unbanMember", { guildID: msg.guild.id, memberID: args.target.id });
+				})
+				.catch(logger.error);
 		}
 	},
 	class ToggleRoleCommand extends commando.Command {
