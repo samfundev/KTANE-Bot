@@ -83,6 +83,63 @@ module.exports = [
 			} else msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
 		}
 	},
+	class ReactionCommand extends commando.Command {
+		constructor(client) {
+			super(client, {
+				name: "reaction",
+				aliases: ["reaction", "react"],
+				group: "administration",
+				memberName: "reaction",
+				description: "Toggles if someone is allowed to react.",
+				examples: ["reaction <name> (duration)", "react <user> (duration)"],
+				guildOnly: true,
+
+				args: [
+					{
+						key: "target",
+						prompt: "Who should be allowed/prevented from reacting?",
+						type: "member"
+					},
+					{
+						key: "duration",
+						prompt: "How long?",
+						type: "string",
+						default: ""
+					},
+				]
+			});
+		}
+
+		hasPermission(msg) {
+			return msg.member.hasPermission("MUTE_MEMBERS");
+		}
+
+		run(msg, args) {
+			if (args.target.highestRole.comparePositionTo(msg.member.highestRole) < 0) {
+				let noReaction = args.target.roles.has(tokens.roleIDs.noReaction);
+
+				const duration = parseDuration(args.duration);
+				if (args.duration != "" && duration == null) {
+					msg.reply("That's an invalid duration.");
+					return;
+				}
+
+				if (noReaction) {
+					args.target.removeRole(tokens.roleIDs.noReaction)
+						.then(() => msg.reply(`${args.target.user.username} has been allowed to react.`))
+						.catch(error => { console.log(error); msg.reply("Unable to remove role."); });
+					
+					TaskManager.removeTask("removeRole", task => task.roleID == tokens.roleIDs.noReaction && task.memberID == args.target.id)
+				} else {
+					args.target.addRole(tokens.roleIDs.noReaction)
+						.then(() => msg.reply(`${args.target.user.username} has been prevented from reacting.`))
+						.catch(error => { console.log(error); msg.reply("Unable to add role."); });
+					
+					TaskManager.addTask(Date.now(), "removeRole", { roleID: tokens.roleIDs.noReaction, memberID: args.target.id, guildID: msg.guild.id });
+				}
+			} else msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
+		}
+	},
 	class BanCommand extends commando.Command {
 		constructor(client) {
 			super(client, {
