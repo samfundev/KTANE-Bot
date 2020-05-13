@@ -4,11 +4,11 @@ class TaskManager {
 	static client;
 
 	static get tasks() {
-		return client.provider.get("global", "scheduledTasks", []);
+		return this.client.provider.get("global", "scheduledTasks", []);
 	}
 
 	static set tasks(newTasks) {
-		client.provider.set("global", "scheduledTasks", newTasks);
+		this.client.provider.set("global", "scheduledTasks", newTasks);
 	}
 
 	static modifyTasks(func) {
@@ -39,20 +39,20 @@ class TaskManager {
 	
 				switch (task.type) {
 					case "removeReaction":
-						client.channels.get(info.channelID).fetchMessage(info.messageID).then(message => {
+						this.client.channels.get(info.channelID).fetchMessage(info.messageID).then(message => {
 							message.reactions.get(info.emojiKey).remove(info.userID).catch(logger.error);
 						});
 						break;
 					case "unbanMember":
-						client.guilds.get(info.guildID).unban(info.memberID).catch(reason => {
+						this.client.guilds.get(info.guildID).unban(info.memberID).catch(reason => {
 							logger.error("failed to unban", info.memberID, reason);
-							client.fetchUser(client.options.owner).then(user => user.send("Failed to unban a user. Check the logs."));
+							this.client.fetchUser(this.client.options.owner).then(user => user.send("Failed to unban a user. Check the logs."));
 						});
 						break;
 					case "removeRole":
-						client.guilds.get(info.guildID).fetchMember(info.memberID).removeRole(info.roleID).catch(reason => {
+						this.client.guilds.get(info.guildID).fetchMember(info.memberID).removeRole(info.roleID).catch(reason => {
 							logger.error("failed to remove role", info.memberID, info.roleID, reason);
-							client.fetchUser(client.options.owner).then(user => user.send("Failed to remove a role. Check the logs."));
+							this.client.fetchUser(this.client.options.owner).then(user => user.send("Failed to remove a role. Check the logs."));
 						});
 						break;
 					default:

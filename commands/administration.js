@@ -16,7 +16,7 @@ const durations = {
 }
 
 function parseDuration(string) {
-	const matches = /(\d+(?:\.\d+)?)/.exec(args.duration);
+	const matches = /(\d+(?:\.\d+)?)([a-z])/.exec(string);
 	if (matches == null || !durations.hasOwnProperty(matches[2]))
 		return null;
 
