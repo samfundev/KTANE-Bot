@@ -300,8 +300,8 @@ function scheduledTask() {
 function checkStreamingStatus(member) {
 	let game = member.presence.game;
 	let streamingKTANE = game && game.streaming && (
-		(game.name + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
-		(game.name + game.details).toLowerCase().includes("ktane"));
+		(game.state + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
+		(game.state + game.details).toLowerCase().includes("ktane"));
 	let hasRole = member.roles.has(tokens.roleIDs.streaming);
 	let actionTaken = null;
 	if (hasRole && !streamingKTANE)
