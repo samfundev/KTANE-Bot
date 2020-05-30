@@ -258,7 +258,17 @@ let workshopScanner;
 sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db, client));
 
 function scheduledTask() {
-	// Scan for new tutorial videos
+	// Scan for new KTANE-related YouTube videos
+
+	let videosAnnounced = client.provider.get("global", "videosAnnounced"), lastVideoScans = null;
+	if (videosAnnounced === undefined)
+	{
+		logger.info("videosAnnounced is undefined");
+		videosAnnounced = [];
+	}
+	else
+		videosAnnounced = JSON.parse(videosAnnounced);
+
 	let nowTime = new Date();
 	for (let videoChannel of tokens.tutorialVideoChannels) {
 		request({
@@ -268,31 +278,20 @@ function scheduledTask() {
 			if (err) { logger.error(err); return; }
 			if (resp.statusCode != 200) { logger.error(`Failed to get videos, status code: ${resp.statusCode}`); return; }
 
-			let lastVideoScans = client.provider.get("global", "lastVideoScans");
-			if (lastVideoScans === undefined) {
-				logger.info("lastVideoScans is undefined");
-				return;
-			}
-			lastVideoScans = JSON.parse(lastVideoScans);
-
 			for (let item of json.items.reverse()) {
 				let snippet = item.snippet;
-				let time = new Date(snippet.publishedAt);
-				let lastScan = (videoChannel.name in lastVideoScans) ? new Date(lastVideoScans[videoChannel.name]) : null;
-				if (snippet.title.toLowerCase().indexOf("ktane") !== -1 ||
-					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") !== -1) {
-					if (lastScan === null || time.getTime() >= lastScan.getTime()) {
-						videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
-						logger.info(`Announced ${videoChannel.name} video ${snippet.title}.`);
-					} else {
-						logger.info(`Not announcing ${videoChannel.name} video ${snippet.title} because time is ${time}; last scan was ${lastScan}.`);
-					}
-				}
+				if (videosAnnounced.includes(snippet.resourceId.videoId))
+					continue;
+				if (snippet.title.toLowerCase().indexOf("ktane") === -1 &&
+					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
+					continue;
+				videosAnnounced.push(snippet.resourceId.videoId);
+				videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+				logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
 			}
 
-			logger.info(`Video channel ${videoChannel.name} checked. Last check was ${lastVideoScans[videoChannel.name]}.`);
-			lastVideoScans[videoChannel.name] = nowTime;
-			client.provider.set("global", "lastVideoScans", JSON.stringify(lastVideoScans));
+			logger.info(`Video channel ${videoChannel.name} checked.`);
+			client.provider.set("global", "videosAnnounced", JSON.stringify(videosAnnounced));
 		});
 	}
 }
