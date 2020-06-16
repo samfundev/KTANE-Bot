@@ -1,8 +1,9 @@
-const commando = require("discord.js-commando");
-const tokens = require("./../tokens");
+import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
+import tokens from "./../get-tokens";
+import { Role, Collection, Snowflake } from 'discord.js';
 const logger = require("./../log");
 
-function getRole(roleName, assignableData, guildRoles) {
+function getRole(roleName: string, assignableData: Assignable[], guildRoles: Collection<string, Role>) {
 	let targetRole = roleName.toLowerCase();
 	for (let roleData of assignableData) {
 		if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
@@ -12,12 +13,12 @@ function getRole(roleName, assignableData, guildRoles) {
 				return;
 			}
 
-			return [ role, roleData ];
+			return { role, roleData };
 		}
 	}
 }
 
-function shuffle(a) {
+function shuffle(a: any[]) {
 	var j, x, i;
 	for (i = a.length - 1; i > 0; i--) {
 		j = Math.floor(Math.random() * (i + 1));
@@ -28,9 +29,19 @@ function shuffle(a) {
 	return a;
 }
 
+interface RoleArgument {
+	role: string;
+}
+
+interface Assignable {
+	aliases: string[];
+	roleID: Snowflake;
+	prereq: Snowflake[];
+}
+
 module.exports = [
-	class RoleCommand extends commando.Command {
-		constructor(client) {
+	class RoleCommand extends Command {
+		constructor(client: CommandoClient) {
 			super(client, {
 				name: "role",
 				aliases: ["role", "r"],
@@ -50,28 +61,27 @@ module.exports = [
 			});
 		}
 
-		run(msg, args) {
-			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
+		run(msg: CommandoMessage, args: RoleArgument) {
+			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles.cache);
 			if (roleInf !== undefined) {
-				const role = roleInf[0], roleData = roleInf[1];
-				if (roleData.prereq && !roleData.prereq.some(pre => msg.member.roles.has(pre))) {
-					msg.channel.send(`You can’t self-assign the "${role.name}" role because you don’t have any of its prerequisite roles.`);
-					return;
+				const { role, roleData } = roleInf;
+				if (roleData.prereq && !roleData.prereq.some(pre => msg.member.roles.cache.has(pre))) {
+					return msg.channel.send(`You can’t self-assign the "${role.name}" role because you don’t have any of its prerequisite roles.`);
 				}
-				if (msg.member.roles.has(role.id)) {
-					msg.member.removeRole(role)
+				if (msg.member.roles.cache.has(role.id)) {
+					return msg.member.roles.remove(role)
 						.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
 						.catch(logger.error);
 				} else {
-					msg.member.addRole(role)
+					return msg.member.roles.add(role)
 						.then(() => msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`))
 						.catch(logger.error);
 				}
 			}
 		}
 	},
-	class RoleListCommand extends commando.Command {
-		constructor(client) {
+	class RoleListCommand extends Command {
+		constructor(client: CommandoClient) {
 			super(client, {
 				name: "rolelist",
 				aliases: ["rolelist", "rl", "roles"],
@@ -87,12 +97,12 @@ module.exports = [
 			});
 		}
 
-		run(msg) {
-			msg.channel.send(`Roles:\n${tokens.roleIDs.assignable.map(role => ` - ${role.aliases.join(", ")}`).join("\n")}`);
+		run(msg: CommandoMessage) {
+			return msg.channel.send(`Roles:\n${tokens.roleIDs.assignable.map(role => ` - ${role.aliases.join(", ")}`).join("\n")}`);
 		}
 	},
-	class WhoHasRoleCommand extends commando.Command {
-		constructor(client) {
+	class WhoHasRoleCommand extends Command {
+		constructor(client: CommandoClient) {
 			super(client, {
 				name: "who-has",
 				aliases: ["whohasrole", "whr", "whohas", "wh", "who", "w"],
@@ -112,12 +122,12 @@ module.exports = [
 			});
 		}
 
-		run(msg, args) {
-			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles);
+		run(msg: CommandoMessage, args: RoleArgument) {
+			const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles.cache);
 			if (roleInf !== undefined) {
-				const role = roleInf[0];
+				const { role } = roleInf;
 				const members = shuffle(Array.from(role.members.values())).filter((_, index) => index < 10);
-				msg.channel.send(`Here is ${members.length} (of ${role.members.size}) users with the ${role.name} role:\n${members.map(member => ` - ${member.user.username}#${member.user.discriminator}`).join("\n")}`);
+				return msg.channel.send(`Here is ${members.length} (of ${role.members.size}) users with the ${role.name} role:\n${members.map(member => ` - ${member.user.username}#${member.user.discriminator}`).join("\n")}`);
 			}
 		}
 	}

@@ -1,41 +1,41 @@
-const Discord = require("discord.js");
-const commando = require("discord.js-commando");
-const cron = require("node-cron");
-const path = require("path");
-const sqlite = require("sqlite");
-const request = require("request");
-const logger = require("./log");
-const WorkshopScanner = require("./workshop");
-const tokens = require("./tokens");
-const TaskManager = require("./task-manager");
+import { GuildChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient } from 'discord.js';
+import * as commando from "discord.js-commando";
+import cron from "node-cron";
+import path from "path";
+import * as sqlite from "sqlite";
+import sqlite3 from "sqlite3";
+import request from "request";
+import logger from "./log";
+import WorkshopScanner from "./workshop";
+import TaskManager from "./task-manager";
+import tokens from "./get-tokens";
 
-const client = new commando.Client({
+const client = new commando.CommandoClient({
 	owner: "76052829285916672",
 	commandPrefix: "!",
 	nonCommandEditable: false,
-	unknownCommandResponse: false,
 	fetchAllMembers: true
 });
 
 TaskManager.client = client;
 
-let voiceText = null;				// #voice-text text channel
-let voiceChannelsRenamed = {};
+let voiceText: GuildChannel = null;	// #voice-text text channel
+let voiceChannelsRenamed: { [id: string]: boolean } = {};
 
 client
 	.on("error", logger.error)
 	.on("warn", logger.warn)
 	.on("debug", logger.info)
 	.on("ready", () => {
-		logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client.user.id})`)
+		logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client?.user.id})`);
 
 		// Scan for new or ended KTANE streams to catch anyone before we started up
-		client.guilds.forEach(guild => {
+		client.guilds.cache.forEach(guild => {
 			if (!guild.available)
 				return;
 
-			guild.members.forEach(checkStreamingStatus);
-			guild.channels.forEach(channel => {
+			guild.members.cache.forEach(checkStreamingStatus);
+			guild.channels.cache.forEach(channel => {
 				if (channel.name === 'voice-text' && channel.type === 'text')
 					voiceText = channel;
 			});
@@ -47,7 +47,8 @@ client
 		if (client.provider.get("global", "updating", false)) {
 			client.provider.remove("global", "updating");
 
-			client.fetchUser(client.options.owner).then(user => user.send("Update is complete."));
+			if (typeof client.options.owner == "string")
+				client.users.fetch(client.options.owner).then(user => user.send("Update is complete."));
 		}
 	})
 	.on("disconnect", () => { logger.warn("Disconnected!"); })
@@ -56,9 +57,12 @@ client
 		logger.error(`Error in command ${cmd.groupID}:${cmd.memberName}`, err);
 	})
 	.on("message", (message) => {
+		if (message.channel.type != "text")
+			return;
+
 		if (message.channel.name == "voice-text") {
 			message.attachments.some(attachment => {
-				var file = attachment.filename;
+				var file = attachment.name;
 				if (file.includes("output_log") || file.includes("Player.log")) {
 					message.channel.send({
 						embed: {
@@ -71,30 +75,32 @@ client
 				}
 			});
 		} else if (message.channel.name == "rules") {
-			if (message.member.highestRole.comparePositionTo(message.guild.roles.get(tokens.roleIDs.moderator)) >= 0)
+			if (message.member.roles.highest.comparePositionTo(message.guild.roles.cache.get(tokens.roleIDs.moderator)) >= 0)
 				return;
 
 			message.delete().catch(logger.error);
 		}
 	})
-	.on("voiceStateUpdate", (oldMember, newMember) => {
+	.on("voiceStateUpdate", (oldState, newState) => {
+		const oldMember = oldState.member;
+		const newMember = newState.member;
 
 		// VOICE-MUTING
-		let muted = newMember.roles.has(tokens.roleIDs.voiceMuted);
-		if (muted != newMember.serverMute)
-			newMember.setMute(muted);
+		let muted = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
+		if (muted != newMember.voice.serverMute)
+			newMember.voice.setMute(muted);
 
 		// PROCESS AUTO-MANAGED CATEGORIES (adding/removing channels as needed)
-		if (oldMember.voiceChannel === newMember.voiceChannel)
+		if (oldMember.voice.channel === newMember.voice.channel)
 			return;
 
-		var catProcessed = null;
+		var catProcessed: CategoryChannel = null;
 
-		function processAutoManagedCategories(member)
+		function processAutoManagedCategories(member: GuildMember)
 		{
 			if (!member)
 				return;
-			let vc = member.voiceChannel;
+			let vc = member.voice.channel;
 			if (!vc)
 				return;
 			let cat = vc.parent;
@@ -117,8 +123,8 @@ client
 			let numEmpty = channels.filter(ch => ch.members === 0).length;
 			if (numEmpty < 1)
 			{
-				let ix = 0, name;
-				function convert(i)
+				let ix = 0, name: string;
+				function convert(i: number): string
 				{
 					return i < names.length ? names[i] : `${convert(((i / names.length)|0) - 1)} ${names[i % names.length]}`;
 				}
@@ -143,7 +149,7 @@ client
 				while (channels.filter(ch => ch.channel.name === name).length > 0);
 
 				logmsg += `; creating ${name}`;
-				cat.guild.createChannel(name, {
+				cat.guild.channels.create(name, {
 					type: 'voice',
 					reason: 'AutoManage: create new empty channel'
 				})
@@ -179,19 +185,19 @@ client
 		// Check any presence changes for a potential streamer
 		checkStreamingStatus(newMember);
 	})
-	.on("raw", async event => {
+	.on("raw", async (event: any) => {
 		if (event.t == "MESSAGE_REACTION_ADD" || event.t == "MESSAGE_REACTION_REMOVE")
 		{
 			const reactionAdded = event.t == "MESSAGE_REACTION_ADD";
 			const { d: data } = event;
-			const user = client.users.get(data.user_id);
-			const channel = client.channels.get(data.channel_id);
+			const user = client.users.cache.get(data.user_id);
+			const channel = client.channels.cache.get(data.channel_id);
 
 			if (channel == null || channel.type != "text") return;
 
-			const message = await channel.fetchMessage(data.message_id);
+			const message = await (channel as TextChannel).messages.fetch(data.message_id);
 			const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
-			let reaction = message.reactions.get(emojiKey);
+			let reaction = message.reactions.cache.get(emojiKey);
 
 			if (channel.id == "612414629179817985") {
 				if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
@@ -209,9 +215,9 @@ client
 
 						const guildMember = message.guild.member(user);
 						if (reactionAdded) {
-							guildMember.addRole(roleID).catch(logger.error);
+							guildMember.roles.add(roleID).catch(logger.error);
 						} else {
-							guildMember.removeRole(roleID).catch(logger.error);
+							guildMember.roles.remove(roleID).catch(logger.error);
 						}
 
 						//*
@@ -240,24 +246,29 @@ client.registry
 		["public", "Public"],
 		["administration", "Administration"]
 	])
-	.registerDefaults()
+	.registerDefaultTypes()
+	.registerDefaultGroups()
+	.registerDefaultCommands({
+		unknownCommand: false
+	})
 	.registerCommandsIn(path.join(__dirname, "commands"));
 
 client.setProvider(
-	sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(db => new commando.SQLiteProvider(db))
+	sqlite.open({ filename: path.join(__dirname, "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => new commando.SQLiteProvider(db))
 ).catch(logger.error);
 
 client.dispatcher.addInhibitor(msg =>
-	msg.guild == null || ["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name) ||
-	(msg.command != null && (msg.command.memberName == "refresh-rolemenu" || (msg.command.memberName == "agree" && msg.channel.name == "rules"))) ?
+	msg.guild == null || (msg.channel.type == "text" && ["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name)) ||
+	(msg.command != null && (msg.command.memberName == "refresh-rolemenu" || (msg.command.memberName == "agree" && msg.channel.type == "text" && msg.channel.name == "rules"))) ?
 		false : "Commands are not allowed in this channel."
 );
 
-const videoBot = new Discord.WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
-let workshopScanner;
-sqlite.open(path.join(__dirname, "database.sqlite3"), { cached: true }).then(async db => workshopScanner = new WorkshopScanner(db, client));
+const videoBot = new WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
+let workshopScanner: WorkshopScanner;
+sqlite.open({ filename: path.join(__dirname, "database.sqlite3"), driver: sqlite3.cached.Database }).then(async db => workshopScanner = new WorkshopScanner(db, client));
 
 function scheduledTask() {
+	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
 	let videosAnnounced = client.provider.get("global", "videosAnnounced"), lastVideoScans = null;
@@ -296,25 +307,24 @@ function scheduledTask() {
 	}
 }
 
-function checkStreamingStatus(member) {
-	let game = member.presence.game;
-	let streamingKTANE = game && game.streaming && (
-		(game.state + game.details).toLowerCase().includes("keep talking and nobody explodes") ||
-		(game.state + game.details).toLowerCase().includes("ktane"));
-	let hasRole = member.roles.has(tokens.roleIDs.streaming);
+function checkStreamingStatus(member: GuildMember) {
+	if (tokens.debugging) return;
+	let activities = member.presence.activities;
+	let streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
+	let hasRole = member.roles.cache.has(tokens.roleIDs.streaming);
 	let actionTaken = null;
 	if (hasRole && !streamingKTANE)
 	{
-		member.removeRole(tokens.roleIDs.streaming).catch(logger.error);
+		member.roles.remove(tokens.roleIDs.streaming).catch(logger.error);
 		actionTaken = '; removing streaming role';
 	}
 	else if (!hasRole && streamingKTANE)
 	{
-		member.addRole(tokens.roleIDs.streaming).catch(logger.error);
+		member.roles.add(tokens.roleIDs.streaming).catch(logger.error);
 		actionTaken = '; adding streaming role';
 	}
 	if (actionTaken !== null)
-		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`, game);
+		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`, activities);
 }
 
 client.login(tokens.botToken);
@@ -325,7 +335,7 @@ cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length) + 1
 
 cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes
-	workshopScanner.run().catch(error => logger.error("Unable to run workshop scan:", error));
+	workshopScanner.run().catch((error: any) => logger.error("Unable to run workshop scan:", error));
 
 	// Process tasks
 	TaskManager.processTasks();

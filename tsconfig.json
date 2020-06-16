@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"outDir": "dist",
+		"allowJs": true,
+		"lib": ["ES2019"],
+		"module": "commonjs",
+		"target": "ES2019",
+		"removeComments": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"noImplicitAny": true,
+		"importHelpers": true,
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

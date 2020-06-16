@@ -1,31 +1,39 @@
-const commando = require("discord.js-commando");
+import { Command, CommandoClient, CommandoMessage, CommandoGuild, SettingProvider } from "discord.js-commando"
 
-class Settings {
-	constructor(msg) {
+class Settings extends SettingProvider {
+	guild: CommandoGuild;
+	provider: SettingProvider;
+
+	constructor(msg: CommandoMessage) {
+		super();
 		this.guild = msg.guild;
 		this.provider = msg.client.provider;
 	}
 
-	get(key, def) {
+	get(key: string, def?: any) {
 		return this.provider.get(this.guild, key, def || null);
 	}
 
-	set(key, val) {
+	set(key: string, val: any) {
 		return this.provider.set(this.guild, key, val);
 	}
 
-	remove(key) {
+	remove(key: string) {
 		return this.provider.remove(this.guild, key);
 	}
 
 	clear() {
-		return this.provider.remove(this.guild);
+		return this.provider.clear(this.guild);
 	}
 }
 
+interface NameArgument {
+	name: string;
+}
+
 module.exports = [
-	class AddProfileCommand extends commando.Command {
-		constructor(client) {
+	class AddProfileCommand extends Command {
+		constructor(client: CommandoClient) {
 			super(client, {
 				name: "add-profile",
 				aliases: ["addprofile", "profileadd"],
@@ -40,22 +48,22 @@ module.exports = [
 						key: "name",
 						prompt: "Please give a name to the profile.",
 						type: "string",
-						default: false
+						default: ""
 					}
 				]
 			});
 		}
 
-		hasPermission(msg) {
+		hasPermission(msg: CommandoMessage) {
 			return this.client.isOwner(msg.author);
 		}
 
-		run(msg, args) {
+		run(msg: CommandoMessage, args: NameArgument) {
 			if (msg.attachments.size == 1) {
 				var settings = new Settings(msg);
 				var profiles;
 				var url = msg.attachments.first().url;
-				if (args.name == false) {
+				if (args.name === "") {
 					profiles = settings.get("user-profiles", {});
 					var exists = (msg.member.id in profiles);
 
@@ -63,9 +71,9 @@ module.exports = [
 					settings.set("user-profiles", profiles);
 
 					if (exists) {
-						msg.reply("User profile updated successfully!");
+						return msg.reply("User profile updated successfully!");
 					} else {
-						msg.reply("New user profile created successfully!");
+						return msg.reply("New user profile created successfully!");
 					}
 				} else {
 					var name = args.name;
@@ -74,13 +82,13 @@ module.exports = [
 						if (profiles[name].id == msg.member.id) {
 							profiles[name].url = url;
 							settings.set("name-profiles", profiles);
-							msg.reply("Profile updated successfully!");
+							return msg.reply("Profile updated successfully!");
 						} else {
-							msg.client.fetchUser(profiles[name].id).then((user) => {
-								msg.reply("Sorry, that profile name already taken by " + user.username + ".");
-							}).catch(() => {
-								msg.reply("Sorry, that profile name is already taken.");
-							});
+							msg.client.users.fetch(profiles[name].id).then((user) => 
+								msg.reply("Sorry, that profile name already taken by " + user.username + ".")
+							).catch(() => 
+								msg.reply("Sorry, that profile name is already taken.")
+							);
 						}
 					} else {
 						profiles[name] = {
@@ -88,18 +96,18 @@ module.exports = [
 							id: msg.member.id
 						};
 						settings.set("name-profiles", profiles);
-						msg.reply("New profile created successfully!");
+						return msg.reply("New profile created successfully!");
 					}
 				}
 			} else if (msg.attachments.size == 0) {
-				msg.reply("Please attach the profile with your message.");
+				return msg.reply("Please attach the profile with your message.");
 			} else {
-				msg.reply("Please only attach one profile.");
+				return msg.reply("Please only attach one profile.");
 			}
 		}
 	},
-	class GetProfile extends commando.Command {
-		constructor(client) {
+	class GetProfile extends Command {
+		constructor(client: CommandoClient) {
 			super(client, {
 				name: "get-profile",
 				aliases: ["getprofile", "profileget"],
@@ -114,22 +122,22 @@ module.exports = [
 						key: "name",
 						prompt: "Please give a name to the profile.",
 						type: "string",
-						default: false
+						default: ""
 					}
 				]
 			});
 		}
 
-		hasPermission(msg) {
+		hasPermission(msg: CommandoMessage) {
 			return this.client.isOwner(msg.author);
 		}
 
-		run(msg, args) {
+		run(msg: CommandoMessage, args: NameArgument) {
 			if (msg.attachments.size == 1) {
 				var settings = new Settings(msg);
 				var profiles;
 				var url = msg.attachments.first().url;
-				if (args.name == false) {
+				if (args.name === "") {
 					profiles = settings.get("user-profiles", {});
 					var exists = (msg.member.id in profiles);
 
@@ -137,9 +145,9 @@ module.exports = [
 					settings.set("user-profiles", profiles);
 
 					if (exists) {
-						msg.reply("User profile updated successfully!");
+						return msg.reply("User profile updated successfully!");
 					} else {
-						msg.reply("New user profile created successfully!");
+						return msg.reply("New user profile created successfully!");
 					}
 				} else {
 					var name = args.name;
@@ -148,13 +156,13 @@ module.exports = [
 						if (profiles[name].id == msg.member.id) {
 							profiles[name].url = url;
 							settings.set("name-profiles", profiles);
-							msg.reply("Profile updated successfully!");
+							return msg.reply("Profile updated successfully!");
 						} else {
-							msg.client.fetchUser(profiles[name].id).then((user) => {
-								msg.reply("Sorry, that profile name already taken by " + user.username + ".");
-							}).catch(() => {
-								msg.reply("Sorry, that profile name is already taken.");
-							});
+							msg.client.users.fetch(profiles[name].id).then((user) => 
+								msg.reply("Sorry, that profile name already taken by " + user.username + ".")
+							).catch(() => 
+								msg.reply("Sorry, that profile name is already taken.")
+							);
 						}
 					} else {
 						profiles[name] = {
@@ -162,13 +170,13 @@ module.exports = [
 							id: msg.member.id
 						};
 						settings.set("name-profiles", profiles);
-						msg.reply("New profile created successfully!");
+						return msg.reply("New profile created successfully!");
 					}
 				}
 			} else if (msg.attachments.size == 0) {
-				msg.reply("Please attach the profile with your message.");
+				return msg.reply("Please attach the profile with your message.");
 			} else {
-				msg.reply("Please only attach one profile.");
+				return msg.reply("Please only attach one profile.");
 			}
 		}
 	}

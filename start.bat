@@ -1,4 +1,4 @@
 @echo off
 TITLE KTANE Bot
-node --harmony bot.js
+node dist/bot.js
 pause

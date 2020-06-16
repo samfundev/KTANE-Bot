@@ -1,17 +1,20 @@
-const Discord = require("discord.js");
-const { get } = require("request");
+import { CommandoClient, util } from 'discord.js-commando';
+import { Database } from 'sqlite';
+
+import Discord from "discord.js";
+import { get, RequestCallback, Request, Response, CoreOptions } from "request";
 const logger = require("./log");
-const { promisify } = require("util");
+import { promisify } from "util";
 const tokens = require("./tokens");
-const  { Html5Entities } = require("html-entities");
+const { Html5Entities } = require("html-entities");
 const { DOMParser } = require("xmldom");
 
-const getAsync = promisify(get);
+const getAsync = promisify(get as ((uri: string, options?: CoreOptions, callback?: RequestCallback) => Request)) as ((uri: string, options?: CoreOptions) => Promise<Response>);
 
 const major_webhook = new Discord.WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token);
 const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook.id, tokens.minorWebhook.token);
 
-function matchAll(regex, string) {
+function matchAll(regex: RegExp, string: string) {
 	if (!regex.global) throw "Regex must be global";
 
 	let matches;
@@ -24,7 +27,7 @@ function matchAll(regex, string) {
 	return allMatches;
 }
 
-function getDate(updateString) {
+function getDate(updateString: string) {
 	const matches = /(\d{1,2}) ([A-z]{3})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
 	
 	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -33,8 +36,31 @@ function getDate(updateString) {
 	return new Date(Date.UTC(year, months.indexOf(matches[2]), parseInt(matches[1]), hours, parseInt(matches[5])));
 }
 
+interface EntryObject {
+	id: string;
+	title: string;
+	description: string;
+	author: string;
+	authorMention: string;
+	author_steamid: string;
+	author_discordid: string | false;
+	avatar: string;
+}
+
+interface Changelog {
+	date: Date;
+	id: string;
+	description: string;
+}
+
 class WorkshopScanner {
-	constructor(db, client) {
+	DB: Database;
+	client: CommandoClient;
+	initialized: boolean;
+	avatarCache: { [author_steam_id: string]: string };
+	nameCache: { [author_steam_id: string]: string };
+
+	constructor(db: Database, client: CommandoClient) {
 		this.DB = db;
 		this.client = client
 		this.initialized = false;
@@ -49,7 +75,7 @@ class WorkshopScanner {
 		this.initialized = true;
 	}
 
-	async get_page_index() {
+	async get_page_index(): Promise<number> {
 		/*
 		if(isset($_GET["page"]))
 		{
@@ -66,20 +92,20 @@ class WorkshopScanner {
 		return 0;
 	}
 
-	async set_page_index(page_index) {
+	async set_page_index(page_index: number) {
 		const sql = "UPDATE page_id SET page_id = " + page_index;
 
 		await this.DB.run(sql);
 	}
 
-	async scrape_workshop_list(page_number, number_per_page) {
+	async scrape_workshop_list(page_number: number, number_per_page: number) {
 		const steam_appid = 341800;
 		const sort_mode = "mostrecent";
 		const workshop_url = `https://steamcommunity.com/workshop/browse/?appid=${steam_appid}&browsesort=${sort_mode}&section=readytouseitems&actualsort=${sort_mode}&p=${page_number}&numperpage=${number_per_page}`;
 
 		logger.info(`Beginning scrape of page ${page_number}`);
 
-		const { statusCode, body } = await getAsync(workshop_url);
+		const { statusCode, body }: { statusCode: number, body: string } = await getAsync(workshop_url);
 		if (statusCode != 200) {
 			logger.error(`Failed to retrieve the workshop page at ${decodeURI(workshop_url)}`);
 			return false;
@@ -89,7 +115,7 @@ class WorkshopScanner {
 		return body;
 	}
 
-	async find_workshop_mods(workshop_page) {
+	async find_workshop_mods(workshop_page: string) {
 		let workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
 
 		if (workshop_mod_entries.length === 0) {
@@ -99,9 +125,9 @@ class WorkshopScanner {
 
 		logger.info(`Found ${workshop_mod_entries.length} workshop entry matches`);
 
-		const entries_to_check = {};
+		const entries_to_check: { [id: string]: EntryObject } = {};
 		for (let match_index = 0; match_index < workshop_mod_entries.length; match_index++) {
-			let entry_object;
+			let entry_object: EntryObject;
 			const workshop_mod_entry = workshop_mod_entries[match_index];
 			const workshop_mod_entry_json = workshop_mod_entry[4];
 
@@ -119,7 +145,7 @@ class WorkshopScanner {
 			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
 			
 			if (entry_object.author_discordid !== false) {
-				await this.client.fetchUser(entry_object.author_discordid)
+				await this.client.users.fetch(entry_object.author_discordid)
 					.then(user => {
 						entry_object.author = user.username;
 						entry_object.avatar = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
@@ -138,7 +164,7 @@ class WorkshopScanner {
 		return entries_to_check;
 	}
 
-	find_workshop_images(workshop_page)
+	find_workshop_images(workshop_page: string)
 	{
 		const workshop_image_entries = matchAll(/workshopItemPreviewImage.+src="(.+)"/g, workshop_page);
 		if (workshop_image_entries.length == 0)
@@ -159,7 +185,7 @@ class WorkshopScanner {
 		return entries_to_image;
 	}
 
-	async get_author_discord_id(author_steam_id)
+	async get_author_discord_id(author_steam_id: string)
 	{
 		const sql = "SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = \"" + author_steam_id + "\" LIMIT 0, 1";
 		const discord_id = await this.DB.get(sql);
@@ -170,7 +196,7 @@ class WorkshopScanner {
 		return false;
 	}
 
-	async get_steam_avatar(author_steam_id)
+	async get_steam_avatar(author_steam_id: string)
 	{
 		if (!this.avatarCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return null;
@@ -179,7 +205,7 @@ class WorkshopScanner {
 		return this.avatarCache[author_steam_id];
 	}
 
-	async get_steam_name(author_steam_id)
+	async get_steam_name(author_steam_id: string)
 	{
 		if (!this.nameCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return null;
@@ -188,7 +214,7 @@ class WorkshopScanner {
 		return this.nameCache[author_steam_id];
 	}
 
-	async get_steam_information(author_steam_id)
+	async get_steam_information(author_steam_id: string)
 	{
 		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
 		const { statusCode, body } = await getAsync(xml_url);
@@ -204,7 +230,7 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async check_mod(mod_id, entry, image)
+	async check_mod(mod_id: string, entry: EntryObject, image: string)
 	{
 		const changelog = await this.get_latest_changelog(mod_id);
 		if (changelog === null) {
@@ -246,7 +272,7 @@ class WorkshopScanner {
 		}
 	}
 
-	async get_latest_changelog(mod_id)
+	async get_latest_changelog(mod_id: string)
 	{
 		const changelog_url = `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}`;
 		const { statusCode, body } = await getAsync(changelog_url, {
@@ -273,7 +299,7 @@ class WorkshopScanner {
 		}
 	}
 
-	async is_mod_new(mod_id)
+	async is_mod_new(mod_id: string)
 	{
 		const sql = "SELECT workshop_mods.mod_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
 		const result = await this.DB.get(sql);
@@ -286,7 +312,7 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async is_mod_updated(mod_id, changelog_id)
+	async is_mod_updated(mod_id: string, changelog_id: string)
 	{
 		logger.info(`Checking mod ${mod_id} against changelog ${changelog_id}`);
 		const sql = "SELECT workshop_mods.mod_id, workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " AND workshop_mods.last_post_id = " + changelog_id + " LIMIT 0, 1";
@@ -302,21 +328,21 @@ class WorkshopScanner {
 		return false;
 	}
 
-	async insert_mod(mod_id, changelog_id)
+	async insert_mod(mod_id: string, changelog_id: string)
 	{
 		const sql = "INSERT INTO workshop_mods (mod_id, last_post_id) VALUES (" + mod_id + ", " + changelog_id + ")";
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async update_mod(mod_id, changelog_id)
+	async update_mod(mod_id: string, changelog_id: string)
 	{
 		const sql = "UPDATE workshop_mods SET last_post_id = " + changelog_id + " WHERE mod_id = " + mod_id;
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async post_discord_new_mod(mod_id, entry, changelog, image)
+	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string)
 	{
-		const embed = new Discord.RichEmbed({
+		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
 			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
@@ -346,9 +372,9 @@ class WorkshopScanner {
 		return await this.post_discord(data, true);
 	}
 
-	async post_discord_update_mod(mod_id, entry, changelog, image)
+	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string)
 	{
-		const embed = new Discord.RichEmbed({
+		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
 			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
@@ -380,11 +406,16 @@ class WorkshopScanner {
 		return await this.post_discord(data, major_matches.length > 0);
 	}
 
-	async post_discord(data, is_major)
+	async post_discord(data: { content: string, options: Discord.WebhookMessageOptions & { split?: false } }, is_major: boolean)
 	{
 		const webhook_client = is_major ? major_webhook : minor_webhook;
 
 		try {
+			if (tokens.debugging) {
+				console.log(data);
+				return await new Promise((resolve) => resolve());
+			}
+
 			return await webhook_client.send(data.content, data.options).then(() => true).catch(error => { logger.error(error); return false; });
 		} catch (exception) {
 			logger.error("Failed to post to Discord");
@@ -437,4 +468,4 @@ class WorkshopScanner {
 	}
 }
 
-module.exports = WorkshopScanner;
+export default WorkshopScanner;
