@@ -1,4 +1,4 @@
-import { GuildChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient } from 'discord.js';
+import { GuildChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User } from 'discord.js';
 import * as commando from "discord.js-commando";
 import cron from "node-cron";
 import path from "path";
@@ -9,12 +9,14 @@ import logger from "log";
 import WorkshopScanner from "./workshop";
 import TaskManager from "task-manager";
 import tokens from "get-tokens";
+import { unpartial } from "bot-utils"
 
 const client = new commando.CommandoClient({
 	owner: "76052829285916672",
 	commandPrefix: "!",
 	nonCommandEditable: false,
-	fetchAllMembers: true
+	fetchAllMembers: true,
+	partials: ["MESSAGE", "REACTION"]
 });
 
 TaskManager.client = client;
@@ -56,8 +58,8 @@ client
 		if (err instanceof commando.FriendlyError) return;
 		logger.error(`Error in command ${cmd.groupID}:${cmd.memberName}`, err);
 	})
-	.on("message", (message) => {
-		if (message.channel.type != "text")
+	.on("message", async (message) => {
+		if (!await unpartial(message) || message.channel.type != "text")
 			return;
 
 		if (message.channel.name == "voice-text") {
@@ -185,61 +187,8 @@ client
 		// Check any presence changes for a potential streamer
 		checkStreamingStatus(newMember);
 	})
-	.on("raw", async (event: any) => {
-		if (event.t == "MESSAGE_REACTION_ADD" || event.t == "MESSAGE_REACTION_REMOVE")
-		{
-			const reactionAdded = event.t == "MESSAGE_REACTION_ADD";
-			const { d: data } = event;
-			const user = client.users.cache.get(data.user_id);
-			const channel = client.channels.cache.get(data.channel_id);
-
-			if (channel == null || channel.type != "text") return;
-
-			const message = await (channel as TextChannel).messages.fetch(data.message_id);
-			const emojiKey = (data.emoji.id) ? `${data.emoji.name}:${data.emoji.id}` : data.emoji.name;
-			let reaction = message.reactions.cache.get(emojiKey);
-
-			if (channel.id == "612414629179817985") {
-				if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
-
-				message.delete().catch(logger.error);
-			} else {
-				for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
-					const [channelID, msgID] = menuMessageID.split('/');
-					if (msgID != message.id)
-						continue;
-
-					for (const [emojiName, roleID] of Object.entries(emojis)) {
-						if (reaction.emoji.name != emojiName)
-							continue;
-
-						const guildMember = message.guild.member(user);
-						if (reactionAdded) {
-							guildMember.roles.add(roleID).catch(logger.error);
-						} else {
-							guildMember.roles.remove(roleID).catch(logger.error);
-						}
-
-						//*
-						// Schedule or unschedule removing the role in two hours
-						if (menuMessageID == "640560537205211146/640563515945385984" && data.user_id !== client.user.id) {
-							if (reactionAdded) {
-								TaskManager.addTask(Date.now() + 7200000, "removeReaction", {
-									channelID: data.channel_id,
-									messageID: data.message_id,
-									userID: data.user_id,
-									emojiKey: emojiKey
-								});
-							} else {
-								TaskManager.removeTask("removeReaction", task => task.info.messageID == data.message_id && task.info.userID == data.user_id && task.info.emojiKey == emojiKey);
-							}
-						}
-						/**/
-					}
-				}
-			}
-		}
-	});
+	.on("messageReactionAdd", async (reaction, user) => await handleReaction(reaction, user, true))
+	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));
 
 client.registry
 	.registerGroups([
@@ -326,6 +275,63 @@ function checkStreamingStatus(member: GuildMember) {
 	}
 	if (actionTaken !== null)
 		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`, activities);
+}
+
+async function handleReaction(reaction: MessageReaction, user: User, reactionAdded: boolean) {
+	let channel: TextChannel = null;
+
+	if (!await unpartial(reaction))
+		return;
+
+	const message = reaction.message;
+	if (!await unpartial(message))
+		return;
+
+	let anyChannel = message.channel;
+	if (anyChannel == null || anyChannel.type != "text") return;
+	channel = anyChannel;
+
+	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
+
+	if (channel.id == "612414629179817985") {
+		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
+
+		message.delete().catch(logger.error);
+	} else {
+		for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
+			const [channelID, msgID] = menuMessageID.split('/');
+			if (msgID != message.id)
+				continue;
+
+			for (const [emojiName, roleID] of Object.entries(emojis)) {
+				if (reaction.emoji.name != emojiName)
+					continue;
+
+				const guildMember = message.guild.member(user);
+				if (reactionAdded) {
+					guildMember.roles.add(roleID).catch(logger.error);
+				} else {
+					guildMember.roles.remove(roleID).catch(logger.error);
+				}
+
+				//*
+				// Schedule or unschedule removing the role in two hours
+				if (menuMessageID == "640560537205211146/640563515945385984" && user.id !== client.user.id) {
+					if (reactionAdded) {
+						TaskManager.addTask(Date.now() + 7200000, "removeReaction", {
+							channelID: channel.id,
+							messageID: message.id,
+							userID: user.id,
+							emojiKey: emojiKey
+						});
+					} else {
+						TaskManager.removeTask("removeReaction", task => task.info.messageID == message.id && task.info.userID == user.id && task.info.emojiKey == emojiKey);
+					}
+				}
+				/**/
+			}
+		}
+	}
 }
 
 client.login(tokens.botToken);
