@@ -1,6 +1,6 @@
 const Discord = require("discord.js");
 import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
-import { GuildMember, Guild, TextChannel } from 'discord.js';
+import { GuildMember, TextChannel } from 'discord.js';
 import tokens from "get-tokens";
 import logger from "log";
 import TaskManager from "task-manager";
@@ -189,7 +189,7 @@ export = [
 					TaskManager.addTask(Date.now() + duration, "unbanMember", { guildID: msg.guild.id, memberID: args.target.id });
 					return msg.reply("The user has been banned.");
 				})
-				.catch(logger.error);
+				.catch(logger.errorReply("ban the user", msg));
 		}
 	},
 	class ToggleRoleCommand extends Command {
@@ -235,11 +235,11 @@ export = [
 					if (args.target.roles.cache.has(roleData.roleID)) {
 						return args.target.roles.remove(role)
 							.then(() => msg.channel.send(`Removed the "${role.name}" role from ${args.target.user.username}.`))
-							.catch(logger.error);
+							.catch(logger.errorReply("remove the role", msg));
 					} else {
 						return args.target.roles.add(role)
 							.then(() => msg.channel.send(`Gave the "${role.name}" role to ${args.target.user.username}.`))
-							.catch(logger.error);
+							.catch(logger.errorReply("give the role", msg));
 					}
 				}
 			}
@@ -379,7 +379,7 @@ export = [
 				});
 
 				message.delete().catch(logger.error);
-			}).catch(logger.error);
+			}).catch(logger.errorReply("make the message major", msg));
 		}
 	},
 	class AgreeCommand extends Command {
