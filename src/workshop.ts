@@ -3,7 +3,7 @@ import { Database } from 'sqlite';
 
 import Discord from "discord.js";
 import { get, RequestCallback, Request, Response, CoreOptions } from "request";
-const logger = require("./log");
+import logger from "./log";
 import { promisify } from "util";
 const tokens = require("./tokens");
 const { Html5Entities } = require("html-entities");
@@ -29,7 +29,7 @@ function matchAll(regex: RegExp, string: string) {
 
 function getDate(updateString: string) {
 	const matches = /(\d{1,2}) ([A-z]{3})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
-	
+
 	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 	const year = matches[3] ? parseInt(matches[3]) : new Date().getFullYear();
 	const hours = parseInt(matches[4]) + (matches[6] == "pm" ? 12 : 0);
@@ -143,7 +143,7 @@ class WorkshopScanner {
 
 			entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
 			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
-			
+
 			if (entry_object.author_discordid !== false) {
 				await this.client.users.fetch(entry_object.author_discordid)
 					.then(user => {
@@ -201,7 +201,7 @@ class WorkshopScanner {
 		if (!this.avatarCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return null;
 		}
-		
+
 		return this.avatarCache[author_steam_id];
 	}
 
@@ -210,7 +210,7 @@ class WorkshopScanner {
 		if (!this.nameCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return null;
 		}
-		
+
 		return this.nameCache[author_steam_id];
 	}
 

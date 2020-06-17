@@ -2039,8 +2039,7 @@
 		"tslib": {
 			"version": "1.13.0",
 			"resolved": "https://registry.npmjs.org/tslib/-/tslib-1.13.0.tgz",
-			"integrity": "sha512-i/6DQjL8Xf3be4K/E6Wgpekn5Qasl1usyw++dAA35Ue5orEn65VIxOA+YvNNl9HV3qv70T7CNwjODHZrLwvd1Q==",
-			"dev": true
+			"integrity": "sha512-i/6DQjL8Xf3be4K/E6Wgpekn5Qasl1usyw++dAA35Ue5orEn65VIxOA+YvNNl9HV3qv70T7CNwjODHZrLwvd1Q=="
 		},
 		"tsutils": {
 			"version": "3.17.1",
@@ -2082,8 +2081,7 @@
 		"typescript": {
 			"version": "3.9.3",
 			"resolved": "https://registry.npmjs.org/typescript/-/typescript-3.9.3.tgz",
-			"integrity": "sha512-D/wqnB2xzNFIcoBG9FG8cXRDjiqSTbG2wd8DMZeQyJlP1vfTkIxH4GKveWaEBYySKIg+USu+E+EDIR47SqnaMQ==",
-			"dev": true
+			"integrity": "sha512-D/wqnB2xzNFIcoBG9FG8cXRDjiqSTbG2wd8DMZeQyJlP1vfTkIxH4GKveWaEBYySKIg+USu+E+EDIR47SqnaMQ=="
 		},
 		"tz-offset": {
 			"version": "0.0.1",

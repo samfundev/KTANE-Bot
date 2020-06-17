@@ -14,7 +14,7 @@ interface tokens {
         voiceMuted: Snowflake,
         noReaction: Snowflake,
         moderator: Snowflake,
-        assignable: { aliases: string[], roleID: Snowflake, prereq: Snowflake[] }[],
+        assignable: { aliases: string[], roleID: Snowflake, prereq?: Snowflake[] }[],
         modAssignable: { aliases: string[], roleID: Snowflake }[]
     },
     autoManagedCategories: {

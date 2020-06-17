@@ -36,7 +36,7 @@ interface RoleArgument {
 interface Assignable {
 	aliases: string[];
 	roleID: Snowflake;
-	prereq: Snowflake[];
+	prereq?: Snowflake[];
 }
 
 module.exports = [

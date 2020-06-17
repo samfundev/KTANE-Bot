@@ -309,6 +309,7 @@ function scheduledTask() {
 
 function checkStreamingStatus(member: GuildMember) {
 	if (tokens.debugging) return;
+    if (!member.presence) return;
 	let activities = member.presence.activities;
 	let streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
 	let hasRole = member.roles.cache.has(tokens.roleIDs.streaming);
