@@ -254,7 +254,7 @@ client.registry
 	.registerCommandsIn(path.join(__dirname, "commands"));
 
 client.setProvider(
-	sqlite.open({ filename: path.join(__dirname, "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => new commando.SQLiteProvider(db))
+	sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => new commando.SQLiteProvider(db))
 ).catch(logger.error);
 
 client.dispatcher.addInhibitor(msg =>
@@ -265,7 +265,7 @@ client.dispatcher.addInhibitor(msg =>
 
 const videoBot = new WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 let workshopScanner: WorkshopScanner;
-sqlite.open({ filename: path.join(__dirname, "database.sqlite3"), driver: sqlite3.cached.Database }).then(async db => workshopScanner = new WorkshopScanner(db, client));
+sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(async db => workshopScanner = new WorkshopScanner(db, client));
 
 function scheduledTask() {
 	if (tokens.debugging) return;

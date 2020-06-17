@@ -6,6 +6,7 @@ const logger = require("./../log");
 import TaskManager from "./../task-manager";
 import sqlite from "sqlite";
 import sqlite3 from "sqlite3";
+import path from "path";
 const { execSync } = require("child_process");
 const { elevate } = require("node-windows");
 
@@ -275,7 +276,7 @@ export = [
 		}
 
 		run(msg: CommandoMessage, args: { steamid: string, discordid: string }) {
-			return sqlite.open({ filename: "./../database.sqlite3", driver: sqlite3.cached.Database })
+			return sqlite.open({ filename: path.join(__dirname, "..", , "database.sqlite3"), driver: sqlite3.cached.Database })
 				.then(db => db.run("INSERT INTO 'author_lookup' (steam_id, discord_id) VALUES(?, ?) ON CONFLICT(steam_id) DO UPDATE SET discord_id=excluded.discord_id", args.steamid, args.discordid))
 				.then(() => msg.reply(`Set "${args.steamid}" to "${args.discordid}".`))
 				.catch(error => { logger.error(error); return msg.reply("Failed to set."); });
