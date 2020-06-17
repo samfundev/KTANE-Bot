@@ -5,8 +5,8 @@
   "main": "bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "type NUL >> src/database.sqlite3 && if not exist src/tokens.json type src/tokens.template.json >> src/tokens.json",
-    "postinstall": "npx tsc && robocopy /is src dist *.bat || exit 0"
+    "install": "type NUL >> database.sqlite3 && if not exist src/tokens.json type src/tokens.template.json >> src/tokens.json",
+    "postinstall": "npx tsc"
   },
   "dependencies": {
     "@types/node": "^13.13.9",
