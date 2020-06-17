@@ -5,10 +5,10 @@ import path from "path";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import request from "request";
-import logger from "./log";
+import logger from "log";
 import WorkshopScanner from "./workshop";
-import TaskManager from "./task-manager";
-import tokens from "./get-tokens";
+import TaskManager from "task-manager";
+import tokens from "get-tokens";
 
 const client = new commando.CommandoClient({
 	owner: "76052829285916672",

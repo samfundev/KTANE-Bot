@@ -12,6 +12,6 @@
 		"noImplicitAny": true,
 		"importHelpers": true,
 	},
-	"include": ["src"],
+	"include": ["src", "src/node_modules"],
 	"exclude": ["node_modules"]
 }

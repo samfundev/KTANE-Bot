@@ -1,5 +1,5 @@
 import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
-import tokens from "./../get-tokens";
+import tokens from "get-tokens";
 import { Role, Collection, Snowflake } from 'discord.js';
 const logger = require("./../log");
 

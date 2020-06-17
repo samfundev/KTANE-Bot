@@ -1,9 +1,9 @@
 const Discord = require("discord.js");
 import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
 import { GuildMember, Guild, TextChannel } from 'discord.js';
-import tokens from "./../get-tokens";
-const logger = require("./../log");
-import TaskManager from "./../task-manager";
+import tokens from "get-tokens";
+import logger from "log";
+import TaskManager from "task-manager";
 import sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import path from "path";

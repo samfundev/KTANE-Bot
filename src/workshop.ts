@@ -3,7 +3,7 @@ import { Database } from 'sqlite';
 
 import Discord from "discord.js";
 import { get, RequestCallback, Request, Response, CoreOptions } from "request";
-import logger from "./log";
+import logger from "log";
 import { promisify } from "util";
 const tokens = require("./tokens");
 const { Html5Entities } = require("html-entities");
