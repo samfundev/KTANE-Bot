@@ -4,7 +4,7 @@ import { GuildMember, TextChannel } from 'discord.js';
 import tokens from "get-tokens";
 import logger from "log";
 import TaskManager from "task-manager";
-import sqlite from "sqlite";
+import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import path from "path";
 const { execSync } = require("child_process");
