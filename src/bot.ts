@@ -21,7 +21,6 @@ const client = new commando.CommandoClient({
 
 TaskManager.client = client;
 
-let voiceText: GuildChannel = null;	// #voice-text text channel
 let voiceChannelsRenamed: { [id: string]: boolean } = {};
 
 client
@@ -29,6 +28,9 @@ client
 	.on("warn", logger.warn)
 	.on("debug", logger.info)
 	.on("ready", () => {
+		if (!client.user)
+			return;
+
 		logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client?.user.id})`);
 
 		// Scan for new or ended KTANE streams to catch anyone before we started up
@@ -37,10 +39,6 @@ client
 				return;
 
 			guild.members.cache.forEach(checkStreamingStatus);
-			guild.channels.cache.forEach(channel => {
-				if (channel.name === 'voice-text' && channel.type === 'text')
-					voiceText = channel;
-			});
 		});
 	})
 	.on("providerReady", () => {
@@ -65,7 +63,7 @@ client
 		if (message.channel.name == "voice-text") {
 			message.attachments.some(attachment => {
 				var file = attachment.name;
-				if (file.includes("output_log") || file.includes("Player.log")) {
+				if (file != undefined && (file.includes("output_log") || file.includes("Player.log"))) {
 					message.channel.send({
 						embed: {
 							"title": "Logfile Analyzer Link",
@@ -75,17 +73,32 @@ client
 					});
 					return true;
 				}
+
+				return false;
 			});
 		} else if (message.channel.name == "rules") {
-			if (message.member.roles.highest.comparePositionTo(message.guild.roles.cache.get(tokens.roleIDs.moderator)) >= 0)
+			if (!message.member || !message.guild)
+				return;
+
+			var role = message.guild.roles.cache.get(tokens.roleIDs.moderator);
+			if (!role)
+				return;
+
+			if (message.member.roles.highest.comparePositionTo(role) >= 0)
 				return;
 
 			message.delete().catch(logger.error);
 		}
 	})
 	.on("voiceStateUpdate", (oldState, newState) => {
+		if (!oldState)
+			return;
+
 		const oldMember = oldState.member;
 		const newMember = newState.member;
+
+		if (!oldMember || !newMember)
+			return;
 
 		// VOICE-MUTING
 		let muted = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
@@ -93,10 +106,10 @@ client
 			newMember.voice.setMute(muted);
 
 		// PROCESS AUTO-MANAGED CATEGORIES (adding/removing channels as needed)
-		if (oldMember.voice.channel === newMember.voice.channel)
+		if (oldState.channel === newState.channel)
 			return;
 
-		var catProcessed: CategoryChannel = null;
+		var catProcessed: CategoryChannel;
 
 		function processAutoManagedCategories(member: GuildMember)
 		{
@@ -106,7 +119,7 @@ client
 			if (!vc)
 				return;
 			let cat = vc.parent;
-			if (!cat || !(vc.parentID in tokens.autoManagedCategories) || cat === catProcessed)
+			if (!cat || !vc.parentID || !(vc.parentID in tokens.autoManagedCategories) || cat === catProcessed)
 				return;
 			catProcessed = cat;
 			let channelsForceRename = !voiceChannelsRenamed[vc.parentID];
@@ -128,7 +141,7 @@ client
 				let ix = 0, name: string;
 				function convert(i: number): string
 				{
-					return i < names.length ? names[i] : `${convert(((i / names.length)|0) - 1)} ${names[i % names.length]}`;
+					return i < names!.length ? names![i] : `${convert(((i / names!.length)|0) - 1)} ${names![i % names!.length]}`;
 				}
 
 				// Rename the 0th channel if it's different, or all channels if channelsForceRename is true
@@ -155,7 +168,7 @@ client
 					type: 'voice',
 					reason: 'AutoManage: create new empty channel'
 				})
-					.then(newChannel => { newChannel.setParent(cat); })
+					.then(newChannel => { if (cat) newChannel.setParent(cat); })
 					.catch(logger.error);
 			}
 			else if (numEmpty > 1)
@@ -278,7 +291,7 @@ function checkStreamingStatus(member: GuildMember) {
 }
 
 async function handleReaction(reaction: MessageReaction, user: User, reactionAdded: boolean) {
-	let channel: TextChannel = null;
+	let channel: TextChannel;
 
 	if (!await unpartial(reaction))
 		return;
@@ -288,7 +301,7 @@ async function handleReaction(reaction: MessageReaction, user: User, reactionAdd
 		return;
 
 	let anyChannel = message.channel;
-	if (anyChannel == null || anyChannel.type != "text") return;
+	if (anyChannel == null || anyChannel.type != "text" || message.guild == null) return;
 	channel = anyChannel;
 
 	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
@@ -308,6 +321,9 @@ async function handleReaction(reaction: MessageReaction, user: User, reactionAdd
 					continue;
 
 				const guildMember = message.guild.member(user);
+				if (!guildMember)
+					return;
+
 				if (reactionAdded) {
 					guildMember.roles.add(roleID).catch(logger.error);
 				} else {
@@ -316,7 +332,7 @@ async function handleReaction(reaction: MessageReaction, user: User, reactionAdd
 
 				//*
 				// Schedule or unschedule removing the role in two hours
-				if (menuMessageID == "640560537205211146/640563515945385984" && user.id !== client.user.id) {
+				if (menuMessageID == "640560537205211146/640563515945385984" && client.user && user.id !== client.user.id) {
 					if (reactionAdded) {
 						TaskManager.addTask(Date.now() + 7200000, "removeReaction", {
 							channelID: channel.id,

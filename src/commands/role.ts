@@ -78,6 +78,8 @@ module.exports = [
 						.catch(logger.error);
 				}
 			}
+
+			return null;
 		}
 	},
 	class RoleListCommand extends Command {
@@ -129,6 +131,8 @@ module.exports = [
 				const members = shuffle(Array.from(role.members.values())).filter((_, index) => index < 10);
 				return msg.channel.send(`Here is ${members.length} (of ${role.members.size}) users with the ${role.name} role:\n${members.map(member => ` - ${member.user.username}#${member.user.discriminator}`).join("\n")}`);
 			}
+
+			return null;
 		}
 	}
 ];

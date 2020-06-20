@@ -62,7 +62,7 @@ module.exports = [
 			if (msg.attachments.size == 1) {
 				var settings = new Settings(msg);
 				var profiles;
-				var url = msg.attachments.first().url;
+				var url = msg.attachments.first()?.url;
 				if (args.name === "") {
 					profiles = settings.get("user-profiles", {});
 					var exists = (msg.member.id in profiles);
@@ -104,6 +104,8 @@ module.exports = [
 			} else {
 				return msg.reply("Please only attach one profile.");
 			}
+
+			return null;
 		}
 	},
 	class GetProfile extends Command {
@@ -136,7 +138,7 @@ module.exports = [
 			if (msg.attachments.size == 1) {
 				var settings = new Settings(msg);
 				var profiles;
-				var url = msg.attachments.first().url;
+				var url = msg.attachments.first()?.url;
 				if (args.name === "") {
 					profiles = settings.get("user-profiles", {});
 					var exists = (msg.member.id in profiles);
@@ -178,6 +180,8 @@ module.exports = [
 			} else {
 				return msg.reply("Please only attach one profile.");
 			}
+
+			return null;
 		}
 	}
 ];

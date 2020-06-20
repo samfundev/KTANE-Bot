@@ -28,23 +28,28 @@ function matchAll(regex: RegExp, string: string) {
 }
 
 function getDate(updateString: string) {
-	const matches = /(\d{1,2}) ([A-z]{3})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
+	let matches = /(?<day>\d{1,2}) (?<month>[A-z]{3})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
+	if (matches == null)
+		matches = /(?<month>[A-z]{3}) (?<day>\d{1,2})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
+
+	if (matches == null)
+		throw new Error("Invalid date string: " + updateString);
 
 	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 	const year = matches[3] ? parseInt(matches[3]) : new Date().getFullYear();
 	const hours = parseInt(matches[4]) + (matches[6] == "pm" ? 12 : 0);
-	return new Date(Date.UTC(year, months.indexOf(matches[2]), parseInt(matches[1]), hours, parseInt(matches[5])));
+	return new Date(Date.UTC(year, months.indexOf(matches.groups!.month), parseInt(matches.groups!.day), hours, parseInt(matches[5])));
 }
 
 interface EntryObject {
 	id: string;
 	title: string;
 	description: string;
-	author: string;
-	authorMention: string;
+	author: string | undefined;
+	authorMention: string | undefined;
 	author_steamid: string;
 	author_discordid: string | false;
-	avatar: string;
+	avatar: string | undefined;
 }
 
 interface Changelog {
@@ -199,7 +204,7 @@ class WorkshopScanner {
 	async get_steam_avatar(author_steam_id: string)
 	{
 		if (!this.avatarCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
-			return null;
+			return undefined;
 		}
 
 		return this.avatarCache[author_steam_id];
@@ -208,7 +213,7 @@ class WorkshopScanner {
 	async get_steam_name(author_steam_id: string)
 	{
 		if (!this.nameCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
-			return null;
+			return undefined;
 		}
 
 		return this.nameCache[author_steam_id];

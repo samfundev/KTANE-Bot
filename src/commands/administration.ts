@@ -3,10 +3,12 @@ import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
 import { GuildMember, TextChannel } from 'discord.js';
 import tokens from "get-tokens";
 import logger from "log";
+import { isModerator } from "bot-utils";
 import TaskManager from "task-manager";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import path from "path";
+import { isNullOrUndefined } from 'util';
 const { execSync } = require("child_process");
 const { elevate } = require("node-windows");
 
@@ -78,17 +80,17 @@ export = [
 							TaskManager.removeTask("removeRole", task => task.info.roleID == tokens.roleIDs.voiceMuted && task.info.memberID == args.target.id);
 							return msg.reply(`${args.target.user.username} has been unmuted.`);
 						})
-						.catch(error => { console.log(error); msg.reply("Unable to unmute."); });
-					
+						.catch(logger.errorReply("unmute", msg));
 				} else {
 					args.target.roles.remove(tokens.roleIDs.voiceMuted)
 						.then(() => msg.reply(`${args.target.user.username} has been muted.`))
-						.catch(error => { console.log(error); msg.reply("Unable to mute."); });
+						.catch(logger.errorReply("mute", msg));
 					
 					TaskManager.addTask(Date.now(), "removeRole", { roleID: tokens.roleIDs.voiceMuted, memberID: args.target.id, guildID: msg.guild.id });
 				}
 
 				if (args.target.voice.channel) args.target.voice.setMute(!muted).catch(() => msg.reply("Unable to change server mute status."));
+				return null;
 			} else return msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
 		}
 	},
@@ -133,19 +135,19 @@ export = [
 				}
 
 				if (noReaction) {
-					args.target.roles.remove(tokens.roleIDs.noReaction)
-						.then(() => msg.reply(`${args.target.user.username} has been allowed to react.`))
-						.catch(error => { console.log(error); msg.reply("Unable to remove role."); });
-					
 					TaskManager.removeTask("removeRole", task => task.info.roleID == tokens.roleIDs.noReaction && task.info.memberID == args.target.id)
-				} else {
-					args.target.roles.add(tokens.roleIDs.noReaction)
-						.then(() => msg.reply(`${args.target.user.username} has been prevented from reacting.`))
-						.catch(error => { console.log(error); msg.reply("Unable to add role."); });
 					
+					return args.target.roles.remove(tokens.roleIDs.noReaction)
+						.then(() => msg.reply(`${args.target.user.username} has been allowed to react.`))
+						.catch(logger.errorReply("remove role", msg));
+				} else {
 					TaskManager.addTask(Date.now(), "removeRole", { roleID: tokens.roleIDs.noReaction, memberID: args.target.id, guildID: msg.guild.id });
+					
+					return args.target.roles.add(tokens.roleIDs.noReaction)
+						.then(() => msg.reply(`${args.target.user.username} has been prevented from reacting.`))
+						.catch(logger.errorReply("add role", msg));
 				}
-			} else msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
+			} else return msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
 		}
 	},
 	class BanCommand extends Command {
@@ -219,7 +221,7 @@ export = [
 		}
 
 		hasPermission(msg: CommandoMessage) {
-			return msg.member.roles.highest.comparePositionTo(msg.guild.roles.cache.get(tokens.roleIDs.moderator)) >= 0;
+			return isModerator(msg);
 		}
 
 		async run(msg: CommandoMessage, args: { target: GuildMember, role: string }) {
@@ -229,7 +231,7 @@ export = [
 					const role = msg.guild.roles.cache.get(roleData.roleID);
 					if (role == undefined) {
 						logger.error(`Unable to find role based on ID: ${roleData.roleID}`);
-						return;
+						return null;
 					}
 
 					if (args.target.roles.cache.has(roleData.roleID)) {
@@ -243,6 +245,8 @@ export = [
 					}
 				}
 			}
+
+			return null;
 		}
 	},
 	class SetSteamIDCommand extends Command {
@@ -272,7 +276,7 @@ export = [
 		}
 
 		hasPermission(msg: CommandoMessage) {
-			return msg.member.roles.highest.comparePositionTo(msg.guild.roles.cache.get(tokens.roleIDs.moderator)) >= 0;
+			return isModerator(msg);
 		}
 
 		run(msg: CommandoMessage, args: { steamid: string, discordid: string }) {
@@ -342,7 +346,7 @@ export = [
 		}
 
 		hasPermission(msg: CommandoMessage) {
-			return msg.member.roles.highest.comparePositionTo(msg.guild.roles.cache.get(tokens.roleIDs.moderator)) >= 0;
+			return isModerator(msg);
 		}
 
 		run(msg: CommandoMessage, args: { messageid: string }) {
@@ -359,12 +363,12 @@ export = [
 					url: targetEmbed.url,
 					description: targetEmbed.description,
 					author: {
-						name: targetEmbed.author.name,
-						icon_url: targetEmbed.author.iconURL,
-						url: targetEmbed.author.url
+						name: targetEmbed.author?.name,
+						icon_url: targetEmbed.author?.iconURL,
+						url: targetEmbed.author?.url
 					},
 					thumbnail: {
-						url: targetEmbed.thumbnail.url
+						url: targetEmbed.thumbnail?.url
 					},
 					timestamp: targetEmbed.timestamp
 				});
@@ -379,6 +383,7 @@ export = [
 				});
 
 				message.delete().catch(logger.error);
+				return null;
 			}).catch(logger.errorReply("make the message major", msg));
 		}
 	},
@@ -397,11 +402,11 @@ export = [
 
 		run(msg: CommandoMessage) {
 			if (msg.member.roles.cache.has("640569603344302107"))
-				return;
+				return null;
 
 			msg.member.roles.add("640569603344302107");
 
-			return Promise.resolve(null);
+			return null;
 		}
 	},
 	class UpdateCommand extends Command {
@@ -419,7 +424,7 @@ export = [
 
 		run(msg: CommandoMessage) {
 			if (msg.guild != null)
-				return;
+				return null;
 
 			msg.client.provider.set("global", "updating", true);
 			elevate("update.bat");
@@ -442,7 +447,7 @@ export = [
 
 		run(msg: CommandoMessage) {
 			if (msg.guild != null)
-				return;
+				return null;
 
 			execSync("logs.bat");
 			return msg.reply({ files: [{ attachment: "logs.7z" }] })
