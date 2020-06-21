@@ -307,7 +307,7 @@ async function handleReaction(reaction: MessageReaction, user: User, reactionAdd
 	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
 
 	if (channel.id == "612414629179817985") {
-		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned) return;
+		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned || !message.member?.roles.cache.has(tokens.roleIDs.maintainer)) return;
 
 		message.delete().catch(logger.error);
 	} else {
