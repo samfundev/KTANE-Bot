@@ -1,4 +1,4 @@
-import { GuildChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User } from 'discord.js';
+import { VoiceChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User } from 'discord.js';
 import * as commando from "discord.js-commando";
 import cron from "node-cron";
 import path from "path";
@@ -111,11 +111,8 @@ client
 
 		var catProcessed: CategoryChannel;
 
-		function processAutoManagedCategories(member: GuildMember)
+		function processAutoManagedCategories(vc: VoiceChannel | null)
 		{
-			if (!member)
-				return;
-			let vc = member.voice.channel;
 			if (!vc)
 				return;
 			let cat = vc.parent;
@@ -193,8 +190,8 @@ client
 			logger.info(logmsg);
 		}
 
-		processAutoManagedCategories(oldMember);
-		processAutoManagedCategories(newMember);
+		processAutoManagedCategories(oldState.channel);
+		processAutoManagedCategories(newState.channel);
 	})
 	.on("presenceUpdate", (oldMember, newMember) => {
 		// Check any presence changes for a potential streamer
