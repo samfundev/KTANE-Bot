@@ -350,7 +350,7 @@ export = [
 		}
 
 		run(msg: CommandoMessage, args: { messageid: string }) {
-			const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "text") as TextChannel;
+			const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "news") as TextChannel;
 			return channel.messages.fetch(args.messageid).then(message => {
 				if (message.embeds.length != 1) {
 					return msg.reply("Invalid number of embeds on target message.");
