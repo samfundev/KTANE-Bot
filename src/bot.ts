@@ -1,4 +1,4 @@
-import { VoiceChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User } from 'discord.js';
+import { VoiceChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User, Presence } from 'discord.js';
 import * as commando from "discord.js-commando";
 import cron from "node-cron";
 import path from "path";
@@ -38,7 +38,7 @@ client
 			if (!guild.available)
 				return;
 
-			guild.members.cache.forEach(checkStreamingStatus);
+			guild.members.cache.forEach(member => checkStreamingStatus(member.presence));
 		});
 	})
 	.on("providerReady", () => {
@@ -193,9 +193,9 @@ client
 		processAutoManagedCategories(oldState.channel);
 		processAutoManagedCategories(newState.channel);
 	})
-	.on("presenceUpdate", (oldMember, newMember) => {
+	.on("presenceUpdate", (oldPresence: Presence | null, newPresence: Presence) => {
 		// Check any presence changes for a potential streamer
-		checkStreamingStatus(newMember);
+		checkStreamingStatus(newPresence);
 	})
 	.on("messageReactionAdd", async (reaction, user) => await handleReaction(reaction, user, true))
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));
@@ -266,10 +266,11 @@ function scheduledTask() {
 	}
 }
 
-function checkStreamingStatus(member: GuildMember) {
+function checkStreamingStatus(presence: Presence) {
 	if (tokens.debugging) return;
-    if (!member.presence) return;
-	let activities = member.presence.activities;
+	const member = presence.member;
+	if (!member) return;
+	let activities = presence.activities;
 	let streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
 	let hasRole = member.roles.cache.has(tokens.roleIDs.streaming);
 	let actionTaken = null;
