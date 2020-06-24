@@ -1,7 +1,7 @@
 import { CommandoClient, util } from 'discord.js-commando';
 import { Database } from 'sqlite';
 
-import Discord from "discord.js";
+import Discord, { DiscordAPIError } from "discord.js";
 import { get, RequestCallback, Request, Response, CoreOptions } from "request";
 import logger from "log";
 import { promisify } from "util";
@@ -149,16 +149,30 @@ class WorkshopScanner {
 			entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
 			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
 
+			const getSteamAuthor = async () => {
+				entry_object.author = workshop_mod_entry[3] !== "" ? workshop_mod_entry[3] : await this.get_steam_name(entry_object.author_steamid);
+				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
+			};
+
 			if (entry_object.author_discordid !== false) {
 				await this.client.users.fetch(entry_object.author_discordid)
 					.then(user => {
 						entry_object.author = user.username;
 						entry_object.avatar = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
 					})
-					.catch(logger.warn);
+					.catch(async error => {
+						if (error instanceof DiscordAPIError) {
+							this.DB.get(`DELETE FROM author_lookup WHERE discord_id=${entry_object.author_discordid}`)
+								.then(() => logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`))
+								.catch(logger.error);
+						} else {
+							logger.error(error);
+						}
+
+						await getSteamAuthor();
+					});
 			} else {
-				entry_object.author = workshop_mod_entry[3] !== "" ? workshop_mod_entry[3] : await this.get_steam_name(entry_object.author_steamid);
-				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
+				await getSteamAuthor();
 			}
 
 			entry_object.authorMention = entry_object.author_discordid !== false ? `<@${entry_object.author_discordid}>` : entry_object.author;
@@ -293,7 +307,7 @@ class WorkshopScanner {
 		const changelog_entries = /<div class="changelog headline">([^]+?)<\/div>[^]+?<p id="([0-9]+)">(.*)<\/p>/.exec(body);
 		if (changelog_entries === null)
 		{
-			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}\n${body}`);
+			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
 			return null;
 		}
 
