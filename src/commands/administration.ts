@@ -358,7 +358,7 @@ export = [
 
 				const targetEmbed = message.embeds[0];
 
-				const embed = new Discord.RichEmbed({
+				const embed = new Discord.MessageEmbed({
 					title: targetEmbed.title,
 					url: targetEmbed.url,
 					description: targetEmbed.description,
