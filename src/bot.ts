@@ -203,7 +203,8 @@ client
 client.registry
 	.registerGroups([
 		["public", "Public"],
-		["administration", "Administration"]
+		["administration", "Administration"],
+		["voting", "Voting"]
 	])
 	.registerDefaultTypes()
 	.registerDefaultGroups()
