@@ -8,9 +8,7 @@ import TaskManager from "task-manager";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import path from "path";
-import { isNullOrUndefined } from 'util';
 const { execSync } = require("child_process");
-const { elevate } = require("node-windows");
 
 // All of these are in minutes.
 const durations: {[index: string]: number} = {
@@ -425,6 +423,12 @@ export = [
 		run(msg: CommandoMessage) {
 			if (msg.guild != null)
 				return null;
+
+			try {
+				var { elevate } = require("node-windows");
+			} catch {
+				return null;
+			}
 
 			msg.client.provider.set("global", "updating", true);
 			elevate("update.bat");
