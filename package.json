@@ -5,7 +5,7 @@
   "main": "bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "type NUL >> database.sqlite3 && if not exist src/tokens.json type src/tokens.template.json >> src/tokens.json",
+    "install": "node install.js",
     "postinstall": "npx tsc"
   },
   "dependencies": {
