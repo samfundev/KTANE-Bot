@@ -1,7 +1,7 @@
 import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
 import tokens from "get-tokens";
 import { Role, Collection, Snowflake } from 'discord.js';
-const logger = require("./../log");
+import logger from "log";
 
 function getRole(roleName: string, assignableData: Assignable[], guildRoles: Collection<string, Role>) {
 	let targetRole = roleName.toLowerCase();
@@ -71,11 +71,11 @@ module.exports = [
 				if (msg.member.roles.cache.has(role.id)) {
 					return msg.member.roles.remove(role)
 						.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
-						.catch(logger.error);
+						.catch(logger.errorReply("remove role", msg));
 				} else {
 					return msg.member.roles.add(role)
 						.then(() => msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`))
-						.catch(logger.error);
+						.catch(logger.errorReply("give role", msg));
 				}
 			}
 
