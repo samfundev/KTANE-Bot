@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { VoiceChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User, Presence } from 'discord.js';
 import * as commando from "discord.js-commando";
 import cron from "node-cron";
