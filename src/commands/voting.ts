@@ -24,6 +24,15 @@ export = [
 			});
 		}
 
+		hasPermission(msg: CommandoMessage) {
+			if (msg.guild != null) {
+				msg.delete();
+				return "You must send the vote command in a DM.";
+			}
+
+			return true;
+		}
+
 		run(msg: CommandoMessage, args: { vote: number[] }) {
 			const currentVote = msg.client.provider.get("global", "vote", null);
 			if (currentVote == null) {
