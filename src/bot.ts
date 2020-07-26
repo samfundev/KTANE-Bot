@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { VoiceChannel, CategoryChannel, GuildMember, TextChannel, WebhookClient, MessageReaction, User, Presence } from 'discord.js';
+import { VoiceChannel, CategoryChannel, TextChannel, WebhookClient, MessageReaction, User, Presence, NewsChannel, DMChannel } from 'discord.js';
 import * as commando from "discord.js-commando";
 import cron from "node-cron";
 import path from "path";
@@ -12,6 +12,7 @@ import WorkshopScanner from "./workshop";
 import TaskManager from "task-manager";
 import tokens from "get-tokens";
 import { unpartial } from "bot-utils"
+import { CommandoMessage } from 'discord.js-commando';
 
 const client = new commando.CommandoClient({
 	owner: "76052829285916672",
@@ -219,8 +220,8 @@ client.setProvider(
 	sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => new commando.SQLiteProvider(db))
 ).catch(logger.error);
 
-client.dispatcher.addInhibitor(msg =>
-	msg.guild == null || (msg.channel.type == "text" && ["bot-commands", "staff-only", "audit-log", "mod-commands"].includes(msg.channel.name)) ||
+client.dispatcher.addInhibitor((msg: Omit<CommandoMessage, 'channel'> & { channel: TextChannel | DMChannel | NewsChannel }) =>
+	msg.guild == null || ((msg.channel.type == "text" || msg.channel.type == "news") && ["bot-commands", "staff-only", "audit-log", "mod-commands", "community"].includes(msg.channel.name)) ||
 	(msg.command != null && (msg.command.memberName == "refresh-rolemenu" || (msg.command.memberName == "agree" && msg.channel.type == "text" && msg.channel.name == "rules"))) ?
 		false : "Commands are not allowed in this channel."
 );
