@@ -37,7 +37,8 @@ function getDate(updateString: string) {
 
 	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 	const year = matches[3] ? parseInt(matches[3]) : new Date().getFullYear();
-	const hours = parseInt(matches[4]) + (matches[6] == "pm" ? 12 : 0);
+	const hours = parseInt(matches[4] == "12" ? "0" : matches[4]) + (matches[6] == "pm" ? 12 : 0);
+
 	return new Date(Date.UTC(year, months.indexOf(matches.groups!.month), parseInt(matches.groups!.day), hours, parseInt(matches[5])));
 }
 
