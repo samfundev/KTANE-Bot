@@ -199,7 +199,6 @@ class WorkshopScanner {
 		for (const workshop_mod_entry of workshop_image_entries)
 		{
 			entries_to_image.unshift(workshop_mod_entry[1]);
-			logger.info(`Found workshop image ${workshop_mod_entry[1]}`);
 		}
 
 		return entries_to_image;
@@ -325,7 +324,6 @@ class WorkshopScanner {
 		const result = await this.DB.get(sql);
 		if (result !== undefined)
 		{
-			logger.info(`Mod ${mod_id} is not new`);
 			return false;
 		}
 		logger.info(`Mod ${mod_id} is new`);
@@ -334,13 +332,12 @@ class WorkshopScanner {
 
 	async is_mod_updated(mod_id: string, changelog_id: string)
 	{
-		logger.info(`Checking mod ${mod_id} against changelog ${changelog_id}`);
 		const sql = "SELECT workshop_mods.mod_id, workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " AND workshop_mods.last_post_id = " + changelog_id + " LIMIT 0, 1";
 
 		const result = await this.DB.get(sql);
 		if (result !== undefined)
 		{
-			logger.info(`Mod ${mod_id} is up-to-date`);
+			logger.info(`Mod ${mod_id} is up-to-date (${changelog_id})`);
 			return true;
 		}
 

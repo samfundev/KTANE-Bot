@@ -289,7 +289,7 @@ function checkStreamingStatus(presence: Presence) {
 		actionTaken = '; adding streaming role';
 	}
 	if (actionTaken !== null)
-		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`, activities);
+		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`);
 }
 
 async function handleReaction(reaction: MessageReaction, user: User, reactionAdded: boolean) {
