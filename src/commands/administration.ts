@@ -80,7 +80,7 @@ export = [
 						})
 						.catch(logger.errorReply("unmute", msg));
 				} else {
-					args.target.roles.remove(tokens.roleIDs.voiceMuted)
+					args.target.roles.add(tokens.roleIDs.voiceMuted)
 						.then(() => msg.reply(`${args.target.user.username} has been muted.`))
 						.catch(logger.errorReply("mute", msg));
 					
