@@ -6,7 +6,7 @@ import { get, RequestCallback, Request, Response, CoreOptions } from "request";
 import logger from "log";
 import { promisify } from "util";
 const tokens = require("./tokens");
-const { Html5Entities } = require("html-entities");
+import { Html5Entities } from "html-entities";
 const { DOMParser } = require("xmldom");
 
 const getAsync = promisify(get as ((uri: string, options?: CoreOptions, callback?: RequestCallback) => Request)) as ((uri: string, options?: CoreOptions) => Promise<Response>);
@@ -251,47 +251,39 @@ class WorkshopScanner {
 
 	async check_mod(mod_id: string, entry: EntryObject, image: string)
 	{
-		const changelog = await this.get_latest_changelog(mod_id);
-		if (changelog === null) {
+		const last_changelog_id = await this.get_last_changelog_id(mod_id);
+
+		const changelogs = await this.get_latest_changelogs(mod_id, last_changelog_id);
+		if (changelogs === null || changelogs.length === 0) {
 			return;
 		}
 
-		if (await this.is_mod_new(mod_id) === true)
-		{
-			if (await this.insert_mod(mod_id, changelog.id) === true)
-			{
-				if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0)
-				{
-					logger.info(`Discord post skipped because description contains ignore tag.`);
-					await this.insert_mod(mod_id, changelog.id);
-				}
-				else if (await this.post_discord_new_mod(mod_id, entry, changelog, image) !== false)
-				{
-					logger.info("Discord post added.");
-					await this.insert_mod(mod_id, changelog.id);
-				}
+		const newMod = await this.is_mod_new(mod_id) === true;
+		const success = newMod ?
+			await this.insert_mod(mod_id, changelogs[0].id) :
+			await this.update_mod(mod_id, changelogs[0].id);
+
+		if (success === false)
+			return;
+
+		for (const changelog of changelogs.reverse()) {
+			if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0) {
+				logger.info(`Discord post skipped because description contains ignore tag.`);
+				continue;
 			}
-		}
-		else
-		{
-			if (await this.is_mod_updated(mod_id, changelog.id) === false)
+
+			const result = newMod ?
+				await this.post_discord_new_mod(mod_id, entry, changelog, image) :
+				await this.post_discord_update_mod(mod_id, entry, changelog, image);
+			if (result !== false)
 			{
-				if (await this.update_mod(mod_id, changelog.id) === true)
-				{
-					if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0)
-					{
-						logger.info(`Discord post skipped because description contains ignore tag.`);
-					}
-					else if (await this.post_discord_update_mod(mod_id, entry, changelog, image) !== false)
-					{
-						logger.info("Discord post added.");
-					}
-				}
+				logger.info("Discord post added.");
 			}
 		}
 	}
 
-	async get_latest_changelog(mod_id: string)
+	// Returns the latest changelogs after the changelog ID passed in the since argument. Newest first.
+	async get_latest_changelogs(mod_id: string, since: number): Promise<Changelog[] | null>
 	{
 		const changelog_url = `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}`;
 		const { statusCode, body } = await getAsync(changelog_url, {
@@ -304,18 +296,20 @@ class WorkshopScanner {
 			return null;
 		}
 
-		const changelog_entries = /<div class="changelog headline">([^]+?)<\/div>[^]+?<p id="([0-9]+)">(.*)<\/p>/.exec(body);
-		if (changelog_entries === null)
+		const changelog_entries = matchAll(/<div class="changelog headline">([^]+?)<\/div>[^]+?<p id="([0-9]+)">(.*)<\/p>/g, body);
+		if (changelog_entries.length === 0)
 		{
 			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
 			return null;
 		}
 
-		return {
-			date: getDate(changelog_entries[1]),
-			id: changelog_entries[2],
-			description: Html5Entities.decode(changelog_entries[3]),
-		}
+		return changelog_entries.map(entry => {
+			return {
+				date: getDate(entry[1]),
+				id: entry[2],
+				description: Html5Entities.decode(entry[3]),
+			};
+		}).filter(changelog => parseInt(changelog.id) > since);
 	}
 
 	async is_mod_new(mod_id: string)
@@ -330,19 +324,15 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async is_mod_updated(mod_id: string, changelog_id: string)
+	async get_last_changelog_id(mod_id: string)
 	{
-		const sql = "SELECT workshop_mods.mod_id, workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " AND workshop_mods.last_post_id = " + changelog_id + " LIMIT 0, 1";
+		const sql = "SELECT workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
 
-		const result = await this.DB.get(sql);
+		const result = await this.DB.get<{ last_post_id: number }>(sql);
 		if (result !== undefined)
-		{
-			logger.info(`Mod ${mod_id} is up-to-date (${changelog_id})`);
-			return true;
-		}
+			return result.last_post_id;
 
-		logger.info(`Mod ${mod_id} is not up-to-date (${changelog_id})`);
-		return false;
+		return 0;
 	}
 
 	async insert_mod(mod_id: string, changelog_id: string)
