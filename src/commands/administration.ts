@@ -1,6 +1,6 @@
 const Discord = require("discord.js");
 import { Command, CommandoClient, CommandoMessage } from "discord.js-commando"
-import { GuildMember, TextChannel } from 'discord.js';
+import { GuildMember, TextChannel, UserResolvable, User } from 'discord.js';
 import tokens from "get-tokens";
 import logger from "log";
 import { isModerator } from "bot-utils";
@@ -24,6 +24,16 @@ function parseDuration(string: string) {
 		return null;
 
 	return 1000 * 60 * durations[matches[2]] * parseFloat(matches[1]);
+}
+
+function formatDuration(number: number) {
+	for (const [short, length] of Object.entries(durations).reverse()) {
+		if (length <= number) {
+			return (number / length).toFixed(1) + short;
+		}
+	}
+
+	return number + "s";
 }
 
 interface TargetedArguments {
@@ -163,7 +173,7 @@ export = [
 					{
 						key: "target",
 						prompt: "Who should be banned?",
-						type: "member"
+						type: "user"
 					},
 					{
 						key: "duration",
@@ -178,18 +188,54 @@ export = [
 			return msg.member.hasPermission("BAN_MEMBERS");
 		}
 
-		run(msg: CommandoMessage, args: TargetedArguments) {
+		run(msg: CommandoMessage, args: { target: User, duration: string }) {
 			const duration = parseDuration(args.duration);
 			if (duration == null) {
 				return msg.reply("That's an invalid duration.");
 			}
-
-			return args.target.ban()
+			
+			return msg.guild.members.ban(args.target)
 				.then(() => {
+					// Remove any old tasks so we don't have multiple tasks to unban someone.
+					TaskManager.removeTask("unbanMember", task => task.info.memberID === args.target.id);
+
 					TaskManager.addTask(Date.now() + duration, "unbanMember", { guildID: msg.guild.id, memberID: args.target.id });
 					return msg.reply("The user has been banned.");
 				})
 				.catch(logger.errorReply("ban the user", msg));
+		}
+	},
+	class TasksCommand extends Command {
+		constructor(client: CommandoClient) {
+			super(client, {
+				name: "tasks",
+				aliases: ["tasks", "t"],
+				group: "administration",
+				memberName: "tasks",
+				description: "Tells you all the tasks scheduled for a user.",
+				examples: ["tasks <user>", "t <user>"],
+				guildOnly: true,
+
+				args: [
+					{
+						key: "target",
+						prompt: "Whose tasks?",
+						type: "user"
+					}
+				]
+			});
+		}
+
+		hasPermission(msg: CommandoMessage) {
+			return isModerator(msg);
+		}
+
+		run(msg: CommandoMessage, args: { target: User }) {
+			const tasks = TaskManager.tasks.filter(task => task.info.memberID === args.target.id);
+			if (tasks.length === 0)
+				return msg.reply("No tasks for that user.");
+			
+			return msg.reply(`Tasks:\n${tasks.map(task => `${task.type} - ${formatDuration(task.timestamp - Date.now() / 1000)}`).join("\n")}`);
 		}
 	},
 	class ToggleRoleCommand extends Command {
