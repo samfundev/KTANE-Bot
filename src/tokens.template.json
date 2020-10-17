@@ -8,9 +8,11 @@
 		{ "name": "", "mention": "", "id": "" }
 	],
 	"roleIDs": {
-		"streaming": "",
-		"voiceMuted": "",
+        "streaming": "",
+        "voiceMuted": "",
+        "noReaction": "",
         "moderator": "",
+        "maintainer": "",
 		"assignable": [
 			{ "aliases": [""], "roleID": "" }
 		],
@@ -20,5 +22,11 @@
 	},
     "autoManagedCategories": {
         "": { "channelPrefix": "", "names": null }
-    }
+    },
+    "reactionMenus": {
+        "": {
+            "": ""
+        }
+	},
+	"debugging": false
 }

@@ -5,6 +5,8 @@ output.log
 
 # Unique per installation
 tokens.json
+tokens.*.json
+!tokens.template.json
 database.sqlite3
 database.sqlite3-journal
 

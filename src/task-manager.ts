@@ -1,17 +1,17 @@
-import { CommandoClient } from "discord.js-commando";
-import { TextChannel } from 'discord.js';
+import { AkairoClient } from "discord-akairo";
+import { TextChannel } from "discord.js";
+import logger from "./log";
 
-const logger = require("./log");
 
 class TaskManager {
-	static client: CommandoClient;
+	static client: AkairoClient;
 
 	static get tasks(): ScheduledTask[] {
-		return this.client.provider.get("global", "scheduledTasks", []);
+		return this.client.settings.get("global", "scheduledTasks", []);
 	}
 
 	static set tasks(newTasks) {
-		this.client.provider.set("global", "scheduledTasks", newTasks);
+		this.client.settings.set("global", "scheduledTasks", newTasks);
 	}
 
 	static modifyTasks(func: (tasks: ScheduledTask[]) => ScheduledTask[]) {
@@ -85,8 +85,8 @@ class TaskManager {
 	}
 
 	static sendOwnerMessage(text: string) {
-		if (typeof this.client.options.owner == "string")
-			this.client.users.fetch(this.client.options.owner).then(user => user.send(text));
+		if (typeof this.client.ownerID == "string")
+			this.client.users.fetch(this.client.ownerID).then(user => user.send(text));
 	}
 }
 

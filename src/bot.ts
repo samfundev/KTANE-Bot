@@ -1,64 +1,104 @@
 #!/usr/bin/env node
 
-import { VoiceChannel, CategoryChannel, TextChannel, WebhookClient, MessageReaction, User, Presence, NewsChannel, DMChannel } from 'discord.js';
-import * as commando from "discord.js-commando";
+import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
+import { CategoryChannel, MessageReaction, PartialUser, Presence, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
 import cron from "node-cron";
 import path from "path";
+import request from "request";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
-import request from "request";
-import logger from "log";
+import { unpartial } from "./bot-utils";
+import checkStreamingStatus from "./check-stream";
+import { parseDuration } from "./duration";
+import tokens from "./get-tokens";
+import Logger from "./log";
+import TaskManager from "./task-manager";
 import WorkshopScanner from "./workshop";
-import TaskManager from "task-manager";
-import tokens from "get-tokens";
-import { unpartial } from "bot-utils"
-import { CommandoMessage } from 'discord.js-commando';
 
-const client = new commando.CommandoClient({
-	owner: "76052829285916672",
-	commandPrefix: "!",
-	nonCommandEditable: false,
-	fetchAllMembers: true,
-	partials: ["MESSAGE", "REACTION"]
-});
+declare module "discord-akairo" {
+	interface AkairoClient
+	{
+		commandHandler: CommandHandler;
+		inhibitorHandler: InhibitorHandler;
+		listenerHandler: ListenerHandler;
+		settings: SQLiteProvider;
+	}
+}
+
+class KTANEClient extends AkairoClient {
+	constructor() {
+		super({
+			ownerID: "76052829285916672",
+		}, {
+			partials: ["MESSAGE", "REACTION"]
+		});
+
+		this.commandHandler = new CommandHandler(this, {
+			directory: path.join(__dirname, "commands"),
+			prefix: "!"
+		});
+
+		this.commandHandler.resolver.addType("duration", (message, phrase) => {
+			return parseDuration(phrase);
+		});
+
+		this.commandHandler.loadAll();
+
+		this.inhibitorHandler = new InhibitorHandler(this, {
+			directory: path.join(__dirname, "inhibitors")
+		});
+
+		this.commandHandler.useInhibitorHandler(this.inhibitorHandler);
+		this.inhibitorHandler.loadAll();
+
+		this.listenerHandler = new ListenerHandler(this, {
+			directory: path.join(__dirname, "listeners")
+		});
+
+		this.commandHandler.useListenerHandler(this.listenerHandler);
+		this.listenerHandler.setEmitters({
+			commandHandler: this.commandHandler
+		});
+		this.listenerHandler.loadAll();
+
+		this.settings = new SQLiteProvider(sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }), "settings", {
+			idColumn: "guild",
+			dataColumn: "settings"
+		});
+	}
+
+	async login(token: string) {
+		await this.settings.init();
+		return super.login(token);
+	}
+}
+
+const client = new KTANEClient();
 
 TaskManager.client = client;
 
 let voiceChannelsRenamed: { [id: string]: boolean } = {};
 
 client
-	.on("error", logger.error)
-	.on("warn", logger.warn)
-	.on("debug", logger.info)
+	.on("error", Logger.error)
+	.on("warn", Logger.warn)
+	.on("debug", Logger.info)
 	.on("ready", () => {
 		if (!client.user)
 			return;
 
-		logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client?.user.id})`);
+		Logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client?.user.id})`);
 
-		// Scan for new or ended KTANE streams to catch anyone before we started up
-		client.guilds.cache.forEach(guild => {
-			if (!guild.available)
-				return;
-
-			guild.members.cache.forEach(member => checkStreamingStatus(member.presence));
-		});
-	})
-	.on("providerReady", () => {
 		scheduledTask();
 
-		if (client.provider.get("global", "updating", false)) {
-			client.provider.remove("global", "updating");
+		if (client.settings.get("global", "updating", false)) {
+			client.settings.delete("global", "updating");
 
-			if (typeof client.options.owner == "string")
-				client.users.fetch(client.options.owner).then(user => user.send("Update is complete."));
+			if (typeof client.ownerID == "string")
+				client.users.fetch(client.ownerID).then(user => user.send("Update is complete."));
 		}
 	})
-	.on("disconnect", () => { logger.warn("Disconnected!"); })
-	.on("commandError", (cmd, err) => {
-		if (err instanceof commando.FriendlyError) return;
-		logger.error(`Error in command ${cmd.groupID}:${cmd.memberName}`, err);
-	})
+	.on("disconnect", () => { Logger.warn("Disconnected!"); })
 	.on("message", async (message) => {
 		if (!await unpartial(message) || message.channel.type != "text")
 			return;
@@ -90,7 +130,7 @@ client
 			if (message.member.roles.highest.comparePositionTo(role) >= 0)
 				return;
 
-			message.delete().catch(logger.error);
+			message.delete().catch(Logger.error);
 		}
 	})
 	.on("voiceStateUpdate", (oldState, newState) => {
@@ -169,7 +209,7 @@ client
 					reason: 'AutoManage: create new empty channel',
 					parent: cat
 				})
-					.catch(logger.error);
+					.catch(Logger.error);
 			}
 			else if (numEmpty > 1)
 			{
@@ -190,41 +230,19 @@ client
 				}
 			}
 
-			logger.info(logmsg);
+			Logger.info(logmsg);
 		}
 
 		processAutoManagedCategories(oldState.channel);
 		processAutoManagedCategories(newState.channel);
 	})
-	.on("presenceUpdate", (oldPresence: Presence | null, newPresence: Presence) => {
+	.on("presenceUpdate", (_, newPresence) => {
 		// Check any presence changes for a potential streamer
 		checkStreamingStatus(newPresence);
 	})
 	.on("messageReactionAdd", async (reaction, user) => await handleReaction(reaction, user, true))
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));
 
-client.registry
-	.registerGroups([
-		["public", "Public"],
-		["administration", "Administration"],
-		["voting", "Voting"]
-	])
-	.registerDefaultTypes()
-	.registerDefaultGroups()
-	.registerDefaultCommands({
-		unknownCommand: false
-	})
-	.registerCommandsIn(path.join(__dirname, "commands"));
-
-client.setProvider(
-	sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => new commando.SQLiteProvider(db))
-).catch(logger.error);
-
-client.dispatcher.addInhibitor((msg: Omit<CommandoMessage, 'channel'> & { channel: TextChannel | DMChannel | NewsChannel }) =>
-	msg.guild == null || ((msg.channel.type == "text" || msg.channel.type == "news") && ["bot-commands", "staff-only", "audit-log", "mod-commands", "community"].includes(msg.channel.name)) ||
-	(msg.command != null && (msg.command.memberName == "refresh-rolemenu" || (msg.command.memberName == "agree" && msg.channel.type == "text" && msg.channel.name == "rules"))) ?
-		false : "Commands are not allowed in this channel."
-);
 
 const videoBot = new WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
 let workshopScanner: WorkshopScanner;
@@ -234,14 +252,8 @@ function scheduledTask() {
 	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
-	let videosAnnounced = client.provider.get("global", "videosAnnounced"), lastVideoScans = null;
-	if (videosAnnounced === undefined)
-	{
-		logger.info("videosAnnounced is undefined");
-		videosAnnounced = [];
-	}
-	else
-		videosAnnounced = JSON.parse(videosAnnounced);
+	let videosAnnounced = client.settings.get("global", "videosAnnounced", "[]"), lastVideoScans = null;
+	videosAnnounced = JSON.parse(videosAnnounced);
 
 	let nowTime = new Date();
 	for (let videoChannel of tokens.tutorialVideoChannels) {
@@ -249,8 +261,8 @@ function scheduledTask() {
 			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
 			json: true
 		}, function(err, resp, json) {
-			if (err) { logger.error(err); return; }
-			if (resp.statusCode != 200) { logger.error(`Failed to get videos, status code: ${resp.statusCode}`); return; }
+			if (err) { Logger.error(err); return; }
+			if (resp.statusCode != 200) { Logger.error(`Failed to get videos, status code: ${resp.statusCode}`); return; }
 
 			for (let item of json.items.reverse()) {
 				let snippet = item.snippet;
@@ -261,39 +273,20 @@ function scheduledTask() {
 					continue;
 				videosAnnounced.push(snippet.resourceId.videoId);
 				videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
-				logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
+				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
 			}
 
-			logger.info(`Video channel ${videoChannel.name} checked.`);
-			client.provider.set("global", "videosAnnounced", JSON.stringify(videosAnnounced));
+			Logger.info(`Video channel ${videoChannel.name} checked.`);
+			client.settings.set("global", "videosAnnounced", JSON.stringify(videosAnnounced));
 		});
 	}
 }
 
-function checkStreamingStatus(presence: Presence) {
-	if (tokens.debugging) return;
-	const member = presence.member;
-	if (!member) return;
-	let activities = presence.activities;
-	let streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
-	let hasRole = member.roles.cache.has(tokens.roleIDs.streaming);
-	let actionTaken = null;
-	if (hasRole && !streamingKTANE)
-	{
-		member.roles.remove(tokens.roleIDs.streaming).catch(logger.error);
-		actionTaken = '; removing streaming role';
-	}
-	else if (!hasRole && streamingKTANE)
-	{
-		member.roles.add(tokens.roleIDs.streaming).catch(logger.error);
-		actionTaken = '; adding streaming role';
-	}
-	if (actionTaken !== null)
-		logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`);
-}
-
-async function handleReaction(reaction: MessageReaction, user: User, reactionAdded: boolean) {
+async function handleReaction(reaction: MessageReaction, user: User | PartialUser, reactionAdded: boolean) {
 	let channel: TextChannel;
+
+	if (user.partial)
+		return;
 
 	if (!await unpartial(reaction))
 		return;
@@ -311,7 +304,7 @@ async function handleReaction(reaction: MessageReaction, user: User, reactionAdd
 	if (channel.id == "612414629179817985") {
 		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned || !message.guild.member(user)?.roles.cache.has(tokens.roleIDs.maintainer)) return;
 
-		message.delete().catch(logger.error);
+		message.delete().catch(Logger.error);
 	} else {
 		for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
 			const [channelID, msgID] = menuMessageID.split('/');
@@ -327,9 +320,9 @@ async function handleReaction(reaction: MessageReaction, user: User, reactionAdd
 					return;
 
 				if (reactionAdded) {
-					guildMember.roles.add(roleID).catch(logger.error);
+					guildMember.roles.add(roleID).catch(Logger.error);
 				} else {
-					guildMember.roles.remove(roleID).catch(logger.error);
+					guildMember.roles.remove(roleID).catch(Logger.error);
 				}
 
 				//*
@@ -360,7 +353,7 @@ cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length) + 1
 
 cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes
-	workshopScanner.run().catch((error: any) => logger.error("Unable to run workshop scan:", error));
+	workshopScanner.run().catch((error: any) => Logger.error("Unable to run workshop scan:", error));
 
 	// Process tasks
 	TaskManager.processTasks();

@@ -1,13 +1,11 @@
-import { CommandoClient, util } from 'discord.js-commando';
-import { Database } from 'sqlite';
-
-import Discord, { DiscordAPIError } from "discord.js";
-import { get, RequestCallback, Request, Response, CoreOptions } from "request";
-import logger from "log";
-import { promisify } from "util";
-const tokens = require("./tokens");
+import Discord, { Client, DiscordAPIError } from "discord.js";
 import { Html5Entities } from "html-entities";
-const { DOMParser } = require("xmldom");
+import { CoreOptions, get, Request, RequestCallback, Response } from "request";
+import { Database } from 'sqlite';
+import { promisify } from "util";
+import { DOMParser } from "xmldom";
+import tokens from "./get-tokens";
+import Logger from "./log";
 
 const getAsync = promisify(get as ((uri: string, options?: CoreOptions, callback?: RequestCallback) => Request)) as ((uri: string, options?: CoreOptions) => Promise<Response>);
 
@@ -61,12 +59,12 @@ interface Changelog {
 
 class WorkshopScanner {
 	DB: Database;
-	client: CommandoClient;
+	client: Client;
 	initialized: boolean;
 	avatarCache: { [author_steam_id: string]: string };
 	nameCache: { [author_steam_id: string]: string };
 
-	constructor(db: Database, client: CommandoClient) {
+	constructor(db: Database, client: Client) {
 		this.DB = db;
 		this.client = client
 		this.initialized = false;
@@ -109,15 +107,15 @@ class WorkshopScanner {
 		const sort_mode = "mostrecent";
 		const workshop_url = `https://steamcommunity.com/workshop/browse/?appid=${steam_appid}&browsesort=${sort_mode}&section=readytouseitems&actualsort=${sort_mode}&p=${page_number}&numperpage=${number_per_page}`;
 
-		logger.info(`Beginning scrape of page ${page_number}`);
+		Logger.info(`Beginning scrape of page ${page_number}`);
 
 		const { statusCode, body }: { statusCode: number, body: string } = await getAsync(workshop_url);
 		if (statusCode != 200) {
-			logger.error(`Failed to retrieve the workshop page at ${decodeURI(workshop_url)}`);
+			Logger.error(`Failed to retrieve the workshop page at ${decodeURI(workshop_url)}`);
 			return false;
 		}
 
-		logger.info(`Received workshop page at ${decodeURI(workshop_url)}`);
+		Logger.info(`Received workshop page at ${decodeURI(workshop_url)}`);
 		return body;
 	}
 
@@ -125,11 +123,11 @@ class WorkshopScanner {
 		let workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
 
 		if (workshop_mod_entries.length === 0) {
-			logger.error("Failed to find any workshop entries");
+			Logger.error("Failed to find any workshop entries");
 			return false;
 		}
 
-		logger.info(`Found ${workshop_mod_entries.length} workshop entry matches`);
+		Logger.info(`Found ${workshop_mod_entries.length} workshop entry matches`);
 
 		const entries_to_check: { [id: string]: EntryObject } = {};
 		for (let match_index = 0; match_index < workshop_mod_entries.length; match_index++) {
@@ -140,7 +138,7 @@ class WorkshopScanner {
 			try {
 				entry_object = JSON.parse(workshop_mod_entry_json);
 			} catch (exception) {
-				logger.error(`Failed to JSON-parse a workshop entry, skipping; scraped contents were: ${workshop_mod_entry_json}`);
+				Logger.error(`Failed to JSON-parse a workshop entry, skipping; scraped contents were: ${workshop_mod_entry_json}`);
 				continue;
 			}
 
@@ -164,10 +162,10 @@ class WorkshopScanner {
 					.catch(async error => {
 						if (error instanceof DiscordAPIError) {
 							this.DB.get(`DELETE FROM author_lookup WHERE discord_id=${entry_object.author_discordid}`)
-								.then(() => logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`))
-								.catch(logger.error);
+								.then(() => Logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`))
+								.catch(Logger.error);
 						} else {
-							logger.error(error);
+							Logger.error(error);
 						}
 
 						await getSteamAuthor();
@@ -189,11 +187,11 @@ class WorkshopScanner {
 		const workshop_image_entries = matchAll(/workshopItemPreviewImage.+src="(.+)"/g, workshop_page);
 		if (workshop_image_entries.length == 0)
 		{
-			logger.error("Failed to find any workshop image entries");
+			Logger.error("Failed to find any workshop image entries");
 			return false;
 		}
 
-		logger.info(`Found ${workshop_image_entries.length} workshop image entry matches`);
+		Logger.info(`Found ${workshop_image_entries.length} workshop image entry matches`);
 
 		const entries_to_image = [];
 		for (const workshop_mod_entry of workshop_image_entries)
@@ -238,13 +236,18 @@ class WorkshopScanner {
 		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
 		const { statusCode, body } = await getAsync(xml_url);
 		if (statusCode != 200) {
-			logger.error(`Failed to retrieve the steam avatar at ${decodeURI(xml_url)}`);
+			Logger.error(`Failed to retrieve the steam avatar at ${decodeURI(xml_url)}`);
 			return false;
 		}
 
 		const xml_document = new DOMParser().parseFromString(body, "text/xml");
-		this.avatarCache[author_steam_id] = xml_document.getElementsByTagName("avatarMedium")[0].textContent;
-		this.nameCache[author_steam_id] = xml_document.getElementsByTagName("steamID")[0].textContent;
+		const avatar = xml_document.getElementsByTagName("avatarMedium")[0].textContent;
+		const steamID = xml_document.getElementsByTagName("steamID")[0].textContent;
+		if (avatar == null || steamID == null)
+			return false;
+
+		this.avatarCache[author_steam_id] = avatar;
+		this.nameCache[author_steam_id] = steamID;
 
 		return true;
 	}
@@ -268,7 +271,7 @@ class WorkshopScanner {
 
 		for (const changelog of changelogs.reverse()) {
 			if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0) {
-				logger.info(`Discord post skipped because description contains ignore tag.`);
+				Logger.info(`Discord post skipped because description contains ignore tag.`);
 				continue;
 			}
 
@@ -277,7 +280,7 @@ class WorkshopScanner {
 				await this.post_discord_update_mod(mod_id, entry, changelog, image);
 			if (result !== false)
 			{
-				logger.info("Discord post added.");
+				Logger.info("Discord post added.");
 			}
 		}
 	}
@@ -292,14 +295,14 @@ class WorkshopScanner {
 			}
 		});
 		if (statusCode != 200) {
-			logger.error(`Failed to retrieve the changelog page at ${decodeURI(changelog_url)}`);
+			Logger.error(`Failed to retrieve the changelog page at ${decodeURI(changelog_url)}`);
 			return null;
 		}
 
 		const changelog_entries = matchAll(/<div class="changelog headline">([^]+?)<\/div>[^]+?<p id="([0-9]+)">(.*)<\/p>/g, body);
 		if (changelog_entries.length === 0)
 		{
-			logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
+			Logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
 			return null;
 		}
 
@@ -320,7 +323,7 @@ class WorkshopScanner {
 		{
 			return false;
 		}
-		logger.info(`Mod ${mod_id} is new`);
+		Logger.info(`Mod ${mod_id} is new`);
 		return true;
 	}
 
@@ -423,13 +426,16 @@ class WorkshopScanner {
 				return await new Promise((resolve) => resolve());
 			}
 
-			return await webhook_client.send(data.content, data.options).then(() => true).catch(error => { logger.error(error); return false; });
+			return await webhook_client.send(data.content, data.options).then(() => true).catch(error => { Logger.error(error); return false; });
 		} catch (exception) {
-			logger.error("Failed to post to Discord");
+			Logger.error("Failed to post to Discord");
 		}
 	}
 
 	async run() {
+		if (tokens.debugging)
+			return;
+
 		if (!this.initialized) {
 			await this.init();
 		}
@@ -459,7 +465,7 @@ class WorkshopScanner {
 		}
 
 		if (Object.keys(entries_to_check).length != entries_to_image.length) {
-			logger.warn(`The number of entries (${Object.keys(entries_to_check).length}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned. Body: ${workshop_page}`);
+			Logger.warn(`The number of entries (${Object.keys(entries_to_check).length}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned. Body: ${workshop_page}`);
 			return;
 		}
 
