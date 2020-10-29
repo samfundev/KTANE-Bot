@@ -1,7 +1,7 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
 import { Html5Entities } from "html-entities";
 import { CoreOptions, get, Request, RequestCallback, Response } from "request";
-import { Database } from 'sqlite';
+import { Database } from "sqlite";
 import { promisify } from "util";
 import { DOMParser } from "xmldom";
 import tokens from "./get-tokens";
@@ -16,7 +16,7 @@ function matchAll(regex: RegExp, string: string) {
 	if (!regex.global) throw "Regex must be global";
 
 	let matches;
-	let allMatches = [];
+	const allMatches = [];
 
 	while ((matches = regex.exec(string)) !== null) {
 		allMatches.push(matches);
@@ -30,14 +30,14 @@ function getDate(updateString: string) {
 	if (matches == null)
 		matches = /(?<month>[A-z]{3}) (?<day>\d{1,2})(?:, (\d+))? @ (\d{1,2}):(\d{2})([ap]m)/g.exec(updateString);
 
-	if (matches == null)
+	if (matches === null || matches.groups === undefined)
 		throw new Error("Invalid date string: " + updateString);
 
 	const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 	const year = matches[3] ? parseInt(matches[3]) : new Date().getFullYear();
 	const hours = parseInt(matches[4] == "12" ? "0" : matches[4]) + (matches[6] == "pm" ? 12 : 0);
 
-	return new Date(Date.UTC(year, months.indexOf(matches.groups!.month), parseInt(matches.groups!.day), hours, parseInt(matches[5])));
+	return new Date(Date.UTC(year, months.indexOf(matches.groups.month), parseInt(matches.groups.day), hours, parseInt(matches[5])));
 }
 
 interface EntryObject {
@@ -61,18 +61,18 @@ class WorkshopScanner {
 	DB: Database;
 	client: Client;
 	initialized: boolean;
-	avatarCache: { [author_steam_id: string]: string };
-	nameCache: { [author_steam_id: string]: string };
+	avatarCache: Map<string, string>;
+	nameCache: Map<string, string>;
 
 	constructor(db: Database, client: Client) {
 		this.DB = db;
-		this.client = client
+		this.client = client;
 		this.initialized = false;
-		this.avatarCache = {};
-		this.nameCache = {};
+		this.avatarCache = new Map();
+		this.nameCache = new Map();
 	}
 
-	async init() {
+	async init(): Promise<void> {
 		await this.DB.run("CREATE TABLE IF NOT EXISTS page_id (page_id INTEGER)");
 		await this.DB.run("CREATE TABLE IF NOT EXISTS author_lookup (steam_id TEXT UNIQUE, discord_id TEXT)");
 		await this.DB.run("CREATE TABLE IF NOT EXISTS workshop_mods (mod_id INTEGER PRIMARY KEY, last_post_id INTEGER)");
@@ -96,13 +96,13 @@ class WorkshopScanner {
 		return 0;
 	}
 
-	async set_page_index(page_index: number) {
+	async set_page_index(page_index: number): Promise<void> {
 		const sql = "UPDATE page_id SET page_id = " + page_index;
 
 		await this.DB.run(sql);
 	}
 
-	async scrape_workshop_list(page_number: number, number_per_page: number) {
+	async scrape_workshop_list(page_number: number, number_per_page: number): Promise<string | false> {
 		const steam_appid = 341800;
 		const sort_mode = "mostrecent";
 		const workshop_url = `https://steamcommunity.com/workshop/browse/?appid=${steam_appid}&browsesort=${sort_mode}&section=readytouseitems&actualsort=${sort_mode}&p=${page_number}&numperpage=${number_per_page}`;
@@ -119,8 +119,8 @@ class WorkshopScanner {
 		return body;
 	}
 
-	async find_workshop_mods(workshop_page: string) {
-		let workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
+	async find_workshop_mods(workshop_page: string): Promise<false | { [id: string]: EntryObject; }> {
+		const workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
 
 		if (workshop_mod_entries.length === 0) {
 			Logger.error("Failed to find any workshop entries");
@@ -182,7 +182,7 @@ class WorkshopScanner {
 		return entries_to_check;
 	}
 
-	find_workshop_images(workshop_page: string)
+	find_workshop_images(workshop_page: string): string[] | false
 	{
 		const workshop_image_entries = matchAll(/workshopItemPreviewImage.+src="(.+)"/g, workshop_page);
 		if (workshop_image_entries.length == 0)
@@ -202,7 +202,7 @@ class WorkshopScanner {
 		return entries_to_image;
 	}
 
-	async get_author_discord_id(author_steam_id: string)
+	async get_author_discord_id(author_steam_id: string): Promise<string | false>
 	{
 		const sql = "SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = \"" + author_steam_id + "\" LIMIT 0, 1";
 		const discord_id = await this.DB.get(sql);
@@ -213,25 +213,25 @@ class WorkshopScanner {
 		return false;
 	}
 
-	async get_steam_avatar(author_steam_id: string)
+	async get_steam_avatar(author_steam_id: string): Promise<string | undefined>
 	{
-		if (!this.avatarCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
+		if (!this.avatarCache.has(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return undefined;
 		}
 
-		return this.avatarCache[author_steam_id];
+		return this.avatarCache.get(author_steam_id);
 	}
 
-	async get_steam_name(author_steam_id: string)
+	async get_steam_name(author_steam_id: string): Promise<string | undefined>
 	{
-		if (!this.nameCache.hasOwnProperty(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
+		if (!this.nameCache.has(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return undefined;
 		}
 
-		return this.nameCache[author_steam_id];
+		return this.nameCache.get(author_steam_id);
 	}
 
-	async get_steam_information(author_steam_id: string)
+	async get_steam_information(author_steam_id: string): Promise<boolean>
 	{
 		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
 		const { statusCode, body } = await getAsync(xml_url);
@@ -246,13 +246,13 @@ class WorkshopScanner {
 		if (avatar == null || steamID == null)
 			return false;
 
-		this.avatarCache[author_steam_id] = avatar;
-		this.nameCache[author_steam_id] = steamID;
+		this.avatarCache.set(author_steam_id, avatar);
+		this.nameCache.set(author_steam_id, steamID);
 
 		return true;
 	}
 
-	async check_mod(mod_id: string, entry: EntryObject, image: string)
+	async check_mod(mod_id: string, entry: EntryObject, image: string): Promise<void>
 	{
 		const last_changelog_id = await this.get_last_changelog_id(mod_id);
 
@@ -271,7 +271,7 @@ class WorkshopScanner {
 
 		for (const changelog of changelogs.reverse()) {
 			if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0) {
-				Logger.info(`Discord post skipped because description contains ignore tag.`);
+				Logger.info("Discord post skipped because description contains ignore tag.");
 				continue;
 			}
 
@@ -315,7 +315,7 @@ class WorkshopScanner {
 		}).filter(changelog => parseInt(changelog.id) > since);
 	}
 
-	async is_mod_new(mod_id: string)
+	async is_mod_new(mod_id: string): Promise<boolean>
 	{
 		const sql = "SELECT workshop_mods.mod_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
 		const result = await this.DB.get(sql);
@@ -327,7 +327,7 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async get_last_changelog_id(mod_id: string)
+	async get_last_changelog_id(mod_id: string): Promise<number>
 	{
 		const sql = "SELECT workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
 
@@ -338,19 +338,19 @@ class WorkshopScanner {
 		return 0;
 	}
 
-	async insert_mod(mod_id: string, changelog_id: string)
+	async insert_mod(mod_id: string, changelog_id: string): Promise<boolean>
 	{
 		const sql = "INSERT INTO workshop_mods (mod_id, last_post_id) VALUES (" + mod_id + ", " + changelog_id + ")";
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async update_mod(mod_id: string, changelog_id: string)
+	async update_mod(mod_id: string, changelog_id: string): Promise<boolean>
 	{
 		const sql = "UPDATE workshop_mods SET last_post_id = " + changelog_id + " WHERE mod_id = " + mod_id;
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string)
+	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean>
 	{
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
@@ -382,7 +382,7 @@ class WorkshopScanner {
 		return await this.post_discord(data, true);
 	}
 
-	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string)
+	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean>
 	{
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
@@ -416,23 +416,24 @@ class WorkshopScanner {
 		return await this.post_discord(data, major_matches.length > 0);
 	}
 
-	async post_discord(data: { content: string, options: Discord.WebhookMessageOptions & { split?: false } }, is_major: boolean)
+	async post_discord(data: { content: string, options: Discord.WebhookMessageOptions & { split?: false } }, is_major: boolean): Promise<boolean>
 	{
 		const webhook_client = is_major ? major_webhook : minor_webhook;
 
 		try {
 			if (tokens.debugging) {
-				console.log(data);
-				return await new Promise((resolve) => resolve());
+				Logger.info(data);
+				return true;
 			}
 
 			return await webhook_client.send(data.content, data.options).then(() => true).catch(error => { Logger.error(error); return false; });
 		} catch (exception) {
 			Logger.error("Failed to post to Discord");
+			return false;
 		}
 	}
 
-	async run() {
+	async run(): Promise<void> {
 		if (tokens.debugging)
 			return;
 

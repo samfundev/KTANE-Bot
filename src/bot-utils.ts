@@ -1,4 +1,4 @@
-import { Message } from 'discord.js';
+import { Message } from "discord.js";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
@@ -20,7 +20,7 @@ export function isModerator(message: Message): boolean {
 	if (message.guild == null || message.member == null)
 		return false;
 
-	var role = message.guild.roles.cache.get(tokens.roleIDs.moderator);
+	const role = message.guild.roles.cache.get(tokens.roleIDs.moderator);
 	if (!role)
 		return false;
 

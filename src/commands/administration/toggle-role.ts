@@ -28,7 +28,7 @@ export default class ToggleRoleCommand extends Command {
 
 	exec(msg: GuildMessage, args: { target: GuildMember, role: string }): void {
 		const targetRole = args.role.toLowerCase();
-		for (let roleData of tokens.roleIDs.modAssignable) {
+		for (const roleData of tokens.roleIDs.modAssignable) {
 			if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
 				const role = msg.guild.roles.cache.get(roleData.roleID);
 				if (role == undefined) {

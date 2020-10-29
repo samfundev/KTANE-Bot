@@ -18,13 +18,13 @@ export default class RefreshRoleMenuCommand extends Command {
 	exec(msg: GuildMessage): void {
 		for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus))
 		{
-			const [channelID, msgID] = menuMessageID.split('/');
-			let channel = msg.guild.channels.cache.get(channelID) as TextChannel;
+			const [channelID, msgID] = menuMessageID.split("/");
+			const channel = msg.guild.channels.cache.get(channelID) as TextChannel;
 			if (!channel)
 			{
 				Logger.error(`Cannot find channel ${channelID}. Channels are:`);
-				for (let [key, value] of msg.guild.channels.cache)
-					Logger.error(` -- ${key} = ${value}`)
+				for (const [key, value] of msg.guild.channels.cache)
+					Logger.error(` -- ${key} = ${value}`);
 				continue;
 			}
 			channel.messages.fetch(msgID)

@@ -36,7 +36,7 @@ export default class ReactionCommand extends Command {
 
 		const noReaction = args.target.roles.cache.has(tokens.roleIDs.noReaction);
 		if (noReaction) {
-			TaskManager.removeTask("removeRole", task => task.info.roleID == tokens.roleIDs.noReaction && task.info.memberID == args.target.id)
+			TaskManager.removeTask("removeRole", task => task.info.roleID == tokens.roleIDs.noReaction && task.info.memberID == args.target.id);
 			
 			args.target.roles.remove(tokens.roleIDs.noReaction)
 				.then(() => msg.reply(`${args.target.user.username} has been allowed to react.`))

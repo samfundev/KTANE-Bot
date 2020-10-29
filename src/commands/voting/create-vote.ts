@@ -40,6 +40,6 @@ export default class CreateVoteCommand extends Command {
 			voted: []
 		});
 
-		return msg.channel.send("Vote created.")
+		return msg.channel.send("Vote created.");
 	}
 }

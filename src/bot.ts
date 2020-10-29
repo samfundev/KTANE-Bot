@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
-import { CategoryChannel, MessageReaction, PartialUser, Presence, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
+import { CategoryChannel, MessageReaction, PartialUser, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
 import cron from "node-cron";
 import path from "path";
 import request from "request";
@@ -77,7 +77,7 @@ const client = new KTANEClient();
 
 TaskManager.client = client;
 
-let voiceChannelsRenamed: { [id: string]: boolean } = {};
+const voiceChannelsRenamed: { [id: string]: boolean } = {};
 
 client
 	.on("error", Logger.error)
@@ -105,7 +105,7 @@ client
 
 		if (message.channel.name == "voice-text") {
 			message.attachments.some(attachment => {
-				var file = attachment.name;
+				const file = attachment.name;
 				if (file != undefined && (file.includes("output_log") || file.includes("Player.log"))) {
 					message.channel.send({
 						embed: {
@@ -123,7 +123,7 @@ client
 			if (!message.member || !message.guild)
 				return;
 
-			var role = message.guild.roles.cache.get(tokens.roleIDs.moderator);
+			const role = message.guild.roles.cache.get(tokens.roleIDs.moderator);
 			if (!role)
 				return;
 
@@ -144,7 +144,7 @@ client
 			return;
 
 		// VOICE-MUTING
-		let muted = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
+		const muted = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
 		if (muted != newMember.voice.serverMute)
 			newMember.voice.setMute(muted);
 
@@ -152,45 +152,45 @@ client
 		if (oldState.channel === newState.channel)
 			return;
 
-		var catProcessed: CategoryChannel;
+		let catProcessed: CategoryChannel;
+
+		function convert(i: number, names: string[]): string
+		{
+			return i < names.length ? names[i] : `${convert(((i / names.length)|0) - 1, names)} ${names[i % names.length]}`;
+		}
 
 		function processAutoManagedCategories(vc: VoiceChannel | null)
 		{
 			if (!vc)
 				return;
-			let cat = vc.parent;
+			const cat = vc.parent;
 			if (!cat || !vc.parentID || !(vc.parentID in tokens.autoManagedCategories) || cat === catProcessed)
 				return;
 			catProcessed = cat;
-			let channelsForceRename = !voiceChannelsRenamed[vc.parentID];
+			const channelsForceRename = !voiceChannelsRenamed[vc.parentID];
 
 			let names = tokens.autoManagedCategories[vc.parentID].names;
-			if (!names)
+			if (names == null)
 				names = [ "Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu" ];
 
-			let prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
-			let ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
-			let channels = cat.children.array().filter(ch => ch.type === 'voice' && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
+			const prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
+			const ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
+			const channels = cat.children.array().filter(ch => ch.type === "voice" && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
 			channels.sort((c1, c2) => c1.channel.name < c2.channel.name ? -1 : c1.channel.name > c2.channel.name ? 1 : 0);
 
-			let logmsg = `Channels are: ${channels.map(obj => `${obj.channel.name}=${obj.members}`).join(', ')}`;
+			let logmsg = `Channels are: ${channels.map(obj => `${obj.channel.name}=${obj.members}`).join(", ")}`;
 
-			let numEmpty = channels.filter(ch => ch.members === 0).length;
+			const numEmpty = channels.filter(ch => ch.members === 0).length;
 			if (numEmpty < 1)
 			{
 				let ix = 0, name: string;
-				function convert(i: number): string
-				{
-					return i < names!.length ? names![i] : `${convert(((i / names!.length)|0) - 1)} ${names![i % names!.length]}`;
-				}
-
 				// Rename the 0th channel if it's different, or all channels if channelsForceRename is true
 				if (channels.length === 1 || channelsForceRename)
 				{
 					for (; ix < channels.length; ix++)
 					{
-						if (channels[ix].channel.name !== `${prefix} ${convert(ix)}`)
-							channels[ix].channel.setName(`${prefix} ${convert(ix)}`);
+						if (channels[ix].channel.name !== `${prefix} ${convert(ix, names)}`)
+							channels[ix].channel.setName(`${prefix} ${convert(ix, names)}`);
 					}
 					voiceChannelsRenamed[vc.parentID] = true;
 				}
@@ -198,15 +198,15 @@ client
 				// Create a new channel within this category
 				do
 				{
-					name = `${prefix} ${convert(ix)}`;
+					name = `${prefix} ${convert(ix, names)}`;
 					ix++;
 				}
 				while (channels.filter(ch => ch.channel.name === name).length > 0);
 
 				logmsg += `; creating ${name}`;
 				cat.guild.channels.create(name, {
-					type: 'voice',
-					reason: 'AutoManage: create new empty channel',
+					type: "voice",
+					reason: "AutoManage: create new empty channel",
 					parent: cat
 				})
 					.catch(Logger.error);
@@ -214,7 +214,7 @@ client
 			else if (numEmpty > 1)
 			{
 				// Delete unused channels in this category except the first one
-				var oneFound = false;
+				let oneFound = false;
 				for (let i = 0; i < channels.length; i++)
 				{
 					if (channels[i].members === 0)
@@ -222,7 +222,7 @@ client
 						if (oneFound)
 						{
 							logmsg += `; deleting ${channels[i].channel.name}`;
-							channels[i].channel.delete('AutoManage: delete unused channel');
+							channels[i].channel.delete("AutoManage: delete unused channel");
 						}
 						else
 							oneFound = true;
@@ -252,11 +252,10 @@ function scheduledTask() {
 	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
-	let videosAnnounced = client.settings.get("global", "videosAnnounced", "[]"), lastVideoScans = null;
+	let videosAnnounced = client.settings.get("global", "videosAnnounced", "[]");
 	videosAnnounced = JSON.parse(videosAnnounced);
 
-	let nowTime = new Date();
-	for (let videoChannel of tokens.tutorialVideoChannels) {
+	for (const videoChannel of tokens.tutorialVideoChannels) {
 		request({
 			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
 			json: true
@@ -264,8 +263,8 @@ function scheduledTask() {
 			if (err) { Logger.error(err); return; }
 			if (resp.statusCode != 200) { Logger.error(`Failed to get videos, status code: ${resp.statusCode}`); return; }
 
-			for (let item of json.items.reverse()) {
-				let snippet = item.snippet;
+			for (const item of json.items.reverse()) {
+				const snippet = item.snippet;
 				if (videosAnnounced.includes(snippet.resourceId.videoId))
 					continue;
 				if (snippet.title.toLowerCase().indexOf("ktane") === -1 &&
@@ -283,8 +282,6 @@ function scheduledTask() {
 }
 
 async function handleReaction(reaction: MessageReaction, user: User | PartialUser, reactionAdded: boolean) {
-	let channel: TextChannel;
-
 	if (user.partial)
 		return;
 
@@ -295,9 +292,9 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 	if (!await unpartial(message))
 		return;
 
-	let anyChannel = message.channel;
+	const anyChannel = message.channel;
 	if (anyChannel == null || anyChannel.type != "text" || message.guild == null) return;
-	channel = anyChannel;
+	const channel: TextChannel = anyChannel;
 
 	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
 
@@ -307,7 +304,7 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 		message.delete().catch(Logger.error);
 	} else {
 		for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
-			const [channelID, msgID] = menuMessageID.split('/');
+			const [, msgID] = menuMessageID.split("/");
 			if (msgID != message.id)
 				continue;
 
@@ -353,7 +350,7 @@ cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length) + 1
 
 cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes
-	workshopScanner.run().catch((error: any) => Logger.error("Unable to run workshop scan:", error));
+	workshopScanner.run().catch((error: unknown) => Logger.error("Unable to run workshop scan:", error));
 
 	// Process tasks
 	TaskManager.processTasks();

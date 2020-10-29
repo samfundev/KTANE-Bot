@@ -15,9 +15,11 @@ export default class UpdateCommand extends Command {
 		if (msg.guild != null)
 			return;
 
+		let elevate;
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-var-requires
-			var { elevate } = require("node-windows");
+			const { elevateFunc } = require("node-windows");
+			elevate = elevateFunc;
 		} catch {
 			return;
 		}

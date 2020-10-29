@@ -2,7 +2,6 @@ import { AkairoClient } from "discord-akairo";
 import { TextChannel } from "discord.js";
 import logger from "./log";
 
-
 class TaskManager {
 	static client: AkairoClient;
 
@@ -10,26 +9,26 @@ class TaskManager {
 		return this.client.settings.get("global", "scheduledTasks", []);
 	}
 
-	static set tasks(newTasks) {
+	static set tasks(newTasks: ScheduledTask[]) {
 		this.client.settings.set("global", "scheduledTasks", newTasks);
 	}
 
-	static modifyTasks(func: (tasks: ScheduledTask[]) => ScheduledTask[]) {
+	static modifyTasks(func: (tasks: ScheduledTask[]) => ScheduledTask[]): void {
 		this.tasks = func(this.tasks);
 	}
 
-	static addTask(timestamp: number, type: string, info: any) {
+	static addTask(timestamp: number, type: string, info: unknown): void {
 		this.modifyTasks(tasks => {
 			tasks.push(new ScheduledTask(timestamp, type, info));
 			return tasks;
 		});
 	}
 
-	static removeTask(type: string, filter: (task: ScheduledTask) => boolean) {
+	static removeTask(type: string, filter: (task: ScheduledTask) => boolean): void {
 		this.modifyTasks(tasks => tasks.filter(task => task.type != type || task.timestamp > Date.now() || !filter(task)));
 	}
 
-	static processTasks() {
+	static processTasks(): void {
 		this.modifyTasks(tasks => {
 			if (tasks.length == 0)
 				return tasks;
@@ -41,12 +40,12 @@ class TaskManager {
 				const info = task.info;
 	
 				switch (task.type) {
-					case "removeReaction":
+					case "removeReaction": {
 						const textChannel = this.client.channels.cache.get(info.channelID) as TextChannel;
 
 						textChannel.messages.fetch(info.messageID)
 							.then(async message => {
-								var reaction = message.reactions.cache.get(info.emojiKey);
+								const reaction = message.reactions.cache.get(info.emojiKey);
 								if (!reaction)
 									return Promise.reject("Reaction missing.");
 
@@ -54,8 +53,9 @@ class TaskManager {
 							})
 							.then(reaction => reaction.users.remove(info.userID).catch(logger.error));
 						break;
-					case "unbanMember":
-						var guild = this.client.guilds.cache.get(info.guildID);
+					}
+					case "unbanMember": {
+						const guild = this.client.guilds.cache.get(info.guildID);
 						if (!guild)
 							return true;
 
@@ -64,8 +64,9 @@ class TaskManager {
 							this.sendOwnerMessage("Failed to unban a user. Check the logs.");
 						});
 						break;
-					case "removeRole":
-						var guild = this.client.guilds.cache.get(info.guildID);
+					}
+					case "removeRole": {
+						const guild = this.client.guilds.cache.get(info.guildID);
 						if (!guild)
 							return true;
 
@@ -74,6 +75,7 @@ class TaskManager {
 							this.sendOwnerMessage("Failed to remove a role. Check the logs.");
 						});
 						break;
+					}
 					default:
 						logger.error("Unknown task type: " + task.type);
 						break;
@@ -84,7 +86,7 @@ class TaskManager {
 		});
 	}
 
-	static sendOwnerMessage(text: string) {
+	static sendOwnerMessage(text: string): void {
 		if (typeof this.client.ownerID == "string")
 			this.client.users.fetch(this.client.ownerID).then(user => user.send(text));
 	}
@@ -93,9 +95,12 @@ class TaskManager {
 class ScheduledTask {
 	timestamp: number;
 	type: string;
+
+	// I can't figure out how to type this.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	info: any;
 	
-	constructor(timestamp: number, type: string, info: any) {
+	constructor(timestamp: number, type: string, info: unknown) {
 		this.timestamp = timestamp;
 		this.type = type;
 		this.info = info;
