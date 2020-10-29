@@ -1,6 +1,5 @@
 import { Command } from "discord-akairo";
 import { Message, MessageEmbed } from "discord.js";
-import { isModerator } from "../../bot-utils";
 
 export default class EndVoteCommand extends Command {
 	constructor() {
@@ -9,10 +8,6 @@ export default class EndVoteCommand extends Command {
 			category: "voting",
 			description: "Ends the current vote.",
 		});
-	}
-
-	condition(msg: Message): boolean {
-		return isModerator(msg);
 	}
 
 	exec(msg: Message): Promise<Message> {

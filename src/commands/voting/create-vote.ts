@@ -1,6 +1,5 @@
 import { Command } from "discord-akairo";
 import { Message } from "discord.js";
-import { isModerator } from "../../bot-utils";
 
 export default class CreateVoteCommand extends Command {
 	constructor() {
@@ -21,10 +20,6 @@ export default class CreateVoteCommand extends Command {
 				}
 			]
 		});
-	}
-
-	condition(msg: Message): boolean {
-		return isModerator(msg);
 	}
 
 	exec(msg: Message, args: { topic: string, options: string[] }): Promise<Message> {

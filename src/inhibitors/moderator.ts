@@ -10,6 +10,6 @@ export default class ModeratorInhibitor extends Inhibitor {
 	}
 
 	exec(message: Message, command: Command): boolean {
-		return command.categoryID == "administration" && !isModerator(message);
+		return (command.categoryID == "administration" || command.id == "createvote" || command.id == "endvote") && !isModerator(message);
 	}
 }
