@@ -30,7 +30,7 @@ export default class MakeMajorCommand extends Command {
 			}
 
 			const targetEmbed = message.embeds[0];
-			if (targetEmbed.timestamp == null)
+			if (targetEmbed.timestamp === null || targetEmbed.title === null || targetEmbed.url === null || targetEmbed.description == null)
 				return;
 
 			const embed = new MessageEmbed({
