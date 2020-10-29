@@ -18,16 +18,13 @@ export default class VoteCommand extends Command {
 		});
 	}
 
-	condition(msg: Message): boolean {
-		if (msg.guild != null) {
+	exec(msg: Message, args: { vote: number[] }): Promise<Message> {
+		if (msg.guild !== null) {
 			msg.delete();
-			return false;
+
+			return msg.reply("You should only vote in DMs.");
 		}
 
-		return true;
-	}
-
-	exec(msg: Message, args: { vote: number[] }): Promise<Message> {
 		const currentVote = this.client.settings.get("global", "vote", null);
 		if (currentVote == null) {
 			return msg.reply("There is no vote running.");
