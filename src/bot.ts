@@ -35,7 +35,9 @@ class KTANEClient extends AkairoClient {
 
 		this.commandHandler = new CommandHandler(this, {
 			directory: path.join(__dirname, "commands"),
-			prefix: "!"
+			prefix: "!",
+			handleEdits: true,
+			commandUtil: true
 		});
 
 		this.commandHandler.resolver.addType("duration", (message, phrase) => {
