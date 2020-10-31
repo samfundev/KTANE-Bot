@@ -433,7 +433,7 @@ class WorkshopScanner {
 
 			return true;
 		} catch (exception) {
-			Logger.error("Failed to post to Discord");
+			Logger.error("Failed to post to Discord", exception);
 			return false;
 		}
 	}
