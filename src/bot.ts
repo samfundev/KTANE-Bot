@@ -271,7 +271,9 @@ function scheduledTask() {
 					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
 					continue;
 				videosAnnounced.push(snippet.resourceId.videoId);
-				videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`);
+				videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`)
+					.then(message => message.crosspost())
+					.catch(Logger.error);
 				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
 			}
 

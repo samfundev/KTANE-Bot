@@ -426,7 +426,12 @@ class WorkshopScanner {
 				return true;
 			}
 
-			return await webhook_client.send(data.content, data.options).then(() => true).catch(error => { Logger.error(error); return false; });
+			const message = await webhook_client.send(data.content, data.options);
+			message.crosspost().catch(exception => {
+				Logger.error("Failed to crosspost message.", exception);
+			});
+
+			return true;
 		} catch (exception) {
 			Logger.error("Failed to post to Discord");
 			return false;
