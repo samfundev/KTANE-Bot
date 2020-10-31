@@ -4,6 +4,7 @@ import { CoreOptions, get, Request, RequestCallback, Response } from "request";
 import { Database } from "sqlite";
 import { promisify } from "util";
 import { DOMParser } from "xmldom";
+import { sendWebhookMessage } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
@@ -426,7 +427,7 @@ class WorkshopScanner {
 				return true;
 			}
 
-			const message = await webhook_client.send(data.content, data.options);
+			const message = await sendWebhookMessage(this.client, webhook_client, data.content, data.options);
 			message.crosspost().catch(exception => {
 				Logger.error("Failed to crosspost message.", exception);
 			});

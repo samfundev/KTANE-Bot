@@ -7,7 +7,7 @@ import path from "path";
 import request from "request";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
-import { unpartial } from "./bot-utils";
+import { sendWebhookMessage, unpartial } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
 import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
@@ -273,7 +273,7 @@ function scheduledTask() {
 					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
 					continue;
 				videosAnnounced.push(snippet.resourceId.videoId);
-				videoBot.send(`New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`)
+				sendWebhookMessage(client, videoBot, `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`, {})
 					.then(message => message.crosspost())
 					.catch(Logger.error);
 				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);

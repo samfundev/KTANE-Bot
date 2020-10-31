@@ -1,4 +1,5 @@
-import { Message } from "discord.js";
+import { RESTPostAPIChannelMessageResult } from "discord-api-types/v8";
+import { Client, Message, WebhookClient, WebhookMessageOptions } from "discord.js";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
@@ -25,4 +26,14 @@ export function isModerator(message: Message): boolean {
 		return false;
 
 	return message.member.roles.highest.comparePositionTo(role) >= 0;
+}
+
+export async function sendWebhookMessage(client: Client, webhook: WebhookClient, content: string, options: WebhookMessageOptions): Promise<Message> {
+	const message = ((await webhook.send(content, options)) as unknown) as RESTPostAPIChannelMessageResult;
+
+	const channel = await client.channels.fetch(message.channel_id);
+	if (!channel.isText())
+		throw new Error("Not a text channel.");
+
+	return await channel.messages.fetch(message.id);
 }

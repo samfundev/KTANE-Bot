@@ -1,5 +1,6 @@
 import { Command } from "discord-akairo";
 import { MessageEmbed, TextChannel, WebhookClient } from "discord.js";
+import { sendWebhookMessage } from "../../bot-utils";
 import tokens from "../../get-tokens";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
@@ -50,12 +51,12 @@ export default class MakeMajorCommand extends Command {
 	
 			embed.setColor("#0055aa");
 
-			new WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token).send(message.content, {
+			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token), message.content, {
 				disableMentions: "all",
 				embeds: [
 					embed
 				],
-			});
+			}).then(message => message.crosspost()).catch(Logger.error);
 
 			message.delete().catch(Logger.error);
 		}).catch(Logger.errorReply("make the message major", msg));
