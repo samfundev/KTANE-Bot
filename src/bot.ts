@@ -289,6 +289,10 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 	if (user.partial)
 		return;
 
+	// The bot is only reacting to show the options, it shouldn't actually be handled.
+	if (user.id === client.user?.id)
+		return;
+
 	if (!await unpartial(reaction))
 		return;
 
