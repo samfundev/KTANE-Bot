@@ -31,9 +31,9 @@
     "@types/xmldom": "^0.1.30",
     "@typescript-eslint/eslint-plugin": "^3.10.1",
     "@typescript-eslint/parser": "^3.10.1",
-    "discord-api-types": "^0.7.0",
+    "discord-api-types": "^0.8.0",
     "eslint": "^7.12.1",
-    "typescript": "^3.9.7"
+    "typescript": "^4.0.5"
   },
   "optionalDependencies": {
     "node-windows": "github:samfundev/node-windows"
