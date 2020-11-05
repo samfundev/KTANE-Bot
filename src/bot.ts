@@ -65,7 +65,6 @@ class KTANEClient extends AkairoClient {
 		this.listenerHandler.loadAll();
 
 		this.settings = new SQLiteProvider(sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }), "settings", {
-			idColumn: "guild",
 			dataColumn: "settings"
 		});
 	}

@@ -1,5 +1,6 @@
 import { AkairoClient } from "discord-akairo";
 import { TextChannel } from "discord.js";
+import tokens from "./get-tokens";
 import logger from "./log";
 
 class TaskManager {
@@ -29,6 +30,9 @@ class TaskManager {
 	}
 
 	static processTasks(): void {
+		if (tokens.debugging)
+			return;
+
 		this.modifyTasks(tasks => {
 			if (tasks.length == 0)
 				return tasks;
