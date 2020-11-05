@@ -1,3 +1,4 @@
+import { Provider } from "discord-akairo";
 import { RESTPostAPIChannelMessageResult } from "discord-api-types/v8";
 import { Client, Message, WebhookClient, WebhookMessageOptions } from "discord.js";
 import tokens from "./get-tokens";
@@ -36,4 +37,10 @@ export async function sendWebhookMessage(client: Client, webhook: WebhookClient,
 		throw new Error("Not a text channel.");
 
 	return await channel.messages.fetch(message.id);
+}
+
+export async function update<T>(provider: Provider, id: string, key: string, defaultValue: T, updater: (value: T) => T): Promise<void> {
+	const oldValue = await provider.get(id, key, defaultValue);
+	const newValue = updater(oldValue);
+	await provider.set(id, key, newValue);
 }

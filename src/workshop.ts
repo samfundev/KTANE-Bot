@@ -1,14 +1,11 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
+import got from "got";
 import { Html5Entities } from "html-entities";
-import { CoreOptions, get, Request, RequestCallback, Response } from "request";
 import { Database } from "sqlite";
-import { promisify } from "util";
 import { DOMParser } from "xmldom";
 import { sendWebhookMessage } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
-
-const getAsync = promisify(get as ((uri: string, options?: CoreOptions, callback?: RequestCallback) => Request)) as ((uri: string, options?: CoreOptions) => Promise<Response>);
 
 const major_webhook = new Discord.WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token);
 const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook.id, tokens.minorWebhook.token);
@@ -110,7 +107,7 @@ class WorkshopScanner {
 
 		Logger.info(`Beginning scrape of page ${page_number}`);
 
-		const { statusCode, body }: { statusCode: number, body: string } = await getAsync(workshop_url);
+		const { statusCode, body }: { statusCode: number, body: string } = await got(workshop_url);
 		if (statusCode != 200) {
 			Logger.error(`Failed to retrieve the workshop page at ${decodeURI(workshop_url)}`);
 			return false;
@@ -166,7 +163,7 @@ class WorkshopScanner {
 								.then(() => Logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`))
 								.catch(Logger.error);
 						} else {
-							Logger.error(error);
+							Logger.error("Could not fetch Discord avatar.", error);
 						}
 
 						await getSteamAuthor();
@@ -235,7 +232,7 @@ class WorkshopScanner {
 	async get_steam_information(author_steam_id: string): Promise<boolean>
 	{
 		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
-		const { statusCode, body } = await getAsync(xml_url);
+		const { statusCode, body } = await got(xml_url);
 		if (statusCode != 200) {
 			Logger.error(`Failed to retrieve the steam avatar at ${decodeURI(xml_url)}`);
 			return false;
@@ -290,7 +287,7 @@ class WorkshopScanner {
 	async get_latest_changelogs(mod_id: string, since: number): Promise<Changelog[] | null>
 	{
 		const changelog_url = `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}`;
-		const { statusCode, body } = await getAsync(changelog_url, {
+		const { statusCode, body } = await got(changelog_url, {
 			headers: {
 				Cookie: "timezoneOffset=0,0"
 			}

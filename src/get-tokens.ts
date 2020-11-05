@@ -24,6 +24,7 @@ interface tokens {
     reactionMenus: {
 		[id: string]: { [emoji: string]: string }
     },
+    repoLintPath: string,
     debugging: boolean
 }
 

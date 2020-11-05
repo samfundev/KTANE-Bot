@@ -30,6 +30,6 @@ export default class SetSteamIDCommand extends Command {
 		return sqlite.open({ filename: path.join(__dirname, "..", "..", "database.sqlite3"), driver: sqlite3.cached.Database })
 			.then(db => db.run("INSERT INTO 'author_lookup' (steam_id, discord_id) VALUES(?, ?) ON CONFLICT(steam_id) DO UPDATE SET discord_id=excluded.discord_id", args.steamid, args.discordid))
 			.then(() => msg.reply(`Set "${args.steamid}" to "${args.discordid}".`))
-			.catch(error => { Logger.error(error); return msg.reply("Failed to set."); });
+			.catch(Logger.errorReply("set steam ID", msg));
 	}
 }

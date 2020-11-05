@@ -2,16 +2,17 @@
 
 import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
 import { CategoryChannel, MessageReaction, PartialUser, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
+import got from "got";
 import cron from "node-cron";
 import path from "path";
-import request from "request";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
-import { sendWebhookMessage, unpartial } from "./bot-utils";
+import { sendWebhookMessage, unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
 import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
 import Logger from "./log";
+import lintMessage from "./repolint";
 import TaskManager from "./task-manager";
 import WorkshopScanner from "./workshop";
 
@@ -133,7 +134,25 @@ client
 				return;
 
 			message.delete().catch(Logger.error);
+		} else if (message.channel.name == "requests") {
+			lintMessage(message, client);
 		}
+	})
+	.on("messageDelete", message => {
+		if (message.guild === null || message.channel.type === "dm" || message.channel.name !== "requests")
+			return;
+
+		update<Record<string, string>>(client.settings, message.guild.id, "reportMessages", {}, (value) => {
+			const reportID = value[message.id];
+			if (reportID === undefined)
+				return value;
+
+			delete value[message.id];
+
+			message.channel.messages.delete(reportID);
+
+			return value;
+		}).catch(Logger.errorPrefix("Failed to delete report."));
 	})
 	.on("voiceStateUpdate", (oldState, newState) => {
 		if (!oldState)
@@ -250,7 +269,16 @@ const videoBot = new WebhookClient(tokens.annoucementWebhook.id, tokens.annoucem
 let workshopScanner: WorkshopScanner;
 sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(async db => workshopScanner = new WorkshopScanner(db, client));
 
-function scheduledTask() {
+type playlistItem = {
+	snippet: {
+		title: string,
+		resourceId: {
+			videoId: string
+		}
+	}
+}
+
+async function scheduledTask() {
 	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
@@ -258,12 +286,11 @@ function scheduledTask() {
 	videosAnnounced = JSON.parse(videosAnnounced);
 
 	for (const videoChannel of tokens.tutorialVideoChannels) {
-		request({
-			url: `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`,
-			json: true
-		}, function(err, resp, json) {
-			if (err) { Logger.error(err); return; }
-			if (resp.statusCode != 200) { Logger.error(`Failed to get videos, status code: ${resp.statusCode}`); return; }
+		try {
+			const response = await got(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`, {
+				responseType: "json"
+			});
+			const json = response.body as { items: playlistItem[] };
 
 			for (const item of json.items.reverse()) {
 				const snippet = item.snippet;
@@ -281,7 +308,9 @@ function scheduledTask() {
 
 			Logger.info(`Video channel ${videoChannel.name} checked.`);
 			client.settings.set("global", "videosAnnounced", JSON.stringify(videosAnnounced));
-		});
+		} catch (error) {
+			Logger.error(`Failed to get videos, status code: ${error.response.statusCode}`);
+		}
 	}
 }
 

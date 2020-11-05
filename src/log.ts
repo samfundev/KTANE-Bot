@@ -17,9 +17,12 @@ export default class Logger {
 	static info(...data: unknown[]): void { Logger.log("info", ...data); }
 	static error(...data: unknown[]): void { Logger.log("error", ...data); }
 	static warn(...data: unknown[]): void { Logger.log("warn", ...data); }
+	static errorPrefix(prefix: unknown) {
+		return (...data: unknown[]): void => Logger.log("error", prefix, ...data);
+	}
 	static errorReply(reason: string, message: Message) {
 		return (...data: unknown[]): Promise<Message> => {
-			Logger.error(...data);
+			Logger.error(reason, ...data);
 			return message.reply(`Failed to ${reason}.`);
 		};
 	}
