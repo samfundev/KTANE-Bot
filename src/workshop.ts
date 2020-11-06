@@ -259,7 +259,7 @@ class WorkshopScanner {
 			return;
 		}
 
-		const newMod = await this.is_mod_new(mod_id) === true;
+		let newMod = await this.is_mod_new(mod_id) === true;
 		const success = newMod ?
 			await this.insert_mod(mod_id, changelogs[0].id) :
 			await this.update_mod(mod_id, changelogs[0].id);
@@ -279,6 +279,9 @@ class WorkshopScanner {
 			if (result !== false)
 			{
 				Logger.info("Discord post added.");
+
+				// If a new mod was just posted, it's not a new mod anymore.
+				newMod = false;
 			}
 		}
 	}
