@@ -4,8 +4,13 @@ import Logger from "./log";
 
 export default function checkStreamingStatus(presence: Presence): void {
 	if (tokens.debugging) return;
+
 	const member = presence.member;
-	if (!member) return;
+	if (member === null) {
+		Logger.warn("Tried to check presence but there wasn't a member.");
+		return;
+	}
+
 	const activities = presence.activities;
 	const streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
 	const hasRole = member.roles.cache.has(tokens.roleIDs.streaming);

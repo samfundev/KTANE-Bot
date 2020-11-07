@@ -7,7 +7,7 @@ export default class PresenceCommand extends Command {
 		super("presence", {
 			aliases: ["presence"],
 			category: "administration",
-			description: "",
+			description: "Checks someone presence to see if they're streaming.",
 			channel: "guild",
 
 			args: [

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
-import { CategoryChannel, MessageReaction, PartialUser, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
+import { CategoryChannel, Intents, MessageReaction, PartialUser, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
 import got from "got";
 import cron from "node-cron";
 import path from "path";
@@ -31,7 +31,10 @@ class KTANEClient extends AkairoClient {
 		super({
 			ownerID: "76052829285916672",
 		}, {
-			partials: ["MESSAGE", "REACTION"]
+			partials: ["MESSAGE", "REACTION"],
+			ws: {
+				intents: [ Intents.NON_PRIVILEGED, "GUILD_PRESENCES" ]
+			}
 		});
 
 		this.commandHandler = new CommandHandler(this, {
