@@ -259,9 +259,9 @@ client
 		processAutoManagedCategories(oldState.channel);
 		processAutoManagedCategories(newState.channel);
 	})
-	.on("presenceUpdate", (_, newPresence) => {
+	.on("presenceUpdate", async (_, newPresence) => {
 		// Check any presence changes for a potential streamer
-		checkStreamingStatus(newPresence);
+		checkStreamingStatus(newPresence, true);
 	})
 	.on("messageReactionAdd", async (reaction, user) => await handleReaction(reaction, user, true))
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));

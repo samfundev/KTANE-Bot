@@ -20,6 +20,6 @@ export default class PresenceCommand extends Command {
 	}
 
 	exec(_msg: Message, { target }: { target: GuildMember }): void {
-		checkStreamingStatus(target.presence);
+		checkStreamingStatus(target.presence, false);
 	}
 }

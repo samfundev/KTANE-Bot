@@ -2,14 +2,17 @@ import { Presence } from "discord.js";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
-export default function checkStreamingStatus(presence: Presence): void {
+export default async function checkStreamingStatus(presence: Presence, fetch: boolean): Promise<void> {
 	if (tokens.debugging) return;
 
-	const member = presence.member;
+	let member = presence.member;
 	if (member === null) {
 		Logger.warn("Tried to check presence but there wasn't a member.");
 		return;
 	}
+
+	if (fetch)
+		member = await member.fetch(true);
 
 	const activities = presence.activities;
 	const streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
@@ -17,12 +20,12 @@ export default function checkStreamingStatus(presence: Presence): void {
 	let actionTaken = null;
 	if (hasRole && !streamingKTANE)
 	{
-		member.roles.remove(tokens.roleIDs.streaming).catch(Logger.error);
+		await member.roles.remove(tokens.roleIDs.streaming).catch(Logger.error);
 		actionTaken = "; removing streaming role";
 	}
 	else if (!hasRole && streamingKTANE)
 	{
-		member.roles.add(tokens.roleIDs.streaming).catch(Logger.error);
+		await member.roles.add(tokens.roleIDs.streaming).catch(Logger.error);
 		actionTaken = "; adding streaming role";
 	}
 	if (actionTaken !== null)
