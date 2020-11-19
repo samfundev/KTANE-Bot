@@ -118,7 +118,7 @@ class WorkshopScanner {
 	}
 
 	async find_workshop_mods(workshop_page: string): Promise<false | { [id: string]: EntryObject; }> {
-		const workshop_mod_entries = matchAll(/workshopItemAuthorName">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
+		const workshop_mod_entries = matchAll(/workshopItemAuthorName.+?">by&nbsp;<a href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
 
 		if (workshop_mod_entries.length === 0) {
 			Logger.error("Failed to find any workshop entries");
@@ -441,7 +441,7 @@ class WorkshopScanner {
 
 	async run(): Promise<void> {
 		if (tokens.debugging)
-			return;
+			//return;
 
 		if (!this.initialized) {
 			await this.init();
