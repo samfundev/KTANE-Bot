@@ -261,7 +261,7 @@ client
 	})
 	.on("presenceUpdate", async (_, newPresence) => {
 		// Check any presence changes for a potential streamer
-		checkStreamingStatus(newPresence, true);
+		checkStreamingStatus(newPresence, true).catch(Logger.errorPrefix("checkStreamingStatus"));
 	})
 	.on("messageReactionAdd", async (reaction, user) => await handleReaction(reaction, user, true))
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));

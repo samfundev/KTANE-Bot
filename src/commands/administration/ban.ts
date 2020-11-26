@@ -21,7 +21,7 @@ export default class BanCommand extends Command {
 				},
 				{
 					id: "duration",
-					type: "string"
+					type: "duration"
 				}
 			]
 		});
