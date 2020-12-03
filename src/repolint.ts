@@ -25,18 +25,19 @@ function hsv2rgb(h: number, s: number, v: number): [number, number, number] {
 }
 
 export default async function lintMessage(message: Message, client: AkairoClient): Promise<void> {
-	const zip = Array.from(message.attachments.values()).find(attachment => attachment.name?.endsWith(".zip"));
-	if (zip === undefined || zip.name === null)
+	const extensions = [".zip", ".rar", ".7z", ".html", ".svg", ".json"];
+	const file = Array.from(message.attachments.values()).find(attachment => extensions.some(extension => attachment.name?.endsWith(extension)));
+	if (file === undefined || file.name === null)
 		return;
 
 	const fileName = message.id + ".zip";
 	try {
 		await pipeline(
-			got.stream(zip.url),
+			got.stream(file.url),
 			createWriteStream(fileName)
 		);
 
-		const report = await lintZip(message, fileName, zip.name);
+		const report = await lintZip(message, fileName, file.name);
 		if (report === null)
 			await message.react("👍");
 		else if (message.guild !== null)
@@ -47,6 +48,8 @@ export default async function lintMessage(message: Message, client: AkairoClient
 	} catch (error) {
 		Logger.error("Linting failed. Error: ", error);
 		TaskManager.sendOwnerMessage("An error ocurred while linting. Check the logs.");
+
+		await message.react("⚠️");
 	} finally {
 		unlink(fileName, Logger.error);
 	}
