@@ -87,8 +87,17 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 				.setURL(message.url)
 				.setDescription(`Found ${pluralize(totalProblems, "problem")} in ${pluralize(files.length, "file")}.`)
 				.setFooter(originalName)
-				.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1))
-				.addFields(files.map(file => { return { name: file.name, value: file.problems.join("\n").substring(0, 1024) }; }));
+				.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1));
+
+			for (let i = 0; i < Math.min(files.length, 25); i++) {
+				const file = files[i];
+				const field = { name: file.name, value: file.problems.join("\n").substring(0, 1024) };
+
+				if (embed.length + field.name.length + field.value.length > 6000)
+					break;
+
+				embed.addField(field.name, field.value);
+			}
 
 			const report = message.channel.send(embed);
 			resolve(report);
