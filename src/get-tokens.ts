@@ -4,7 +4,7 @@ const tokens: tokens = tokensRaw;
 
 interface tokens {
 	botToken: string,
-    annoucementWebhook: { id: Snowflake, token: string },
+    announcementWebhook: { id: Snowflake, token: string },
     majorWebhook: { id: Snowflake, token: string },
     minorWebhook: { id: Snowflake, token: string },
     youtubeAPIKey: string,

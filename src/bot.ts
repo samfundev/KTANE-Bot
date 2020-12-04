@@ -268,7 +268,7 @@ client
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));
 
 
-const videoBot = new WebhookClient(tokens.annoucementWebhook.id, tokens.annoucementWebhook.token);
+const videoBot = new WebhookClient(tokens.announcementWebhook.id, tokens.announcementWebhook.token);
 let workshopScanner: WorkshopScanner;
 sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(async db => workshopScanner = new WorkshopScanner(db, client));
 

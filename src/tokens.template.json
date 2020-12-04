@@ -1,6 +1,6 @@
 {
 	"botToken": "",
-	"annoucementWebhook": { "id": "", "token": "" },
+	"announcementWebhook": { "id": "", "token": "" },
 	"majorWebhook": { "id": "", "token": "" },
 	"minorWebhook": { "id": "", "token": "" },
 	"youtubeAPIKey": "",
