@@ -46,7 +46,7 @@ export default async function lintMessage(message: Message, client: AkairoClient
 				return value;
 			});
 	} catch (error) {
-		Logger.error("Linting failed. Error: ", error);
+		Logger.error("Linting failed.", error);
 		TaskManager.sendOwnerMessage("An error ocurred while linting. Check the logs.");
 
 		await message.react("⚠️");
@@ -69,19 +69,28 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 
 			const files = [];
 			let file: { name: string, problems: string[] } | null = null;
-			for (const line of stdout.split("\n")) {
+			let totalProblems = 0;
+			for (let line of stdout.split("\n")) {
+				line = line.trimEnd();
 				if (line === "")
 					continue;
 
 				if (!line.startsWith("    ")) {
 					file = { name: line, problems: [] };
 					files.push(file);
+
+					const match = line.match(/\((\d+) problems?\)$/);
+					if (match == null)
+					{
+						Logger.error("Unable to match problem count:", line);
+						continue;
+					}
+
+					totalProblems += parseInt(match[1]);
 				} else if (file !== null) {
 					file.problems.push(line);
 				}
 			}
-
-			const totalProblems = files.map(file => file.problems.length).reduce((a, b) => a + b, 0);
 
 			if (totalProblems === 0)
 			{
