@@ -141,10 +141,11 @@ client
 		}
 	})
 	.on("messageDelete", message => {
-		if (message.guild === null || message.channel.type === "dm" || message.channel.name !== "requests")
+		if ((message.channel.type !== "text" || message.channel.name !== "requests") && message.channel.type !== "dm")
 			return;
 
-		update<Record<string, string>>(client.settings, message.guild.id, "reportMessages", {}, (value) => {
+		const id = (message.channel.type == "text" && message.guild != null) ? message.guild.id : message.channel.id;
+		update<Record<string, string>>(client.settings, id, "reportMessages", {}, (value) => {
 			const reportID = value[message.id];
 			if (reportID === undefined)
 				return value;

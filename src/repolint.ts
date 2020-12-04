@@ -40,8 +40,8 @@ export default async function lintMessage(message: Message, client: AkairoClient
 		const report = await lintZip(message, fileName, file.name);
 		if (report === null)
 			await message.react("👍");
-		else if (message.guild !== null)
-			await update<Record<string, string>>(client.settings, message.guild.id, "reportMessages", {}, (value) => {
+		else
+			await update<Record<string, string>>(client.settings, message.guild !== null ? message.guild.id : message.channel.id, "reportMessages", {}, (value) => {
 				value[message.id] = report.id;
 				return value;
 			});
