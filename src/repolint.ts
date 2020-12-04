@@ -51,7 +51,11 @@ export default async function lintMessage(message: Message, client: AkairoClient
 
 		await message.react("⚠️");
 	} finally {
-		unlink(fileName, Logger.error);
+		unlink(fileName, error => {
+			if (error != null) {
+				Logger.error("Unlinking failed:", error);
+			}
+		});
 	}
 }
 
