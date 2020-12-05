@@ -30,7 +30,7 @@ export default async function lintMessage(message: Message, client: AkairoClient
 	if (file === undefined || file.name === null)
 		return;
 
-	const fileName = message.id + ".zip";
+	const fileName = message.id + file.name.substring(file.name.lastIndexOf("."));
 	try {
 		await pipeline(
 			got.stream(file.url),
