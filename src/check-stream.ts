@@ -12,7 +12,13 @@ export default async function checkStreamingStatus(presence: Presence, fetch: bo
 	}
 
 	if (fetch)
-		member = await member.fetch(true);
+	{
+		try {
+			member = await member.fetch(true);
+		} catch { // Failed to fetch member, we can't check the streaming status.
+			return;
+		}
+	}
 
 	const activities = presence.activities;
 	const streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
