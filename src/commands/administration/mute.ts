@@ -47,7 +47,8 @@ export default class MuteCommand extends Command {
 				.then(() => msg.reply(`${args.target.user.username} has been muted.`))
 				.catch(Logger.errorReply("mute", msg));
 			
-			TaskManager.addTask(Date.now(), "removeRole", { roleID: tokens.roleIDs.voiceMuted, memberID: args.target.id, guildID: msg.guild.id });
+			if (args.duration != null)
+				TaskManager.addTask(Date.now() + args.duration, "removeRole", { roleID: tokens.roleIDs.voiceMuted, memberID: args.target.id, guildID: msg.guild.id });
 		}
 
 		if (args.target.voice.channel) args.target.voice.setMute(!muted).catch(() => msg.reply("Unable to change server mute status."));

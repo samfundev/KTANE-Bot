@@ -42,7 +42,8 @@ export default class ReactionCommand extends Command {
 				.then(() => msg.reply(`${args.target.user.username} has been allowed to react.`))
 				.catch(Logger.errorReply("remove role", msg));
 		} else {
-			TaskManager.addTask(Date.now(), "removeRole", { roleID: tokens.roleIDs.noReaction, memberID: args.target.id, guildID: msg.guild.id });
+			if (args.duration != null)
+				TaskManager.addTask(Date.now() + args.duration, "removeRole", { roleID: tokens.roleIDs.noReaction, memberID: args.target.id, guildID: msg.guild.id });
 			
 			args.target.roles.add(tokens.roleIDs.noReaction)
 				.then(() => msg.reply(`${args.target.user.username} has been prevented from reacting.`))
