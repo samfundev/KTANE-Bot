@@ -168,9 +168,16 @@ client
 			return;
 
 		// VOICE-MUTING
-		const muted = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
-		if (muted != newMember.voice.serverMute)
-			newMember.voice.setMute(muted);
+		const muteRole = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
+		if (oldState.serverMute != newState.serverMute)
+		{
+			if (newState.serverMute && !muteRole)
+				newMember.roles.add(tokens.roleIDs.voiceMuted);
+			else if (!newState.serverMute && muteRole)
+				newMember.roles.remove(tokens.roleIDs.voiceMuted);
+		}
+		else if (muteRole != newState.serverMute)
+			newMember.voice.setMute(muteRole);
 
 		// PROCESS AUTO-MANAGED CATEGORIES (adding/removing channels as needed)
 		if (oldState.channel === newState.channel)
