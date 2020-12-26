@@ -13,7 +13,7 @@ export function formatDuration(number: number): string {
 		}
 	}
 
-	return number + "s";
+	return number + "m";
 }
 
 export function parseDuration(duration: string): number | null {
