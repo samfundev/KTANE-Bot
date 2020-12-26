@@ -14,7 +14,7 @@ import TaskManager from "./task-manager";
 const pipeline = promisify(stream.pipeline);
 
 function pluralize(count: number, noun: string) {
-	return `${count} ${noun}${count !== 0 ? "s" : ""}`;
+	return `${count} ${noun}${count !== 1 ? "s" : ""}`;
 }
 
 // https://stackoverflow.com/a/54024653
