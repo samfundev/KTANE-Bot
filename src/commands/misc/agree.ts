@@ -5,7 +5,7 @@ export default class AgreeCommand extends Command {
 	constructor() {
 		super("agree", {
 			aliases: ["agree", "iagree", "ia"],
-			category: "administration",
+			category: "misc",
 			description: "Accepts the rules of the server.",
 			channel: "guild",
 			clientPermissions: ["MANAGE_ROLES"]
