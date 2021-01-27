@@ -239,7 +239,13 @@ class WorkshopScanner {
 		}
 
 		const xml_document = new DOMParser().parseFromString(body, "text/xml");
-		const avatar = xml_document.getElementsByTagName("avatarMedium")[0].textContent;
+
+		// Users who haven't set up their profile yet don't have an avatar, so we can't get any information for them.
+		const avatarTags = xml_document.getElementsByTagName("avatarMedium");
+		if (avatarTags.length == 0)
+			return false;
+
+		const avatar = avatarTags[0].textContent;
 		const steamID = xml_document.getElementsByTagName("steamID")[0].textContent;
 		if (avatar == null || steamID == null)
 			return false;
