@@ -6,7 +6,7 @@ import got from "got";
 import path from "path";
 import stream from "stream";
 import { promisify } from "util";
-import { update } from "./bot-utils";
+import { joinLimit, update } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
 import TaskManager from "./task-manager";
@@ -107,7 +107,7 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 
 			for (let i = 0; i < Math.min(files.length, 25); i++) {
 				const file = files[i];
-				const field = { name: file.name, value: file.problems.join("\n").substring(0, 1024) };
+				const field = { name: file.name, value: joinLimit(file.problems, "\n", 1024) };
 
 				if (embed.length + field.name.length + field.value.length > 6000)
 					break;

@@ -11,6 +11,8 @@ import { sendWebhookMessage, unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
 import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
+import { parseLanguage } from "./language";
+import { LFG } from "./lfg";
 import Logger from "./log";
 import lintMessage from "./repolint";
 import TaskManager from "./task-manager";
@@ -48,6 +50,10 @@ class KTANEClient extends AkairoClient {
 			return parseDuration(phrase);
 		});
 
+		this.commandHandler.resolver.addType("language", (message, phrase) => {
+			return parseLanguage(phrase);
+		});
+
 		this.commandHandler.loadAll();
 
 		this.inhibitorHandler = new InhibitorHandler(this, {
@@ -74,6 +80,7 @@ class KTANEClient extends AkairoClient {
 
 	async login(token: string) {
 		await this.settings.init();
+		LFG.loadPlayers();
 		return super.login(token);
 	}
 }
@@ -81,6 +88,7 @@ class KTANEClient extends AkairoClient {
 const client = new KTANEClient();
 
 TaskManager.client = client;
+LFG.client = client;
 
 const voiceChannelsRenamed: { [id: string]: boolean } = {};
 

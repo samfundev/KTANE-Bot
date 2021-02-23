@@ -44,3 +44,25 @@ export async function update<T>(provider: Provider, id: string, key: string, def
 	const newValue = updater(oldValue);
 	await provider.set(id, key, newValue);
 }
+
+// Join together an array of strings seperated by a string but don't make it longer than the limit.
+// Makes sure not to partially include any element.
+export function joinLimit(array: string[], seperator: string, limit: number): string {
+	let joined = "";
+
+	for (let index = 0; index < array.length; index++) {
+		const element = array[index];
+		if (index === 0 && element.length + joined.length > limit) {
+			break;
+		} else if (element.length + seperator.length + joined.length > limit) {
+			break;
+		}
+
+		if (index !== 0)
+			joined += seperator;
+
+		joined += element;
+	}
+
+	return joined;
+}
