@@ -33,7 +33,8 @@ export default class BanCommand extends Command {
 				// Remove any old tasks so we don't have multiple tasks to unban someone.
 				TaskManager.removeTask("unbanMember", task => task.info.memberID === target.id);
 
-				TaskManager.addTask(Date.now() + duration, "unbanMember", { guildID: msg.guild.id, memberID: target.id });
+				if (duration != null)
+					TaskManager.addTask(Date.now() + duration, "unbanMember", { guildID: msg.guild.id, memberID: target.id });
 				return msg.reply("The user has been banned.");
 			})
 			.catch(Logger.errorReply("ban the user", msg));
