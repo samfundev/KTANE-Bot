@@ -48,11 +48,10 @@ export default class MakeMajorCommand extends Command {
 				},
 				timestamp: targetEmbed.timestamp
 			});
-	
+
 			embed.setColor("#0055aa");
 
 			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token), message.content, {
-				disableMentions: "all",
 				embeds: [
 					embed
 				],

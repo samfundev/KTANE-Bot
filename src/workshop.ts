@@ -1,4 +1,5 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
+import { Util } from "discord.js";
 import got from "got";
 import { Html5Entities } from "html-entities";
 import { Database } from "sqlite";
@@ -362,7 +363,7 @@ class WorkshopScanner {
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
-			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
+			description: Util.removeMentions(entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000)),
 			author: {
 				name: entry.author,
 				icon_url: entry.avatar,
@@ -379,7 +380,6 @@ class WorkshopScanner {
 		const data = {
 			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${entry.authorMention}:`,
 			options: {
-				disableEveryone: true,
 				embeds: [
 					embed
 				],
@@ -394,7 +394,7 @@ class WorkshopScanner {
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
-			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
+			description: Util.removeMentions(changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000)),
 			author: {
 				name: entry.author,
 				icon_url: entry.avatar,
@@ -411,7 +411,6 @@ class WorkshopScanner {
 		const data = {
 			content: `:loudspeaker: ${entry.authorMention} has posted an update to **${entry.title}** on the Steam Workshop!`,
 			options: {
-				disableEveryone: true,
 				embeds: [
 					embed
 				],
