@@ -242,6 +242,8 @@ export class QueryParser
 		["mafia", "maf"],
 		["town_of_salem", "tos"],
 		["betrayal_at_the_house_on_the_hill", "bhh"],
+		["team_fortress_2", "tf2"],
+		["teeworlds", "tw"],
 	];
 	static tags: string[][] = [
 		["vanilla", "van"],
