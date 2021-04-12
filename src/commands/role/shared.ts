@@ -1,8 +1,8 @@
 import { Collection, Role, Snowflake } from "discord.js";
 import Logger from "../../log";
 
-export function getRole(roleName: string, assignableData: Assignable[], guildRoles: Collection<string, Role>): { role: Role, roleData: Assignable } | null {
-	const targetRole = roleName.toLowerCase();
+export function getRole(roleName: string | null, assignableData: Assignable[], guildRoles: Collection<string, Role>): { role: Role, roleData: Assignable } | null {
+	const targetRole = roleName?.toLowerCase();
 	for (const roleData of assignableData) {
 		if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
 			const role = guildRoles.get(roleData.roleID);
@@ -30,7 +30,7 @@ export function shuffle<T>(a: T[]): T[] {
 }
 
 export interface RoleArgument {
-	role: string;
+	role: string | null;
 }
 
 export interface Assignable {
