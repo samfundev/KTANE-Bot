@@ -116,7 +116,7 @@ client
 		if (!await unpartial(message) || message.channel.type != "text")
 			return;
 
-		if (message.channel.name == "voice-text") {
+		if (message.channel.name.includes("voice-text")) {
 			message.attachments.some(attachment => {
 				const file = attachment.name;
 				if (file != undefined && (file.includes("output_log") || file.includes("Player.log"))) {
