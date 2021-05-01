@@ -32,6 +32,9 @@ export default async function lintMessage(message: Message, client: AkairoClient
 
 	const fileName = message.id + file.name.substring(file.name.lastIndexOf("."));
 	try {
+		const notInDM = message.channel.type !== "dm";
+		if (notInDM) await message.react("💭");
+
 		await pipeline(
 			got.stream(file.url),
 			createWriteStream(fileName)
@@ -45,6 +48,8 @@ export default async function lintMessage(message: Message, client: AkairoClient
 				value[message.id] = report.id;
 				return value;
 			});
+
+		if (notInDM) await message.reactions.cache.get("💭")?.remove();
 	} catch (error) {
 		Logger.error("Linting failed.", error);
 		TaskManager.sendOwnerMessage("An error ocurred while linting. Check the logs.");
