@@ -63,6 +63,12 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 	return new Promise((resolve, reject) => {
 		exec(`dotnet run -c Release --no-build ${path.resolve(zipPath)}`, { cwd: tokens.repoLintPath }, (error: ExecException | null, stdout: string, stderr: string) => {
 			if (error !== null || stderr !== "") {
+				// RepoLint will use error code 2 to represent an error with the user input.
+				if (error !== null && error.code == 2 && stderr !== "") {
+					resolve(message.reply(stderr));
+					return;
+				}
+
 				reject(error ?? stderr);
 				return;
 			}
