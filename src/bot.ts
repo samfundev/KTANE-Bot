@@ -300,9 +300,7 @@ async function scheduledTask() {
 	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
-	let videosAnnounced = client.settings.get("global", "videosAnnounced", "[]");
-	videosAnnounced = JSON.parse(videosAnnounced);
-
+	const videosAnnounced = client.settings.get("global", "videosAnnounced", []);
 	for (const videoChannel of tokens.tutorialVideoChannels) {
 		try {
 			const response = await got(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`, {
@@ -325,7 +323,7 @@ async function scheduledTask() {
 			}
 
 			Logger.info(`Video channel ${videoChannel.name} checked.`);
-			client.settings.set("global", "videosAnnounced", JSON.stringify(videosAnnounced));
+			client.settings.set("global", "videosAnnounced", videosAnnounced);
 		} catch (error) {
 			Logger.error(`Failed to get videos, status code: ${error.response.statusCode}`);
 		}
