@@ -113,39 +113,31 @@ client
 	})
 	.on("disconnect", () => { Logger.warn("Disconnected!"); })
 	.on("message", async (message) => {
-		if (!await unpartial(message) || message.channel.type != "text")
+		if (!await unpartial(message))
 			return;
 
-		if (message.channel.name.includes("voice-text")) {
-			message.attachments.some(attachment => {
-				const file = attachment.name;
-				if (file != undefined && (file.includes("output_log") || file.includes("Player.log"))) {
-					message.channel.send({
-						embed: {
-							"title": "Logfile Analyzer Link",
-							"description": "[" + file + "](https://ktane.timwi.de/lfa#url=" + attachment.url + ")",
-							"color": 1689625
-						}
-					});
-					return true;
-				}
+		if (message.channel.type == "news") {
+			message.crosspost().catch(Logger.errorPrefix("Automatic Crosspost"));
+		} else if (message.channel.type == "text") {
+			if (message.channel.name.includes("voice-text")) {
+				message.attachments.some(attachment => {
+					const file = attachment.name;
+					if (file != undefined && (file.includes("output_log") || file.includes("Player.log"))) {
+						message.channel.send({
+							embed: {
+								"title": "Logfile Analyzer Link",
+								"description": "[" + file + "](https://ktane.timwi.de/lfa#url=" + attachment.url + ")",
+								"color": 1689625
+							}
+						});
+						return true;
+					}
 
-				return false;
-			});
-		} else if (message.channel.name == "rules") {
-			if (!message.member || !message.guild)
-				return;
-
-			const role = message.guild.roles.cache.get(tokens.roleIDs.moderator);
-			if (!role)
-				return;
-
-			if (message.member.roles.highest.comparePositionTo(role) >= 0)
-				return;
-
-			message.delete().catch(Logger.error);
-		} else if (message.channel.name == "requests") {
-			lintMessage(message, client);
+					return false;
+				});
+			} else if (message.channel.name == "requests") {
+				lintMessage(message, client);
+			}
 		}
 	})
 	.on("messageDelete", message => {
@@ -317,7 +309,6 @@ async function scheduledTask() {
 					continue;
 				videosAnnounced.push(snippet.resourceId.videoId);
 				sendWebhookMessage(client, videoBot, `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`, {})
-					.then(message => message.crosspost())
 					.catch(Logger.error);
 				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
 			}
