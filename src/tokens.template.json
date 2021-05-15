@@ -28,5 +28,7 @@
             "": ""
         }
 	},
+    "requestsChannel": "",
+	"repoLintPath": "",
 	"debugging": false
 }

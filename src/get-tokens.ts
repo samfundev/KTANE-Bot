@@ -24,6 +24,7 @@ interface tokens {
     reactionMenus: {
 		[id: string]: { [emoji: string]: string }
     },
+    requestsChannel: Snowflake,
     repoLintPath: string,
     debugging: boolean
 }

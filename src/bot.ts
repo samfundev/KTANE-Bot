@@ -135,13 +135,13 @@ client
 
 					return false;
 				});
-			} else if (message.channel.name == "requests") {
+			} else if (message.channel.id == tokens.requestsChannel) {
 				lintMessage(message, client);
 			}
 		}
 	})
 	.on("messageDelete", message => {
-		if ((message.channel.type !== "text" || message.channel.name !== "requests") && message.channel.type !== "dm")
+		if ((message.channel.type !== "text" || message.channel.id !== tokens.requestsChannel) && message.channel.type !== "dm")
 			return;
 
 		const id = (message.channel.type == "text" && message.guild != null) ? message.guild.id : message.channel.id;
