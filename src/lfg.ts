@@ -27,12 +27,12 @@ export class LFG
 			oldPlayer.games = games;
 		}
 
-		this.updateMessages();
+		this.updateMessages().catch(Logger.errorPrefix("Failed to update LFG messages:"));
 	}
 
 	static leave(user: Snowflake): void {
 		this.players = this.players.filter(player => player.user != user);
-		this.updateMessages();
+		this.updateMessages().catch(Logger.errorPrefix("Failed to update LFG messages:"));
 	}
 
 	static async invite(message: Message, playerNumbers: number[]): Promise<void> {
