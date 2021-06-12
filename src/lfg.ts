@@ -188,6 +188,9 @@ export class QueryParser
 		const games: Game[] = [];
 		let currentGame;
 		for (const tag of query.toLowerCase().split(" ")) {
+			if (tag === "")
+				continue;
+
 			const gameTag = this.normalize(tag, this.games);
 			if (gameTag != null) {
 				currentGame = new Game(gameTag);

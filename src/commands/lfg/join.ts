@@ -17,7 +17,7 @@ export default class LFGJoinCommand extends Command {
 	}
 
 	exec(message: Message, { query }: { query: string }): void {
-		const games = QueryParser.parse(query);
+		const games = QueryParser.parse(query ?? "");
 		// If the parser returns a string, that's an error we should show the user.
 		if (typeof games === "string") {
 			message.reply(games);
