@@ -44,7 +44,7 @@ interface EntryObject {
 	title: string;
 	description: string;
 	author: string | undefined;
-	authorMention: string | undefined;
+	authorMention: string;
 	author_steamid: string;
 	author_discordid: string | false;
 	avatar: string | undefined;
@@ -67,8 +67,8 @@ class WorkshopScanner {
 		this.DB = db;
 		this.client = client;
 		this.initialized = false;
-		this.avatarCache = new Map();
-		this.nameCache = new Map();
+		this.avatarCache = new Map<string, string>();
+		this.nameCache = new Map<string, string>();
 	}
 
 	async init(): Promise<void> {
@@ -87,7 +87,7 @@ class WorkshopScanner {
 
 		const sql = "SELECT page_id FROM page_id LIMIT 0, 1";
 
-		const page_id = await this.DB.get(sql);
+		const page_id: { page_id: number } | undefined = await this.DB.get(sql);
 		if (page_id !== undefined) {
 			return page_id.page_id;
 		}
@@ -96,7 +96,7 @@ class WorkshopScanner {
 	}
 
 	async set_page_index(page_index: number): Promise<void> {
-		const sql = "UPDATE page_id SET page_id = " + page_index;
+		const sql = `UPDATE page_id SET page_id = ${page_index}`;
 
 		await this.DB.run(sql);
 	}
@@ -173,7 +173,12 @@ class WorkshopScanner {
 				await getSteamAuthor();
 			}
 
-			entry_object.authorMention = entry_object.author_discordid !== false ? `<@${entry_object.author_discordid}>` : entry_object.author;
+			if (entry_object.author_discordid !== false)
+				entry_object.authorMention = `<@${entry_object.author_discordid}>`;
+			else if (entry_object.author !== undefined)
+				entry_object.authorMention = entry_object.author;
+			else
+				continue;
 
 			entries_to_check[entry_object.id] = entry_object;
 		}
@@ -204,7 +209,7 @@ class WorkshopScanner {
 	async get_author_discord_id(author_steam_id: string): Promise<string | false>
 	{
 		const sql = "SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = \"" + author_steam_id + "\" LIMIT 0, 1";
-		const discord_id = await this.DB.get(sql);
+		const discord_id: { discord_id: string } | undefined = await this.DB.get(sql);
 		if (discord_id !== undefined) {
 			return discord_id.discord_id;
 		}
@@ -465,9 +470,7 @@ class WorkshopScanner {
 			return;
 		}
 
-		const entries_to_image = await this.find_workshop_images(workshop_page);
-		if (entries_to_image === false)
-		{
+		const entries_to_image = this.find_workshop_images(workshop_page);
 			await this.set_page_index(1);
 			return;
 		}

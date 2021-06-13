@@ -22,13 +22,13 @@ export default class CreateVoteCommand extends Command {
 		});
 	}
 
-	exec(msg: Message, args: { topic: string, options: string[] }): Promise<Message> {
+	async exec(msg: Message, args: { topic: string, options: string[] }): Promise<Message> {
 		const currentVote = this.client.settings.get("global", "vote", null);
 		if (currentVote != null) {
 			return msg.reply("A vote is already running.");
 		}
 
-		this.client.settings.set("global", "vote", {
+		await this.client.settings.set("global", "vote", {
 			topic: args.topic,
 			options: args.options,
 			votes: new Array(args.options.length).fill(0),

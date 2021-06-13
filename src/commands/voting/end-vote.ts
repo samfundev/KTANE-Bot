@@ -10,7 +10,7 @@ export default class EndVoteCommand extends Command {
 		});
 	}
 
-	exec(msg: Message): Promise<Message> {
+	async exec(msg: Message): Promise<Message> {
 		const currentVote = this.client.settings.get("global", "vote", null);
 		if (currentVote == null) {
 			return msg.reply("There is no vote running.");
@@ -30,7 +30,7 @@ export default class EndVoteCommand extends Command {
 			}
 		});
 
-		this.client.settings.delete("global", "vote");
+		await this.client.settings.delete("global", "vote");
 
 		embed.setColor("#00ff00");
 

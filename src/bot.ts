@@ -102,13 +102,13 @@ client
 
 		Logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client?.user.id})`);
 
-		scheduledTask();
+		scheduledTask().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
 
 		if (client.settings.get("global", "updating", false)) {
-			client.settings.delete("global", "updating");
+			client.settings.delete("global", "updating").catch(Logger.errorPrefix("Failed to delete updating state:"));
 
 			if (typeof client.ownerID == "string")
-				client.users.fetch(client.ownerID).then(user => user.send("Update is complete."));
+				client.users.fetch(client.ownerID).then(user => user.send("Update is complete.")).catch(Logger.errorPrefix("Failed to send updated message:"));
 		}
 	})
 	.on("disconnect", () => { Logger.warn("Disconnected!"); })
@@ -129,14 +129,14 @@ client
 								"description": "[" + file + "](https://ktane.timwi.de/lfa#url=" + attachment.url + ")",
 								"color": 1689625
 							}
-						});
+						}).catch(Logger.errorPrefix("Failed to send LFA link:"));
 						return true;
 					}
 
 					return false;
 				});
 			} else if (message.channel.id == tokens.requestsChannel) {
-				lintMessage(message, client);
+				await lintMessage(message, client);
 			}
 		}
 	})
@@ -145,19 +145,19 @@ client
 			return;
 
 		const id = (message.channel.type == "text" && message.guild != null) ? message.guild.id : message.channel.id;
-		update<Record<string, string>>(client.settings, id, "reportMessages", {}, (value) => {
+		update<Record<string, string>>(client.settings, id, "reportMessages", {}, async (value) => {
 			const reportID = value[message.id];
 			if (reportID === undefined)
 				return value;
 
 			delete value[message.id];
 
-			message.channel.messages.delete(reportID);
+			await message.channel.messages.delete(reportID);
 
 			return value;
 		}).catch(Logger.errorPrefix("Failed to delete report."));
 	})
-	.on("voiceStateUpdate", (oldState, newState) => {
+	.on("voiceStateUpdate", async (oldState, newState) => {
 		if (!oldState)
 			return;
 
@@ -172,12 +172,12 @@ client
 		if (oldState.serverMute != newState.serverMute)
 		{
 			if (newState.serverMute && !muteRole)
-				newMember.roles.add(tokens.roleIDs.voiceMuted);
+				await newMember.roles.add(tokens.roleIDs.voiceMuted);
 			else if (!newState.serverMute && muteRole)
-				newMember.roles.remove(tokens.roleIDs.voiceMuted);
+				await newMember.roles.remove(tokens.roleIDs.voiceMuted);
 		}
 		else if (muteRole != newState.serverMute)
-			newMember.voice.setMute(muteRole);
+			await newMember.voice.setMute(muteRole);
 
 		// PROCESS AUTO-MANAGED CATEGORIES (adding/removing channels as needed)
 		if (oldState.channel === newState.channel)
@@ -221,7 +221,7 @@ client
 					for (; ix < channels.length; ix++)
 					{
 						if (channels[ix].channel.name !== `${prefix} ${convert(ix, names)}`)
-							channels[ix].channel.setName(`${prefix} ${convert(ix, names)}`);
+							channels[ix].channel.setName(`${prefix} ${convert(ix, names)}`).catch(Logger.errorPrefix("Failed to set channel name:"));
 					}
 					voiceChannelsRenamed[vc.parentID] = true;
 				}
@@ -253,7 +253,7 @@ client
 						if (oneFound)
 						{
 							logmsg += `; deleting ${channels[i].channel.name}`;
-							channels[i].channel.delete("AutoManage: delete unused channel");
+							channels[i].channel.delete("AutoManage: delete unused channel").catch(Logger.errorPrefix("Failed to delete channel:"));
 						}
 						else
 							oneFound = true;
@@ -267,7 +267,7 @@ client
 		processAutoManagedCategories(oldState.channel);
 		processAutoManagedCategories(newState.channel);
 	})
-	.on("presenceUpdate", async (_, newPresence) => {
+	.on("presenceUpdate", (_, newPresence) => {
 		// Check any presence changes for a potential streamer
 		checkStreamingStatus(newPresence, true).catch(Logger.errorPrefix("checkStreamingStatus"));
 	})
@@ -277,7 +277,7 @@ client
 
 const videoBot = new WebhookClient(tokens.announcementWebhook.id, tokens.announcementWebhook.token);
 let workshopScanner: WorkshopScanner;
-sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(async db => workshopScanner = new WorkshopScanner(db, client));
+sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => workshopScanner = new WorkshopScanner(db, client)).catch(Logger.errorPrefix("Failed to load database:"));
 
 type playlistItem = {
 	snippet: {
@@ -292,7 +292,7 @@ async function scheduledTask() {
 	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
-	const videosAnnounced = client.settings.get("global", "videosAnnounced", []);
+	const videosAnnounced: string[] = client.settings.get("global", "videosAnnounced", []);
 	for (const videoChannel of tokens.tutorialVideoChannels) {
 		try {
 			const response = await got(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`, {
@@ -314,7 +314,7 @@ async function scheduledTask() {
 			}
 
 			Logger.info(`Video channel ${videoChannel.name} checked.`);
-			client.settings.set("global", "videosAnnounced", videosAnnounced);
+			await client.settings.set("global", "videosAnnounced", videosAnnounced);
 		} catch (error) {
 			Logger.error(`Failed to get videos, status code: ${error.response.statusCode}`);
 		}
@@ -370,14 +370,16 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 				// Schedule or unschedule removing the role in two hours
 				if (menuMessageID == "640560537205211146/640563515945385984" && client.user && user.id !== client.user.id) {
 					if (reactionAdded) {
-						TaskManager.addTask(Date.now() + 7200000, "removeReaction", {
+						TaskManager.addTask({
+							timestamp: Date.now() + 7200000,
+							type: "removeReaction",
 							channelID: channel.id,
 							messageID: message.id,
 							userID: user.id,
 							emojiKey: emojiKey
 						});
 					} else {
-						TaskManager.removeTask("removeReaction", task => task.info.messageID == message.id && task.info.userID == user.id && task.info.emojiKey == emojiKey);
+						TaskManager.removeTask("removeReaction", task => task.messageID == message.id && task.userID == user.id && task.emojiKey == emojiKey);
 					}
 				}
 				/**/
@@ -386,11 +388,13 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 	}
 }
 
-client.login(tokens.botToken);
+client.login(tokens.botToken).catch(Logger.errorPrefix("Failed to login:"));
 
 // The math below is based on this equation: 10000 (quota limit) = 1440 (minutes in a day) / minutes * channels * 3 (each request is 3 quota), solved for the variable minutes.
 // This is to prevent going over the YouTube API quota.
-cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length) + 1} * * * *`, scheduledTask);
+cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length) + 1} * * * *`, () => {
+	scheduledTask().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
+});
 
 cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes

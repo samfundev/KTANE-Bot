@@ -11,7 +11,7 @@ export default class UpdateCommand extends Command {
 		});
 	}
 
-	exec(msg: Message): void {
+	async exec(msg: Message): Promise<void> {
 		if (msg.guild != null)
 			return;
 
@@ -24,7 +24,7 @@ export default class UpdateCommand extends Command {
 			return;
 		}
 
-		this.client.settings.set("global", "updating", true);
+		await this.client.settings.set("global", "updating", true);
 		elevate("update.bat");
 	}
 }

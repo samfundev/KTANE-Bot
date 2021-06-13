@@ -18,7 +18,7 @@ export default class LFGInviteCommand extends Command {
 		});
 	}
 
-	async exec(message: Message, { players }: { players: number[] }): Promise<void> {
+	exec(message: Message, { players }: { players: number[] }): void {
 		LFG.invite(message, players).catch(Logger.errorReply("invite users", message));
 	}
 }

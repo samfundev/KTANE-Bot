@@ -19,7 +19,7 @@ export default class PresenceCommand extends Command {
 		});
 	}
 
-	exec(_msg: Message, { target }: { target: GuildMember }): void {
-		checkStreamingStatus(target.presence, false);
+	async exec(_msg: Message, { target }: { target: GuildMember }): Promise<void> {
+		await checkStreamingStatus(target.presence, false);
 	}
 }

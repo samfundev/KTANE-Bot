@@ -22,8 +22,8 @@ export default class LanguagesCommand extends Command {
 
 		storedLanguages[message.author.id] = languages;
 
-		this.client.settings.set("global", "languages", storedLanguages);
+		await this.client.settings.set("global", "languages", storedLanguages);
 
-		message.reply(`Your languages are now set to ${languages.join(", ")}`);
+		await message.reply(`Your languages are now set to ${languages.join(", ")}`);
 	}
 }

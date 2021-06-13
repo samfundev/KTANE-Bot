@@ -24,9 +24,9 @@ export default class MakeMajorCommand extends Command {
 
 	exec(msg: GuildMessage, args: { messageid: string }): void {
 		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "news") as TextChannel;
-		channel.messages.fetch(args.messageid).then(message => {
+		channel.messages.fetch(args.messageid).then(async message => {
 			if (message.embeds.length != 1) {
-				msg.reply("Invalid number of embeds on target message.");
+				await msg.reply("Invalid number of embeds on target message.");
 				return;
 			}
 

@@ -21,10 +21,10 @@ export default class TasksCommand extends Command {
 	}
 
 	exec(msg: Message, args: { target: User }): Promise<Message> {
-		const tasks = TaskManager.tasks.filter(task => task.info.memberID === args.target.id);
+		const tasks = TaskManager.tasks.filter(task => task.type !== "removeReaction" && task.memberID === args.target.id);
 		if (tasks.length === 0)
 			return msg.reply("No tasks for that user.");
-		
+
 		return msg.reply(`Tasks:\n${tasks.map(task => `${task.type} - ${formatDuration(task.timestamp - Date.now() / 1000)}`).join("\n")}`);
 	}
 }

@@ -1,5 +1,6 @@
 import { Command } from "discord-akairo";
 import { Message } from "discord.js";
+import Logger from "../../log";
 import lintMessage from "../../repolint";
 
 export default class LintCommand extends Command {
@@ -13,6 +14,6 @@ export default class LintCommand extends Command {
 	}
 
 	exec(msg: Message): void {
-		lintMessage(msg, this.client);
+		lintMessage(msg, this.client).catch(Logger.errorPrefix("Failed to lint message:"));
 	}
 }

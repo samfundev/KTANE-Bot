@@ -18,9 +18,9 @@ export default class VoteCommand extends Command {
 		});
 	}
 
-	exec(msg: Message, args: { vote: number[] }): Promise<Message> {
+	async exec(msg: Message, args: { vote: number[] }): Promise<Message> {
 		if (msg.guild !== null) {
-			msg.delete();
+			await msg.delete();
 
 			return msg.reply("You should only vote in DMs.");
 		}
@@ -46,7 +46,7 @@ export default class VoteCommand extends Command {
 
 		currentVote.voted.push(msg.author.id);
 
-		this.client.settings.set("global", "vote", currentVote);
+		await this.client.settings.set("global", "vote", currentVote);
 
 		return msg.reply(`Vote recorded! Voted for: ${args.vote.join(", ")}`);
 	}

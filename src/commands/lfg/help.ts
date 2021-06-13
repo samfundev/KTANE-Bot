@@ -24,12 +24,12 @@ export default class LFGHelpCommand extends Command {
 		languages: "You can specify what languages you can speak with the `!languages` command."
 	}
 
-	exec(msg: Message, { topic }: { topic: string }): void {
+	async exec(msg: Message, { topic }: { topic: string }): Promise<void> {
 		if (!Object.keys(this.topics).includes(topic)) {
-			msg.reply(`Unknown topic: ${topic}. Available topics: ${Object.keys(this.topics).join(", ")}.`);
+			await msg.reply(`Unknown topic: ${topic}. Available topics: ${Object.keys(this.topics).join(", ")}.`);
 			return;
 		}
 
-		msg.reply(this.topics[topic]);
+		await msg.reply(this.topics[topic]);
 	}
 }

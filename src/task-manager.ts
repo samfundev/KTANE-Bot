@@ -1,5 +1,5 @@
 import { AkairoClient } from "discord-akairo";
-import { TextChannel } from "discord.js";
+import { Snowflake, TextChannel } from "discord.js";
 import tokens from "./get-tokens";
 import logger from "./log";
 
@@ -11,22 +11,23 @@ class TaskManager {
 	}
 
 	static set tasks(newTasks: ScheduledTask[]) {
-		this.client.settings.set("global", "scheduledTasks", newTasks);
+		this.client.settings.set("global", "scheduledTasks", newTasks).catch(logger.errorPrefix("Failed to set tasks:"));
 	}
 
 	static modifyTasks(func: (tasks: ScheduledTask[]) => ScheduledTask[]): void {
 		this.tasks = func(this.tasks);
 	}
 
-	static addTask(timestamp: number, type: string, info: unknown): void {
+	static addTask(task: ScheduledTask): void {
 		this.modifyTasks(tasks => {
-			tasks.push(new ScheduledTask(timestamp, type, info));
+			tasks.push(task);
 			return tasks;
 		});
 	}
 
-	static removeTask(type: string, filter: (task: ScheduledTask) => boolean): void {
-		this.modifyTasks(tasks => tasks.filter(task => task.type != type || task.timestamp > Date.now() || !filter(task)));
+	static removeTask<T extends TaskTypes>(type: T, filter: (task: Extract<ScheduledTask, { type: T }>) => boolean): void;
+	static removeTask(type: TaskTypes, filter: (task: ScheduledTask) => boolean): void {
+		this.modifyTasks(tasks => tasks.filter(task => task.type !== type || task.timestamp > Date.now() || !filter(task)));
 	}
 
 	static processTasks(): void {
@@ -36,55 +37,50 @@ class TaskManager {
 		this.modifyTasks(tasks => {
 			if (tasks.length == 0)
 				return tasks;
-	
+
 			return tasks.filter(task => {
 				if (task.timestamp > Date.now())
 					return true;
-	
-				const info = task.info;
-	
+
 				switch (task.type) {
 					case "removeReaction": {
-						const textChannel = this.client.channels.cache.get(info.channelID) as TextChannel;
+						const textChannel = this.client.channels.cache.get(task.channelID) as TextChannel;
 
-						textChannel.messages.fetch(info.messageID)
+						textChannel.messages.fetch(task.messageID)
 							.then(async message => {
-								const reaction = message.reactions.cache.get(info.emojiKey);
+								const reaction = message.reactions.cache.get(task.emojiKey);
 								if (!reaction)
 									return Promise.reject("Reaction missing.");
 
 								return await reaction.fetch();
 							})
-							.then(reaction => reaction.users.remove(info.userID).catch(logger.error));
+							.then(reaction => reaction.users.remove(task.userID)).catch(logger.error);
 						break;
 					}
 					case "unbanMember": {
-						const guild = this.client.guilds.cache.get(info.guildID);
+						const guild = this.client.guilds.cache.get(task.guildID);
 						if (!guild)
 							return true;
 
-						guild.members.unban(info.memberID).catch(reason => {
-							logger.error("failed to unban", info.memberID, reason);
+						guild.members.unban(task.memberID).catch(reason => {
+							logger.error("failed to unban", task.memberID, reason);
 							this.sendOwnerMessage("Failed to unban a user. Check the logs.");
 						});
 						break;
 					}
 					case "removeRole": {
-						const guild = this.client.guilds.cache.get(info.guildID);
+						const guild = this.client.guilds.cache.get(task.guildID);
 						if (!guild)
 							return true;
 
-						guild.members.fetch(info.memberID).then(member => member.roles.remove(info.roleID)).catch(reason => {
-							logger.error("failed to remove role", info.memberID, info.roleID, reason);
+						guild.members.fetch(task.memberID).then(member => member.roles.remove(task.roleID)).catch(reason => {
+							logger.error("failed to remove role", task.memberID, task.roleID, reason);
 							this.sendOwnerMessage("Failed to remove a role. Check the logs.");
 						});
 						break;
 					}
-					default:
-						logger.error("Unknown task type: " + task.type);
-						break;
 				}
-	
+
 				return false;
 			});
 		});
@@ -92,23 +88,37 @@ class TaskManager {
 
 	static sendOwnerMessage(text: string): void {
 		if (typeof this.client.ownerID == "string")
-			this.client.users.fetch(this.client.ownerID).then(user => user.send(text));
+			this.client.users.fetch(this.client.ownerID).then(user => user.send(text)).catch(logger.errorPrefix("Failed to send owner message:"));
 	}
 }
 
-class ScheduledTask {
+interface BaseTask {
 	timestamp: number;
 	type: string;
-
-	// I can't figure out how to type this.
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	info: any;
-	
-	constructor(timestamp: number, type: string, info: unknown) {
-		this.timestamp = timestamp;
-		this.type = type;
-		this.info = info;
-	}
 }
+
+interface RemoveReactionTask extends BaseTask {
+	type: "removeReaction";
+	channelID: Snowflake;
+	messageID: Snowflake;
+	userID: Snowflake;
+	emojiKey: string;
+}
+
+interface UnbanMemberTask extends BaseTask {
+	type: "unbanMember";
+	guildID: Snowflake;
+	memberID: Snowflake;
+}
+
+interface RemoveRoleTask extends BaseTask {
+	type: "removeRole";
+	guildID: Snowflake;
+	memberID: Snowflake;
+	roleID: Snowflake;
+}
+
+type ScheduledTask = RemoveReactionTask | UnbanMemberTask | RemoveRoleTask;
+type TaskTypes = ScheduledTask["type"];
 
 export default TaskManager;

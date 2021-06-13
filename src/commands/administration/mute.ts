@@ -30,7 +30,7 @@ export default class MuteCommand extends Command {
 
 	exec(msg: GuildMessage, args: { target: GuildMember, duration: number }): void {
 		if (args.target.roles.highest.comparePositionTo(msg.member.roles.highest) >= 0) {
-			msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`);
+			msg.reply(`${args.target.user.username} has a equal or higher role compared to you.`).catch(Logger.errorPrefix("Failed to send message:"));
 			return;
 		}
 
@@ -38,7 +38,7 @@ export default class MuteCommand extends Command {
 		if (muted) {
 			args.target.roles.remove(tokens.roleIDs.voiceMuted)
 				.then(() => {
-					TaskManager.removeTask("removeRole", task => task.info.roleID == tokens.roleIDs.voiceMuted && task.info.memberID == args.target.id);
+					TaskManager.removeTask("removeRole", task => task.roleID == tokens.roleIDs.voiceMuted && task.memberID == args.target.id);
 					return msg.reply(`${args.target.user.username} has been unmuted.`);
 				})
 				.catch(Logger.errorReply("unmute", msg));
@@ -46,9 +46,9 @@ export default class MuteCommand extends Command {
 			args.target.roles.add(tokens.roleIDs.voiceMuted)
 				.then(() => msg.reply(`${args.target.user.username} has been muted.`))
 				.catch(Logger.errorReply("mute", msg));
-			
+
 			if (args.duration != null)
-				TaskManager.addTask(Date.now() + args.duration, "removeRole", { roleID: tokens.roleIDs.voiceMuted, memberID: args.target.id, guildID: msg.guild.id });
+				TaskManager.addTask({ timestamp: Date.now() + args.duration, type: "removeRole", roleID: tokens.roleIDs.voiceMuted, memberID: args.target.id, guildID: msg.guild.id });
 		}
 
 		if (args.target.voice.channel) args.target.voice.setMute(!muted).catch(() => msg.reply("Unable to change server mute status."));

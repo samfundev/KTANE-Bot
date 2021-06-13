@@ -3,6 +3,7 @@ import { AkairoClient } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake } from "discord.js";
 import { joinLimit } from "./bot-utils";
 import { compareLanguage } from "./language";
+import Logger from "./log";
 
 export class LFG
 {
@@ -38,18 +39,18 @@ export class LFG
 	static async invite(message: Message, playerNumbers: number[]): Promise<void> {
 		const player = this.players.find(player => player.user == message.author.id);
 		if (player == undefined) {
-			message.reply("You need to run `!lfg join` first.");
+			await message.reply("You need to run `!lfg join` first.");
 			return;
 		}
 
 		const matched = this.players.filter(otherPlayer => player.matches(otherPlayer, this.client));
 		if (matched.length == 0) {
-			message.reply("Wait for another player to matched up with you.");
+			await message.reply("Wait for another player to matched up with you.");
 			return;
 		}
 
 		if (playerNumbers.some(number => number < 1 || number > matched.length)) {
-			message.reply(`Players should by specified by a number between 1-${matched.length}.`);
+			await message.reply(`Players should by specified by a number between 1-${matched.length}.`);
 			return;
 		}
 
@@ -57,12 +58,12 @@ export class LFG
 		for (const number of playerNumbers) {
 			const id = matched[number - 1].user;
 			const user = await this.client.users.fetch(id);
-			user.send(`<@${message.author.id}> wants to play with you!`);
+			await user.send(`<@${message.author.id}> wants to play with you!`);
 
 			ids.push(id);
 		}
 
-		message.reply(`Invited ${ids.map(id => `<@${id}>`).join(", ")}.`);
+		await message.reply(`Invited ${ids.map(id => `<@${id}>`).join(", ")}.`);
 	}
 
 	static async updateMessages(): Promise<void> {

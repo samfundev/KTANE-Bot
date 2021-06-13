@@ -39,9 +39,9 @@ export async function sendWebhookMessage(client: Client, webhook: WebhookClient,
 	return await channel.messages.fetch(message.id);
 }
 
-export async function update<T>(provider: Provider, id: string, key: string, defaultValue: T, updater: (value: T) => T): Promise<void> {
+export async function update<T>(provider: Provider, id: string, key: string, defaultValue: T, updater: (value: T) => T | Promise<T>): Promise<void> {
 	const oldValue = await provider.get(id, key, defaultValue);
-	const newValue = updater(oldValue);
+	const newValue = await updater(oldValue);
 	await provider.set(id, key, newValue);
 }
 

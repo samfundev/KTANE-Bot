@@ -3,6 +3,7 @@
 import { Command } from "discord-akairo";
 import { Message } from "discord.js";
 import util from "util";
+import Logger from "../../log";
 
 class EvalCommand extends Command {
 	constructor() {
@@ -62,7 +63,7 @@ class EvalCommand extends Command {
 				`${title}${cb}js`,
 				evaled.output,
 				cb
-			]);
+			]).catch(Logger.errorPrefix("Failed to update eval message:"));
 		};
 
 		try {
@@ -70,6 +71,7 @@ class EvalCommand extends Command {
 			if (output && typeof output.then === "function") output = await output;
 
 			if (typeof output !== "string") output = util.inspect(output, { depth: 0 });
+
 			output = `${logs.join("\n")}\n${logs.length && output === "undefined" ? "" : output}`;
 			output = output.replace(tokenRegex, "[TOKEN]");
 

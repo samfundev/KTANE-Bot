@@ -90,9 +90,8 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 					file = { name: line, problems: [] };
 					files.push(file);
 
-					const match = line.match(/\((\d+) problems?\)$/);
-					if (match == null)
-					{
+					const match = /\((\d+) problems?\)$/.exec(line);
+					if (match == null) {
 						Logger.error("Unable to match problem count:", line);
 						continue;
 					}
