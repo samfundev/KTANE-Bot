@@ -20,7 +20,7 @@ function pluralize(count: number, noun: string) {
 // https://stackoverflow.com/a/54024653
 // input: h in [0,360] and s,v in [0,1] - output: r,g,b in [0,255]
 function hsv2rgb(h: number, s: number, v: number): [number, number, number] {
-	const f = (n: number, k=(n+h/60)%6) => v - v*s*Math.max( Math.min(k,4-k,1), 0);
+	const f = (n: number, k = (n + h / 60) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
 	return [f(5) * 255, f(3) * 255, f(1) * 255];
 }
 
@@ -102,8 +102,7 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 				}
 			}
 
-			if (totalProblems === 0)
-			{
+			if (totalProblems === 0) {
 				resolve(null);
 				return;
 			}

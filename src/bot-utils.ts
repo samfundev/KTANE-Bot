@@ -10,7 +10,7 @@ export async function unpartial<T>(target: T & { partial: boolean, fetch: () => 
 
 	try {
 		await target.fetch();
-		
+
 		return true;
 	} catch (error) {
 		Logger.error("Unable to unpartial:", error);

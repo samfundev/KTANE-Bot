@@ -19,8 +19,7 @@ import TaskManager from "./task-manager";
 import WorkshopScanner from "./workshop";
 
 declare module "discord-akairo" {
-	interface AkairoClient
-	{
+	interface AkairoClient {
 		commandHandler: CommandHandler;
 		inhibitorHandler: InhibitorHandler;
 		listenerHandler: ListenerHandler;
@@ -35,7 +34,7 @@ class KTANEClient extends AkairoClient {
 		}, {
 			partials: ["MESSAGE", "REACTION"],
 			ws: {
-				intents: [ Intents.NON_PRIVILEGED, "GUILD_PRESENCES" ]
+				intents: [Intents.NON_PRIVILEGED, "GUILD_PRESENCES"]
 			}
 		});
 
@@ -126,7 +125,7 @@ client
 						message.channel.send({
 							embed: {
 								"title": "Logfile Analyzer Link",
-								"description": "[" + file + "](https://ktane.timwi.de/lfa#url=" + attachment.url + ")",
+								"description": `[${file}](https://ktane.timwi.de/lfa#url=${attachment.url})`,
 								"color": 1689625
 							}
 						}).catch(Logger.errorPrefix("Failed to send LFA link:"));
@@ -169,8 +168,7 @@ client
 
 		// VOICE-MUTING
 		const muteRole = newMember.roles.cache.has(tokens.roleIDs.voiceMuted);
-		if (oldState.serverMute != newState.serverMute)
-		{
+		if (oldState.serverMute != newState.serverMute) {
 			if (newState.serverMute && !muteRole)
 				await newMember.roles.add(tokens.roleIDs.voiceMuted);
 			else if (!newState.serverMute && muteRole)
@@ -185,13 +183,11 @@ client
 
 		let catProcessed: CategoryChannel;
 
-		function convert(i: number, names: string[]): string
-		{
-			return i < names.length ? names[i] : `${convert(((i / names.length)|0) - 1, names)} ${names[i % names.length]}`;
+		function convert(i: number, names: string[]): string {
+			return i < names.length ? names[i] : `${convert(((i / names.length) | 0) - 1, names)} ${names[i % names.length]}`;
 		}
 
-		function processAutoManagedCategories(vc: VoiceChannel | null)
-		{
+		function processAutoManagedCategories(vc: VoiceChannel | null) {
 			if (!vc)
 				return;
 			const cat = vc.parent;
@@ -202,7 +198,7 @@ client
 
 			let names = tokens.autoManagedCategories[vc.parentID].names;
 			if (names == null)
-				names = [ "Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu" ];
+				names = ["Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu"];
 
 			const prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
 			const ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
@@ -212,14 +208,11 @@ client
 			let logmsg = `Channels are: ${channels.map(obj => `${obj.channel.name}=${obj.members}`).join(", ")}`;
 
 			const numEmpty = channels.filter(ch => ch.members === 0).length;
-			if (numEmpty < 1)
-			{
+			if (numEmpty < 1) {
 				let ix = 0, name: string;
 				// Rename the 0th channel if it's different, or all channels if channelsForceRename is true
-				if (channels.length === 1 || channelsForceRename)
-				{
-					for (; ix < channels.length; ix++)
-					{
+				if (channels.length === 1 || channelsForceRename) {
+					for (; ix < channels.length; ix++) {
 						if (channels[ix].channel.name !== `${prefix} ${convert(ix, names)}`)
 							channels[ix].channel.setName(`${prefix} ${convert(ix, names)}`).catch(Logger.errorPrefix("Failed to set channel name:"));
 					}
@@ -227,8 +220,7 @@ client
 				}
 
 				// Create a new channel within this category
-				do
-				{
+				do {
 					name = `${prefix} ${convert(ix, names)}`;
 					ix++;
 				}
@@ -242,16 +234,12 @@ client
 				})
 					.catch(Logger.error);
 			}
-			else if (numEmpty > 1)
-			{
+			else if (numEmpty > 1) {
 				// Delete unused channels in this category except the first one
 				let oneFound = false;
-				for (let i = 0; i < channels.length; i++)
-				{
-					if (channels[i].members === 0)
-					{
-						if (oneFound)
-						{
+				for (let i = 0; i < channels.length; i++) {
+					if (channels[i].members === 0) {
+						if (oneFound) {
 							logmsg += `; deleting ${channels[i].channel.name}`;
 							channels[i].channel.delete("AutoManage: delete unused channel").catch(Logger.errorPrefix("Failed to delete channel:"));
 						}

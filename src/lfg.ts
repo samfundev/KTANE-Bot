@@ -5,8 +5,7 @@ import { joinLimit } from "./bot-utils";
 import { compareLanguage } from "./language";
 import Logger from "./log";
 
-export class LFG
-{
+export class LFG {
 	static client: AkairoClient;
 	static players: Player[];
 
@@ -74,7 +73,7 @@ export class LFG
 			const embed = new MessageEmbed({
 				title: hasMatch ? "Found a Game!" : "Looking for a Game...",
 				footer: {
-					text: "Use `!lfg leave` when you're done." + (hasMatch ? " Use `!lfg invite 1 3 5` to send an invite to those numbered users.": "")
+					text: "Use `!lfg leave` when you're done." + (hasMatch ? " Use `!lfg invite 1 3 5` to send an invite to those numbered users." : "")
 				}
 			});
 
@@ -89,8 +88,7 @@ export class LFG
 				continue;
 
 			const user = await this.client.users.fetch(player.user);
-			if (player.message != null && user.dmChannel != null)
-			{
+			if (player.message != null && user.dmChannel != null) {
 				const oldMessage = await user.dmChannel.messages.fetch(player.message);
 				await oldMessage.delete();
 			}
@@ -135,12 +133,11 @@ class Player {
 	}
 
 	getQuery(): string {
-		return this.games.map(game => game.stringify()).join("; ")
+		return this.games.map(game => game.stringify()).join("; ");
 	}
 }
 
-export class Game
-{
+export class Game {
 	name: string;
 	tags: string[];
 
@@ -183,9 +180,8 @@ export class Game
 	}
 }
 
-export class QueryParser
-{
-	static parse(query: string): Game[]  | string {
+export class QueryParser {
+	static parse(query: string): Game[] | string {
 		const games: Game[] = [];
 		let currentGame;
 		for (const tag of query.toLowerCase().split(" ")) {

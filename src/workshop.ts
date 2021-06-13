@@ -186,11 +186,9 @@ class WorkshopScanner {
 		return entries_to_check;
 	}
 
-	find_workshop_images(workshop_page: string): string[] | false
-	{
+	find_workshop_images(workshop_page: string): string[] | false {
 		const workshop_image_entries = matchAll(/workshopItemPreviewImage.+src="(.+)"/g, workshop_page);
-		if (workshop_image_entries.length == 0)
-		{
+		if (workshop_image_entries.length == 0) {
 			Logger.error("Failed to find any workshop image entries");
 			return false;
 		}
@@ -198,16 +196,14 @@ class WorkshopScanner {
 		Logger.info(`Found ${workshop_image_entries.length} workshop image entry matches`);
 
 		const entries_to_image = [];
-		for (const workshop_mod_entry of workshop_image_entries)
-		{
+		for (const workshop_mod_entry of workshop_image_entries) {
 			entries_to_image.unshift(workshop_mod_entry[1]);
 		}
 
 		return entries_to_image;
 	}
 
-	async get_author_discord_id(author_steam_id: string): Promise<string | false>
-	{
+	async get_author_discord_id(author_steam_id: string): Promise<string | false> {
 		const sql = "SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = \"" + author_steam_id + "\" LIMIT 0, 1";
 		const discord_id: { discord_id: string } | undefined = await this.DB.get(sql);
 		if (discord_id !== undefined) {
@@ -217,8 +213,7 @@ class WorkshopScanner {
 		return false;
 	}
 
-	async get_steam_avatar(author_steam_id: string): Promise<string | undefined>
-	{
+	async get_steam_avatar(author_steam_id: string): Promise<string | undefined> {
 		if (!this.avatarCache.has(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return undefined;
 		}
@@ -226,8 +221,7 @@ class WorkshopScanner {
 		return this.avatarCache.get(author_steam_id);
 	}
 
-	async get_steam_name(author_steam_id: string): Promise<string | undefined>
-	{
+	async get_steam_name(author_steam_id: string): Promise<string | undefined> {
 		if (!this.nameCache.has(author_steam_id) && !(await this.get_steam_information(author_steam_id))) {
 			return undefined;
 		}
@@ -235,8 +229,7 @@ class WorkshopScanner {
 		return this.nameCache.get(author_steam_id);
 	}
 
-	async get_steam_information(author_steam_id: string): Promise<boolean>
-	{
+	async get_steam_information(author_steam_id: string): Promise<boolean> {
 		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
 		const { statusCode, body } = await got(xml_url);
 		if (statusCode != 200) {
@@ -262,8 +255,7 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async check_mod(mod_id: string, entry: EntryObject, image: string): Promise<void>
-	{
+	async check_mod(mod_id: string, entry: EntryObject, image: string): Promise<void> {
 		const last_changelog_id = await this.get_last_changelog_id(mod_id);
 
 		const changelogs = await this.get_latest_changelogs(mod_id, last_changelog_id);
@@ -288,8 +280,7 @@ class WorkshopScanner {
 			const result = newMod ?
 				await this.post_discord_new_mod(mod_id, entry, changelog, image) :
 				await this.post_discord_update_mod(mod_id, entry, changelog, image);
-			if (result !== false)
-			{
+			if (result !== false) {
 				Logger.info("Discord post added.");
 
 				// If a new mod was just posted, it's not a new mod anymore.
@@ -299,8 +290,7 @@ class WorkshopScanner {
 	}
 
 	// Returns the latest changelogs after the changelog ID passed in the since argument. Newest first.
-	async get_latest_changelogs(mod_id: string, since: number): Promise<Changelog[] | null>
-	{
+	async get_latest_changelogs(mod_id: string, since: number): Promise<Changelog[] | null> {
 		const changelog_url = `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}`;
 		const { statusCode, body } = await got(changelog_url, {
 			headers: {
@@ -313,8 +303,7 @@ class WorkshopScanner {
 		}
 
 		const changelog_entries = matchAll(/<div class="changelog headline">([^]+?)<\/div>[^]+?<p id="([0-9]+)">(.*)<\/p>/g, body);
-		if (changelog_entries.length === 0)
-		{
+		if (changelog_entries.length === 0) {
 			Logger.error(`Failed to find any changelog entries at ${decodeURI(changelog_url)}`);
 			return null;
 		}
@@ -328,20 +317,17 @@ class WorkshopScanner {
 		}).filter(changelog => parseInt(changelog.id) > since);
 	}
 
-	async is_mod_new(mod_id: string): Promise<boolean>
-	{
+	async is_mod_new(mod_id: string): Promise<boolean> {
 		const sql = "SELECT workshop_mods.mod_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
 		const result = await this.DB.get(sql);
-		if (result !== undefined)
-		{
+		if (result !== undefined) {
 			return false;
 		}
 		Logger.info(`Mod ${mod_id} is new`);
 		return true;
 	}
 
-	async get_last_changelog_id(mod_id: string): Promise<number>
-	{
+	async get_last_changelog_id(mod_id: string): Promise<number> {
 		const sql = "SELECT workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
 
 		const result = await this.DB.get<{ last_post_id: number }>(sql);
@@ -351,20 +337,17 @@ class WorkshopScanner {
 		return 0;
 	}
 
-	async insert_mod(mod_id: string, changelog_id: string): Promise<boolean>
-	{
+	async insert_mod(mod_id: string, changelog_id: string): Promise<boolean> {
 		const sql = "INSERT INTO workshop_mods (mod_id, last_post_id) VALUES (" + mod_id + ", " + changelog_id + ")";
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async update_mod(mod_id: string, changelog_id: string): Promise<boolean>
-	{
+	async update_mod(mod_id: string, changelog_id: string): Promise<boolean> {
 		const sql = "UPDATE workshop_mods SET last_post_id = " + changelog_id + " WHERE mod_id = " + mod_id;
 		return this.DB.run(sql).then(() => true).catch(() => false);
 	}
 
-	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean>
-	{
+	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
@@ -394,8 +377,7 @@ class WorkshopScanner {
 		return await this.post_discord(data, true);
 	}
 
-	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean>
-	{
+	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
@@ -427,8 +409,7 @@ class WorkshopScanner {
 		return await this.post_discord(data, major_matches.length > 0);
 	}
 
-	async post_discord(data: { content: string, options: Discord.WebhookMessageOptions & { split?: false } }, is_major: boolean): Promise<boolean>
-	{
+	async post_discord(data: { content: string, options: Discord.WebhookMessageOptions & { split?: false } }, is_major: boolean): Promise<boolean> {
 		const webhook_client = is_major ? major_webhook : minor_webhook;
 
 		try {
@@ -457,20 +438,19 @@ class WorkshopScanner {
 		const expected_entry_count = 30;
 		const workshop_page = await this.scrape_workshop_list(page_index, expected_entry_count);
 
-		if (workshop_page === false)
-		{
+		if (workshop_page === false) {
 			await this.set_page_index(1);
 			return;
 		}
 
 		const entries_to_check = await this.find_workshop_mods(workshop_page);
-		if (entries_to_check === false)
-		{
+		if (entries_to_check === false) {
 			await this.set_page_index(1);
 			return;
 		}
 
 		const entries_to_image = this.find_workshop_images(workshop_page);
+		if (entries_to_image === false) {
 			await this.set_page_index(1);
 			return;
 		}

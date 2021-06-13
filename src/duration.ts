@@ -1,5 +1,5 @@
 // All of these are in minutes.
-const durations: {[index: string]: number} = {
+const durations: { [index: string]: number } = {
 	h: 60,
 	d: 1440,
 	w: 10080,
