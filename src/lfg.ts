@@ -90,10 +90,23 @@ export class LFG {
 			const user = await this.client.users.fetch(player.user);
 			if (player.message != null && user.dmChannel != null) {
 				const oldMessage = await user.dmChannel.messages.fetch(player.message);
-				await oldMessage.delete();
+				const response = await oldMessage.delete().catch(() => null);
+
+				// If we failed to delete a message we sent to a user, they're probably not accepting DMs. Let's just remove them from LFG.
+				if (response == null) {
+					LFG.leave(player.user);
+					continue;
+				}
 			}
 
-			const message = await user.send(embed);
+			const message = await user.send(embed).catch(() => null);
+
+			// Or if we failed to send a message to a user, they're also probably not accepting DMs.
+			if (message === null) {
+				LFG.leave(player.user);
+				continue;
+			}
+
 			player.message = message.id;
 			player.hash = embedHash;
 		}
