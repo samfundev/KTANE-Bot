@@ -170,6 +170,14 @@ export class Game {
 		for (const tag of this.tags) {
 			const otherHasTag = otherTags.includes(tag);
 
+			// Don't match with people who have explicitly specified the opposite tag.
+			if (tag == "modded" || tag == "vanilla")
+				return !otherTags.includes(tag == "modded" ? "vanilla" : "modded");
+
+			// Don't match with people who explicitly don't want mixed.
+			if (tag == "mixed")
+				return !otherTags.includes("modded") && !otherTags.includes("vanilla");
+
 			// If a user marks them self as a defuser or expert, don't match them with people the same role.
 			if ((tag == "defuser" || tag == "expert") && otherHasTag)
 				return false;
