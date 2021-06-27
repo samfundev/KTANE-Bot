@@ -118,6 +118,15 @@ client
 		if (message.channel.type == "news") {
 			message.crosspost().catch(Logger.errorPrefix("Automatic Crosspost"));
 		} else if (message.channel.type == "text") {
+			const id = client.user?.id;
+			const content = message.content.toLowerCase();
+			const members = message.mentions.members;
+			if (id !== undefined && members !== null && members.has(id) && content.includes("vote") && content.includes("run"))
+			{
+				await message.reply("There is no vote running.");
+				return;
+			}
+
 			if (message.channel.name.includes("voice-text")) {
 				message.attachments.some(attachment => {
 					const file = attachment.name;
