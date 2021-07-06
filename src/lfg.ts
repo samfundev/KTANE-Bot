@@ -271,6 +271,7 @@ export class QueryParser {
 		["modded", "mod"],
 		["mixed", "mix"],
 		["defuser", "def"],
-		["expert", "exp"]
+		["expert", "exp"],
+		["challenge_bomb"]
 	];
 }
