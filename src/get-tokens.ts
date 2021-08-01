@@ -8,7 +8,6 @@ interface tokens {
     majorWebhook: { id: Snowflake, token: string },
     minorWebhook: { id: Snowflake, token: string },
     youtubeAPIKey: string,
-    tutorialVideoChannels: { name: string, mention: string, id: string }[],
     roleIDs: {
         streaming: Snowflake,
         voiceMuted: Snowflake,

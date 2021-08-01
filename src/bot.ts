@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 
 import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
-import { CategoryChannel, Intents, MessageReaction, PartialUser, TextChannel, User, VoiceChannel, WebhookClient } from "discord.js";
-import got from "got";
+import { CategoryChannel, Intents, MessageReaction, PartialUser, TextChannel, User, VoiceChannel } from "discord.js";
 import cron from "node-cron";
 import path from "path";
 import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
-import { sendWebhookMessage, unpartial, update } from "./bot-utils";
+import { unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
 import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
@@ -16,6 +15,7 @@ import { LFG } from "./lfg";
 import Logger from "./log";
 import lintMessage from "./repolint";
 import TaskManager from "./task-manager";
+import { scanVideos, setupVideoTask } from "./video";
 import WorkshopScanner from "./workshop";
 
 declare module "discord-akairo" {
@@ -27,7 +27,7 @@ declare module "discord-akairo" {
 	}
 }
 
-class KTANEClient extends AkairoClient {
+export class KTANEClient extends AkairoClient {
 	constructor() {
 		super({
 			ownerID: "76052829285916672",
@@ -77,6 +77,8 @@ class KTANEClient extends AkairoClient {
 		});
 	}
 
+	static instance: KTANEClient;
+
 	async login(token: string) {
 		await this.settings.init();
 		LFG.loadPlayers();
@@ -86,8 +88,7 @@ class KTANEClient extends AkairoClient {
 
 const client = new KTANEClient();
 
-TaskManager.client = client;
-LFG.client = client;
+KTANEClient.instance = client;
 
 const voiceChannelsRenamed: { [id: string]: boolean } = {};
 
@@ -101,7 +102,7 @@ client
 
 		Logger.info(`Client ready; logged in as ${client.user.username}#${client.user.discriminator} (${client?.user.id})`);
 
-		scheduledTask().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
+		scanVideos().catch(Logger.errorPrefix("Failed to scan videos:"));
 
 		if (client.settings.get("global", "updating", false)) {
 			client.settings.delete("global", "updating").catch(Logger.errorPrefix("Failed to delete updating state:"));
@@ -272,51 +273,8 @@ client
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));
 
 
-const videoBot = new WebhookClient(tokens.announcementWebhook.id, tokens.announcementWebhook.token);
 let workshopScanner: WorkshopScanner;
 sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => workshopScanner = new WorkshopScanner(db, client)).catch(Logger.errorPrefix("Failed to load database:"));
-
-type playlistItem = {
-	snippet: {
-		title: string,
-		resourceId: {
-			videoId: string
-		}
-	}
-}
-
-async function scheduledTask() {
-	if (tokens.debugging) return;
-	// Scan for new KTANE-related YouTube videos
-
-	const videosAnnounced: string[] = client.settings.get("global", "videosAnnounced", []);
-	for (const videoChannel of tokens.tutorialVideoChannels) {
-		try {
-			const response = await got(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`, {
-				responseType: "json"
-			});
-			const json = response.body as { items: playlistItem[] };
-
-			for (const item of json.items.reverse()) {
-				const snippet = item.snippet;
-				if (videosAnnounced.includes(snippet.resourceId.videoId))
-					continue;
-				if (snippet.title.toLowerCase().indexOf("ktane") === -1 &&
-					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
-					continue;
-				videosAnnounced.push(snippet.resourceId.videoId);
-				sendWebhookMessage(client, videoBot, `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`, {})
-					.catch(Logger.error);
-				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
-			}
-
-			Logger.info(`Video channel ${videoChannel.name} checked.`);
-			await client.settings.set("global", "videosAnnounced", videosAnnounced);
-		} catch (error) {
-			Logger.error(`Failed to get videos, status code: ${error.response.statusCode}`);
-		}
-	}
-}
 
 async function handleReaction(reaction: MessageReaction, user: User | PartialUser, reactionAdded: boolean) {
 	if (user.partial)
@@ -387,11 +345,7 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 
 client.login(tokens.botToken).catch(Logger.errorPrefix("Failed to login:"));
 
-// The math below is based on this equation: 10000 (quota limit) = 1440 (minutes in a day) / minutes * channels * 3 (each request is 3 quota), solved for the variable minutes.
-// This is to prevent going over the YouTube API quota.
-cron.schedule(`*/${Math.ceil(54 / 125 * tokens.tutorialVideoChannels.length) + 1} * * * *`, () => {
-	scheduledTask().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
-});
+setupVideoTask();
 
 cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes

@@ -1,12 +1,16 @@
 import { createHash } from "crypto";
 import { AkairoClient } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake } from "discord.js";
+import { KTANEClient } from "./bot";
 import { joinLimit } from "./bot-utils";
 import { compareLanguage } from "./language";
 import Logger from "./log";
 
 export class LFG {
-	static client: AkairoClient;
+	static get client(): KTANEClient {
+		return KTANEClient.instance;
+	}
+
 	static players: Player[];
 
 	static loadPlayers(): void {

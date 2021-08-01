@@ -1,10 +1,12 @@
-import { AkairoClient } from "discord-akairo";
 import { Snowflake, TextChannel } from "discord.js";
+import { KTANEClient } from "./bot";
 import tokens from "./get-tokens";
 import logger from "./log";
 
 class TaskManager {
-	static client: AkairoClient;
+	static get client(): KTANEClient {
+		return KTANEClient.instance;
+	}
 
 	static get tasks(): ScheduledTask[] {
 		return this.client.settings.get("global", "scheduledTasks", []);
