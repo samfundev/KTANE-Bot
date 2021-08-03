@@ -53,7 +53,7 @@ export async function scanVideos(): Promise<void> {
 			Logger.info(`Video channel ${videoChannel.name} checked.`);
 			await client.settings.set("global", "videosAnnounced", videosAnnounced);
 		} catch (error) {
-			Logger.error(`Failed to get videos, status code: ${error.response.statusCode}`);
+			Logger.error(`Failed to get videos at "${`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=<KEY>`}", status code: ${error.response.statusCode}`);
 		}
 	}
 }
