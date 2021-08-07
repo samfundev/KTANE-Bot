@@ -4,9 +4,6 @@
 	"majorWebhook": { "id": "", "token": "" },
 	"minorWebhook": { "id": "", "token": "" },
 	"youtubeAPIKey": "",
-	"tutorialVideoChannels": [
-		{ "name": "", "mention": "", "id": "" }
-	],
 	"roleIDs": {
         "streaming": "",
         "voiceMuted": "",
