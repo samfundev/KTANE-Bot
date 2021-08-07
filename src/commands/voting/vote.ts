@@ -16,6 +16,8 @@ export default class VoteCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<option ...>";
 	}
 
 	async exec(msg: Message, args: { vote: number[] }): Promise<Message> {

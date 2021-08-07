@@ -17,6 +17,8 @@ export default class PresenceCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<target>";
 	}
 
 	async exec(_msg: Message, { target }: { target: GuildMember }): Promise<void> {

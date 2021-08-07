@@ -19,6 +19,8 @@ export class WhoHasRoleCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<role>";
 	}
 
 	exec(msg: GuildMessage, args: RoleArgument): Promise<Message> | void {

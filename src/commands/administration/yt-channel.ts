@@ -28,6 +28,8 @@ export default class YTChannelCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<name> <mention> <channel id>";
 	}
 
 	exec(msg: GuildMessage, channel: VideoChannel): Promise<Message> {

@@ -25,6 +25,8 @@ export default class BanCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<target> [duration]";
 	}
 
 	exec(msg: GuildMessage, { target, duration }: { target: User, duration: number }): void {

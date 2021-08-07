@@ -18,6 +18,8 @@ export default class TasksCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<target>";
 	}
 
 	exec(msg: Message, args: { target: User }): Promise<Message> {

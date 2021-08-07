@@ -25,6 +25,10 @@ declare module "discord-akairo" {
 		listenerHandler: ListenerHandler;
 		settings: SQLiteProvider;
 	}
+
+	interface Command {
+		usage: string;
+	}
 }
 
 export class KTANEClient extends AkairoClient {

@@ -20,6 +20,8 @@ export default class MakeMajorCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<message id>";
 	}
 
 	exec(msg: GuildMessage, args: { messageid: string }): void {

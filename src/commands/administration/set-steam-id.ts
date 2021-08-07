@@ -24,6 +24,8 @@ export default class SetSteamIDCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<steam id> <discord id>";
 	}
 
 	exec(msg: Message, args: { steamid: string, discordid: string }): Promise<Message> {

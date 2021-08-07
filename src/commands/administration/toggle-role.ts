@@ -24,6 +24,8 @@ export default class ToggleRoleCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<target> <role>";
 	}
 
 	exec(msg: GuildMessage, args: { target: GuildMember, role: string }): void {

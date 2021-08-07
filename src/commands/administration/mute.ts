@@ -26,6 +26,8 @@ export default class MuteCommand extends Command {
 				},
 			]
 		});
+
+		this.usage = "<target> [duration]";
 	}
 
 	exec(msg: GuildMessage, args: { target: GuildMember, duration: number }): void {

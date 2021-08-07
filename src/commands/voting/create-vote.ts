@@ -20,6 +20,8 @@ export default class CreateVoteCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<topic> <option ...>";
 	}
 
 	async exec(msg: Message, args: { topic: string, options: string[] }): Promise<Message> {

@@ -15,6 +15,8 @@ export default class LanguagesCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<language ...>";
 	}
 
 	async exec(message: Message, { languages }: { languages: (string | null)[] }): Promise<void> {

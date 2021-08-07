@@ -19,6 +19,8 @@ class EvalCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<code>";
 	}
 
 	async exec(message: Message, { code }: { code: string }) {

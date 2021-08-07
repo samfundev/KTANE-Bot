@@ -20,6 +20,8 @@ export default class RoleCommand extends Command {
 				}
 			]
 		});
+
+		this.usage = "<role>";
 	}
 
 	exec(msg: GuildMessage, args: RoleArgument): Promise<Message | null> {
