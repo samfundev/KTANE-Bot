@@ -86,6 +86,8 @@ export class KTANEClient extends AkairoClient {
 	async login(token: string) {
 		await this.settings.init();
 		LFG.loadPlayers();
+		setupVideoTask();
+
 		return super.login(token);
 	}
 }
@@ -348,8 +350,6 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 }
 
 client.login(tokens.botToken).catch(Logger.errorPrefix("Failed to login:"));
-
-setupVideoTask();
 
 cron.schedule("*/1 * * * *", () => {
 	// Scan another page for new mods or changes
