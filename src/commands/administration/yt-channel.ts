@@ -1,5 +1,5 @@
 import { Command } from "discord-akairo";
-import { Message } from "discord.js";
+import { Message, User } from "discord.js";
 import { update } from "../../bot-utils";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
@@ -10,17 +10,13 @@ export default class YTChannelCommand extends Command {
 		super("yt-channel", {
 			aliases: ["channel", "ytchannel"],
 			category: "administration",
-			description: ["Adds a YouTube channel to the bot.", "<name> is the name of the user whose channel is being added.", "<mention> should be the mention for the Discord user associated with the channel.", "<channel id> should be a YT channel ID: UC_x5XG1OV2P6uZZ5FSM9Ttw"],
+			description: ["Adds a YouTube channel to the bot.", "<user> is the user whose channel is being added.", "<channel id> should be a YT channel ID: UC_x5XG1OV2P6uZZ5FSM9Ttw"],
 			channel: "guild",
 
 			args: [
 				{
-					id: "name",
-					type: "string"
-				},
-				{
-					id: "mention",
-					type: "string"
+					id: "user",
+					type: "user"
 				},
 				{
 					id: "id",
@@ -29,10 +25,16 @@ export default class YTChannelCommand extends Command {
 			]
 		});
 
-		this.usage = "<name> <mention> <channel id>";
+		this.usage = "<user> <channel id>";
 	}
 
-	exec(msg: GuildMessage, channel: VideoChannel): Promise<Message> {
+	exec(msg: GuildMessage, { user, id }: { user: User, id: string }): Promise<Message> {
+		const channel: VideoChannel = {
+			name: user.username,
+			mention: user.toString(),
+			id
+		};
+
 		if (!/^U[CU][0-9A-Za-z_-]{21}[AQgw]$/.test(channel.id))
 			return msg.reply("Invalid YT channel ID.");
 
