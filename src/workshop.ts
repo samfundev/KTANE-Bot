@@ -3,7 +3,7 @@ import { Util } from "discord.js";
 import got from "got";
 import { Html5Entities } from "html-entities";
 import { Database } from "sqlite";
-import { DOMParser } from "xmldom";
+import { DOMParser } from "@xmldom/xmldom";
 import { sendWebhookMessage } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
