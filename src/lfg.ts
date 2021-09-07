@@ -81,7 +81,7 @@ export class LFG {
 				}
 			});
 
-			if (hasMatch) embed.addField("Players:", joinLimit(matched.map(match => `<@${match.user}> - ${match.getQuery()}`), "\n", 1024));
+			if (hasMatch) embed.addField("Players:", joinLimit(matched.map((match, index) => `${index + 1}. <@${match.user}> - ${match.getQuery()}`), "\n", 1024));
 			embed.addField("Query:", player.getQuery());
 
 			embed.setColor(hasMatch ? "GREEN" : "RED");
