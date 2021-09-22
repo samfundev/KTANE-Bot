@@ -103,7 +103,7 @@ export class LFG {
 				}
 			}
 
-			const message = await user.send(embed).catch(() => null);
+			const message = await user.send({ embeds: [embed] }).catch(() => null);
 
 			// Or if we failed to send a message to a user, they're also probably not accepting DMs.
 			if (message === null) {

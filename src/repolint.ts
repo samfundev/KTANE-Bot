@@ -31,7 +31,7 @@ export default async function lintMessage(message: Message, client: AkairoClient
 		return;
 
 	const fileName = message.id + file.name.substring(file.name.lastIndexOf("."));
-	const notInDM = message.channel.type !== "dm";
+	const notInDM = message.channel.type !== "DM";
 	if (notInDM) await message.react("💭");
 
 	try {
@@ -124,7 +124,7 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 				embed.addField(field.name, field.value);
 			}
 
-			const report = message.channel.send(embed);
+			const report = message.channel.send({ embeds: [embed] });
 			resolve(report);
 		});
 	});

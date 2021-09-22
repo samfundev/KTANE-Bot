@@ -8,8 +8,8 @@ import { sendWebhookMessage } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
-const major_webhook = new Discord.WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token);
-const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook.id, tokens.minorWebhook.token);
+const major_webhook = new Discord.WebhookClient(tokens.majorWebhook);
+const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook);
 
 function matchAll(regex: RegExp, string: string) {
 	if (!regex.global) throw "Regex must be global";
@@ -427,8 +427,8 @@ class WorkshopScanner {
 	}
 
 	async run(): Promise<void> {
-		if (tokens.debugging)
-			//return;
+		//if (tokens.debugging)
+		//	return;
 
 		if (!this.initialized) {
 			await this.init();

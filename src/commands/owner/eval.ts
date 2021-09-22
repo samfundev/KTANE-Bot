@@ -65,14 +65,14 @@ class EvalCommand extends Command {
 				`${title}${cb}js`,
 				evaled.output,
 				cb
-			]).catch(Logger.errorPrefix("Failed to update eval message:"));
+			].join("\n")).catch(Logger.errorPrefix("Failed to update eval message:"));
 		};
 
 		try {
-			let output = eval(code);
-			if (output && typeof output.then === "function") output = await output;
+			let originalOutput = eval(code);
+			if (originalOutput && typeof originalOutput.then === "function") originalOutput = await originalOutput;
 
-			if (typeof output !== "string") output = util.inspect(output, { depth: 0 });
+			let output = typeof originalOutput !== "string" ? util.inspect(originalOutput, { depth: 0 }) : originalOutput;
 
 			output = `${logs.join("\n")}\n${logs.length && output === "undefined" ? "" : output}`;
 			output = output.replace(tokenRegex, "[TOKEN]");
@@ -86,7 +86,7 @@ class EvalCommand extends Command {
 				`📤\u2000**Output**${cb}js`,
 				output,
 				cb
-			]);
+			].join("\n"));
 
 			evaled.message = sent;
 			evaled.errored = false;
@@ -94,10 +94,12 @@ class EvalCommand extends Command {
 
 			return sent;
 		} catch (err) {
-			console.error(err); // eslint-disable-line no-console
-			let error = err;
+			if (!(err instanceof Error))
+				return;
 
-			error = error.toString();
+			Logger.error(err);
+
+			let error = err.toString();
 			error = `${logs.join("\n")}\n${logs.length && error === "undefined" ? "" : error}`;
 			error = error.replace(tokenRegex, "[TOKEN]");
 
@@ -108,7 +110,7 @@ class EvalCommand extends Command {
 				`☠\u2000**Error**${cb}js`,
 				error,
 				cb
-			]);
+			].join("\n"));
 
 			evaled.message = sent;
 			evaled.errored = true;

@@ -10,7 +10,7 @@ export default class ModeratorInhibitor extends Inhibitor {
 
 	exec(message: Message, command: Command): boolean {
 		// Don't block any DM commands
-		if (message.guild == null || message.channel.type == "dm")
+		if (message.guild == null || message.channel.type == "DM")
 			return false;
 
 		// Commands are allowed in these channels

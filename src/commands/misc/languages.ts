@@ -11,7 +11,7 @@ export default class LanguagesCommand extends Command {
 					id: "languages",
 					type: "language",
 					match: "separate",
-					otherwise: (message: Message, data: FailureData) => `"${Util.cleanContent(data.phrase, message)}" is an invalid language.`
+					otherwise: (message: Message, data: FailureData) => `"${Util.cleanContent(data.phrase, message.channel)}" is an invalid language.`
 				}
 			]
 		});

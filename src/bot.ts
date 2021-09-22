@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
-import { CategoryChannel, Intents, MessageReaction, PartialUser, TextChannel, User, VoiceChannel } from "discord.js";
+import { BaseGuildVoiceChannel, CategoryChannel, Intents, MessageReaction, PartialMessageReaction, PartialUser, TextChannel, User } from "discord.js";
 import cron from "node-cron";
 import path from "path";
 import * as sqlite from "sqlite";
@@ -35,11 +35,16 @@ export class KTANEClient extends AkairoClient {
 	constructor() {
 		super({
 			ownerID: "76052829285916672",
-		}, {
-			partials: ["MESSAGE", "REACTION"],
-			ws: {
-				intents: [Intents.NON_PRIVILEGED, "GUILD_PRESENCES"]
-			}
+			partials: ["MESSAGE", "REACTION", "CHANNEL"],
+			intents: [
+				Intents.FLAGS.GUILDS,
+				Intents.FLAGS.GUILD_MESSAGES,
+				Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+				Intents.FLAGS.GUILD_VOICE_STATES,
+				Intents.FLAGS.GUILD_PRESENCES,
+
+				Intents.FLAGS.DIRECT_MESSAGES
+			]
 		});
 
 		this.commandHandler = new CommandHandler(this, {
@@ -76,6 +81,7 @@ export class KTANEClient extends AkairoClient {
 		});
 		this.listenerHandler.loadAll();
 
+		// eslint-disable-next-line @typescript-eslint/unbound-method
 		this.settings = new SQLiteProvider(sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }), "settings", {
 			dataColumn: "settings"
 		});
@@ -83,7 +89,7 @@ export class KTANEClient extends AkairoClient {
 
 	static instance: KTANEClient;
 
-	async login(token: string) {
+	async login(token: string): Promise<string> {
 		await this.settings.init();
 		LFG.loadPlayers();
 		setupVideoTask();
@@ -118,18 +124,17 @@ client
 		}
 	})
 	.on("disconnect", () => { Logger.warn("Disconnected!"); })
-	.on("message", async (message) => {
+	.on("messageCreate", async (message) => {
 		if (!await unpartial(message))
 			return;
 
-		if (message.channel.type == "news") {
+		if (message.channel.type == "GUILD_NEWS") {
 			message.crosspost().catch(Logger.errorPrefix("Automatic Crosspost"));
-		} else if (message.channel.type == "text") {
+		} else if (message.channel.type == "GUILD_TEXT") {
 			const id = client.user?.id;
 			const content = message.content.toLowerCase();
 			const members = message.mentions.members;
-			if (id !== undefined && members !== null && members.has(id) && content.includes("vote") && content.includes("run"))
-			{
+			if (id !== undefined && members !== null && members.has(id) && content.includes("vote") && content.includes("run")) {
 				await message.reply("There is no vote running.");
 				return;
 			}
@@ -139,11 +144,11 @@ client
 					const file = attachment.name;
 					if (file != undefined && (file.includes("output_log") || file.includes("Player.log"))) {
 						message.channel.send({
-							embed: {
+							embeds: [{
 								"title": "Logfile Analyzer Link",
 								"description": `[${file}](https://ktane.timwi.de/lfa#url=${attachment.url})`,
 								"color": 1689625
-							}
+							}]
 						}).catch(Logger.errorPrefix("Failed to send LFA link:"));
 						return true;
 					}
@@ -156,10 +161,10 @@ client
 		}
 	})
 	.on("messageDelete", message => {
-		if ((message.channel.type !== "text" || message.channel.id !== tokens.requestsChannel) && message.channel.type !== "dm")
+		if ((message.channel.type !== "GUILD_TEXT" || message.channel.id !== tokens.requestsChannel) && message.channel.type !== "DM")
 			return;
 
-		const id = (message.channel.type == "text" && message.guild != null) ? message.guild.id : message.channel.id;
+		const id = (message.channel.type == "GUILD_TEXT" && message.guild != null) ? message.guild.id : message.channel.id;
 		update<Record<string, string>>(client.settings, id, "reportMessages", {}, async (value) => {
 			const reportID = value[message.id];
 			if (reportID === undefined)
@@ -203,22 +208,22 @@ client
 			return i < names.length ? names[i] : `${convert(((i / names.length) | 0) - 1, names)} ${names[i % names.length]}`;
 		}
 
-		function processAutoManagedCategories(vc: VoiceChannel | null) {
+		function processAutoManagedCategories(vc: BaseGuildVoiceChannel | null) {
 			if (!vc)
 				return;
 			const cat = vc.parent;
-			if (!cat || !vc.parentID || !(vc.parentID in tokens.autoManagedCategories) || cat === catProcessed)
+			if (!cat || !vc.parentId || !(vc.parentId in tokens.autoManagedCategories) || cat === catProcessed)
 				return;
 			catProcessed = cat;
-			const channelsForceRename = !voiceChannelsRenamed[vc.parentID];
+			const channelsForceRename = !voiceChannelsRenamed[vc.parentId];
 
-			let names = tokens.autoManagedCategories[vc.parentID].names;
+			let names = tokens.autoManagedCategories[vc.parentId].names;
 			if (names == null)
 				names = ["Alfa", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu"];
 
-			const prefix = tokens.autoManagedCategories[vc.parentID].channelPrefix;
-			const ignore = tokens.autoManagedCategories[vc.parentID].ignoredChannels || [];
-			const channels = cat.children.array().filter(ch => ch.type === "voice" && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
+			const prefix = tokens.autoManagedCategories[vc.parentId].channelPrefix;
+			const ignore = tokens.autoManagedCategories[vc.parentId].ignoredChannels || [];
+			const channels = [...cat.children.values()].filter(ch => ch.type === "GUILD_VOICE" && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
 			channels.sort((c1, c2) => c1.channel.name < c2.channel.name ? -1 : c1.channel.name > c2.channel.name ? 1 : 0);
 
 			let logmsg = `Channels are: ${channels.map(obj => `${obj.channel.name}=${obj.members}`).join(", ")}`;
@@ -232,7 +237,7 @@ client
 						if (channels[ix].channel.name !== `${prefix} ${convert(ix, names)}`)
 							channels[ix].channel.setName(`${prefix} ${convert(ix, names)}`).catch(Logger.errorPrefix("Failed to set channel name:"));
 					}
-					voiceChannelsRenamed[vc.parentID] = true;
+					voiceChannelsRenamed[vc.parentId] = true;
 				}
 
 				// Create a new channel within this category
@@ -244,7 +249,7 @@ client
 
 				logmsg += `; creating ${name}`;
 				cat.guild.channels.create(name, {
-					type: "voice",
+					type: "GUILD_VOICE",
 					reason: "AutoManage: create new empty channel",
 					parent: cat
 				})
@@ -257,7 +262,7 @@ client
 					if (channels[i].members === 0) {
 						if (oneFound) {
 							logmsg += `; deleting ${channels[i].channel.name}`;
-							channels[i].channel.delete("AutoManage: delete unused channel").catch(Logger.errorPrefix("Failed to delete channel:"));
+							channels[i].channel.delete().catch(Logger.errorPrefix("Failed to delete channel:"));
 						}
 						else
 							oneFound = true;
@@ -280,9 +285,10 @@ client
 
 
 let workshopScanner: WorkshopScanner;
+// eslint-disable-next-line @typescript-eslint/unbound-method
 sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => workshopScanner = new WorkshopScanner(db, client)).catch(Logger.errorPrefix("Failed to load database:"));
 
-async function handleReaction(reaction: MessageReaction, user: User | PartialUser, reactionAdded: boolean) {
+async function handleReaction(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser, reactionAdded: boolean) {
 	if (user.partial)
 		return;
 
@@ -290,21 +296,23 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 	if (user.id === client.user?.id)
 		return;
 
-	if (!await unpartial(reaction))
+	if (!await unpartial(reaction) || reaction.partial)
 		return;
 
 	const message = reaction.message;
-	if (!await unpartial(message))
+	if (!await unpartial(message) || message.partial)
 		return;
 
 	const anyChannel = message.channel;
-	if (anyChannel == null || anyChannel.type != "text" || message.guild == null) return;
+	if (anyChannel == null || anyChannel.type != "GUILD_TEXT" || message.guild == null) return;
 	const channel: TextChannel = anyChannel;
 
 	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
+	if (emojiKey == null)
+		return;
 
 	if (channel.id == "612414629179817985") {
-		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned || !message.guild.member(user)?.roles.cache.has(tokens.roleIDs.maintainer)) return;
+		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned || !message.guild.members.cache.get(user.id)?.roles.cache.has(tokens.roleIDs.maintainer)) return;
 
 		message.delete().catch(Logger.error);
 	} else {
@@ -317,7 +325,7 @@ async function handleReaction(reaction: MessageReaction, user: User | PartialUse
 				if (reaction.emoji.name != emojiName)
 					continue;
 
-				const guildMember = message.guild.member(user);
+				const guildMember = message.guild.members.cache.get(user.id);
 				if (!guildMember)
 					return;
 

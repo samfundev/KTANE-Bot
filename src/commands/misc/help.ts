@@ -20,10 +20,10 @@ export default class HelpCommand extends Command {
 
 	exec(msg: Message, { command }: { command: Command }): Promise<Message> {
 		return msg.reply({
-			embed: new MessageEmbed({
+			embeds: [new MessageEmbed({
 				title: `${command.aliases[0]} ${command.usage ?? ""}`,
 				description: `${command.description}\n\n**Aliases:** ${command.aliases.join(", ")}`,
-			}).setColor([52, 152, 219])
+			}).setColor([52, 152, 219])]
 		});
 	}
 }

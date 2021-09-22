@@ -29,6 +29,7 @@ export default class SetSteamIDCommand extends Command {
 	}
 
 	exec(msg: Message, args: { steamid: string, discordid: string }): Promise<Message> {
+		// eslint-disable-next-line @typescript-eslint/unbound-method
 		return sqlite.open({ filename: path.join(__dirname, "..", "..", "..", "database.sqlite3"), driver: sqlite3.cached.Database })
 			.then(db => db.run("INSERT INTO 'author_lookup' (steam_id, discord_id) VALUES(?, ?) ON CONFLICT(steam_id) DO UPDATE SET discord_id=excluded.discord_id", args.steamid, args.discordid))
 			.then(() => msg.reply(`Set "${args.steamid}" to "${args.discordid}".`))

@@ -25,7 +25,7 @@ export default class MakeMajorCommand extends Command {
 	}
 
 	exec(msg: GuildMessage, args: { messageid: string }): void {
-		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "news") as TextChannel;
+		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "GUILD_NEWS") as TextChannel;
 		channel.messages.fetch(args.messageid).then(async message => {
 			if (message.embeds.length != 1) {
 				await msg.reply("Invalid number of embeds on target message.");
@@ -53,7 +53,7 @@ export default class MakeMajorCommand extends Command {
 
 			embed.setColor("#0055aa");
 
-			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook.id, tokens.majorWebhook.token), message.content, {
+			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook), message.content, {
 				embeds: [
 					embed
 				],

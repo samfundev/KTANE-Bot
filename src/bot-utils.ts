@@ -1,10 +1,12 @@
 import { Provider } from "discord-akairo";
 import { RESTPostAPIChannelMessageResult } from "discord-api-types/v8";
-import { Client, Message, WebhookClient, WebhookMessageOptions } from "discord.js";
+import { AllowedPartial, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageOptions } from "discord.js";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
-export async function unpartial<T>(target: T & { partial: boolean, fetch: () => Promise<T> }): Promise<boolean> {
+type Partials = PartialMessageReaction | PartialMessage | PartialDMChannel;
+
+export async function unpartial(target: AllowedPartial | Partials): Promise<boolean> {
 	if (!target.partial)
 		return true;
 
@@ -30,10 +32,10 @@ export function isModerator(message: Message): boolean {
 }
 
 export async function sendWebhookMessage(client: Client, webhook: WebhookClient, content: string, options: WebhookMessageOptions): Promise<Message> {
-	const message = ((await webhook.send(content, options)) as unknown) as RESTPostAPIChannelMessageResult;
+	const message = ((await webhook.send({ content, options })) as unknown) as RESTPostAPIChannelMessageResult;
 
 	const channel = await client.channels.fetch(message.channel_id);
-	if (!channel.isText())
+	if (channel == null || !channel.isText())
 		throw new Error("Not a text channel.");
 
 	return await channel.messages.fetch(message.id);

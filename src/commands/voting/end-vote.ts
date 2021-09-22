@@ -34,9 +34,8 @@ export default class EndVoteCommand extends Command {
 
 		embed.setColor("#00ff00");
 
-		return msg.channel.send("", {
-			disableMentions: "everyone",
-			embed: embed
+		return msg.channel.send({
+			embeds: [embed]
 		});
 	}
 }
