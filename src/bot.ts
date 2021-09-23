@@ -8,7 +8,7 @@ import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import { unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
-import { DB } from "./db";
+import { DB, DBKey } from "./db";
 import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
 import { parseLanguage } from "./language";
@@ -134,7 +134,7 @@ client
 
 		if (message.channel.type == "GUILD_NEWS") {
 			message.crosspost().catch(Logger.errorPrefix("Automatic Crosspost"));
-		} else if (message.channel.type == "GUILD_TEXT") {
+		} else if (message.channel.type == "GUILD_TEXT" && message.guild !== null) {
 			const id = client.user?.id;
 			const content = message.content.toLowerCase();
 			const members = message.mentions.members;
@@ -142,6 +142,8 @@ client
 				await message.reply("There is no vote running.");
 				return;
 			}
+
+			const requestsID = await client.db.get(message.guild, DBKey.RequestsChannel);
 
 			if (message.channel.name.includes("voice-text")) {
 				message.attachments.some(attachment => {
@@ -159,13 +161,17 @@ client
 
 					return false;
 				});
-			} else if (message.channel.id == tokens.requestsChannel) {
+			} else if (message.channel.id == requestsID) {
 				await lintMessage(message, client);
 			}
 		}
 	})
-	.on("messageDelete", message => {
-		if ((message.channel.type !== "GUILD_TEXT" || message.channel.id !== tokens.requestsChannel) && message.channel.type !== "DM")
+	.on("messageDelete", async message => {
+		if (message.channel.type == "GUILD_TEXT" && message.guild !== null) {
+			const requestsID = await client.db.get(message.guild, DBKey.RequestsChannel);
+			if (message.channel.id !== requestsID)
+				return;
+		} else if (message.channel.type !== "DM")
 			return;
 
 		const id = (message.channel.type == "GUILD_TEXT" && message.guild != null) ? message.guild.id : message.channel.id;
