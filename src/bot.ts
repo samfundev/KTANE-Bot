@@ -8,6 +8,7 @@ import * as sqlite from "sqlite";
 import sqlite3 from "sqlite3";
 import { unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
+import { DB } from "./db";
 import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
 import { parseLanguage } from "./language";
@@ -24,6 +25,7 @@ declare module "discord-akairo" {
 		inhibitorHandler: InhibitorHandler;
 		listenerHandler: ListenerHandler;
 		settings: SQLiteProvider;
+		db: DB;
 	}
 
 	interface Command {
@@ -85,6 +87,8 @@ export class KTANEClient extends AkairoClient {
 		this.settings = new SQLiteProvider(sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }), "settings", {
 			dataColumn: "settings"
 		});
+
+		this.db = new DB(this.settings);
 	}
 
 	static instance: KTANEClient;
