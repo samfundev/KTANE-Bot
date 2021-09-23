@@ -6,6 +6,7 @@ type DiscordObject = { id: Snowflake };
 
 export enum DBKey {
 	RequestsChannel,
+	AuditLog,
 }
 
 export class DB {

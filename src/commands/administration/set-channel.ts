@@ -8,7 +8,7 @@ export default class SetChannelCommand extends Command {
 		super("set-channel", {
 			aliases: ["setchannel"],
 			category: "administration",
-			description: ["Marks a channel for the bot to use.", "<type> can be requests."],
+			description: ["Marks a channel for the bot to use.", "<type> can be requests or auditlog."],
 			channel: "guild",
 
 			args: [
@@ -28,7 +28,8 @@ export default class SetChannelCommand extends Command {
 
 	async exec(msg: GuildMessage, { type, channel }: { type: string, channel: GuildChannel }): Promise<void> {
 		const channelTypes: { [type: string]: DBKey | undefined } = {
-			requests: DBKey.RequestsChannel
+			requests: DBKey.RequestsChannel,
+			auditlog: DBKey.AuditLog,
 		};
 
 		const channelType = channelTypes[type];
