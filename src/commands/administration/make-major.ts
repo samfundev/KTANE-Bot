@@ -53,7 +53,8 @@ export default class MakeMajorCommand extends Command {
 
 			embed.setColor("#0055aa");
 
-			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook), message.content, {
+			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook), {
+				content: message.content,
 				embeds: [
 					embed
 				],

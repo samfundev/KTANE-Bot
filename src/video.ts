@@ -45,7 +45,7 @@ export async function scanVideos(): Promise<void> {
 					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
 					continue;
 				videosAnnounced.push(snippet.resourceId.videoId);
-				sendWebhookMessage(client, videoBot, `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}`, {})
+				sendWebhookMessage(client, videoBot, { content: `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}` })
 					.catch(Logger.error);
 				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
 			}

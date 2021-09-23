@@ -367,11 +367,9 @@ class WorkshopScanner {
 
 		const data = {
 			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${entry.authorMention}:`,
-			options: {
-				embeds: [
-					embed
-				],
-			}
+			embeds: [
+				embed
+			],
 		};
 
 		return await this.post_discord(data, true);
@@ -397,11 +395,9 @@ class WorkshopScanner {
 
 		const data = {
 			content: `:loudspeaker: ${entry.authorMention} has posted an update to **${entry.title}** on the Steam Workshop!`,
-			options: {
-				embeds: [
-					embed
-				],
-			}
+			embeds: [
+				embed
+			],
 		};
 
 		const major_regex = /major change|major update|rule[- ]breaking change|manual reprint( is)? (?:required|necessary|needed)|manual update|updated? manual/ig;
@@ -409,16 +405,16 @@ class WorkshopScanner {
 		return await this.post_discord(data, major_matches.length > 0);
 	}
 
-	async post_discord(data: { content: string, options: Discord.WebhookMessageOptions & { split?: false } }, is_major: boolean): Promise<boolean> {
+	async post_discord(options: Discord.WebhookMessageOptions, is_major: boolean): Promise<boolean> {
 		const webhook_client = is_major ? major_webhook : minor_webhook;
 
 		try {
 			if (tokens.debugging) {
-				Logger.info(data);
+				Logger.info(options);
 				return true;
 			}
 
-			await sendWebhookMessage(this.client, webhook_client, data.content, data.options);
+			await sendWebhookMessage(this.client, webhook_client, options);
 			return true;
 		} catch (exception) {
 			Logger.error("Failed to post to Discord", exception);
