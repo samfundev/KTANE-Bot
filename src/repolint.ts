@@ -83,7 +83,7 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 			let totalProblems = 0;
 			for (let line of stdout.split("\n")) {
 				line = line.trimEnd();
-				if (line === "")
+				if (line === "" || line === "Failed to load the repository. Some rules will not work.")
 					continue;
 
 				if (!line.startsWith("    ")) {
