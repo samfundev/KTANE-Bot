@@ -20,7 +20,7 @@ export default class CommandBlockedListener extends Listener {
 			return;
 
 		const content = message.content.toLowerCase();
-		const hasURL = content.split(" ").some(part => {
+		const hasURL = content.split(/\s/).some(part => {
 			try {
 				new URL(part);
 				return true;
