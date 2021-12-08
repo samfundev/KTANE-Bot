@@ -1,7 +1,7 @@
 import remove from "confusables";
 import { Listener } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake, Util } from "discord.js";
-import { unpartial } from "../bot-utils";
+import { isModerator, unpartial } from "../bot-utils";
 import { DBKey } from "../db";
 
 export default class CommandBlockedListener extends Listener {
@@ -17,7 +17,7 @@ export default class CommandBlockedListener extends Listener {
 	}
 
 	async exec(message: Message): Promise<void> {
-		if (!await unpartial(message) || !message.deletable || message.guild === null)
+		if (!await unpartial(message) || !message.deletable || message.guild === null || isModerator(message))
 			return;
 
 		const content = remove(message.content).toLowerCase();
