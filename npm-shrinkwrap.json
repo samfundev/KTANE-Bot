@@ -15,6 +15,7 @@
         "@types/sqlite3": "^3.1.6",
         "@types/ws": "^7.2.9",
         "@xmldom/xmldom": "^0.7.4",
+        "confusables": "^1.0.0",
         "discord-akairo": "discord-akairo/discord-akairo",
         "discord.js": "^13.1.0",
         "got": "^11.8.0",
@@ -791,6 +792,15 @@
       "version": "0.0.1",
       "resolved": "https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz",
       "integrity": "sha1-2Klr13/Wjfd5OnMDajug1UBdR3s="
+    },
+    "node_modules/confusables": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/confusables/-/confusables-1.0.0.tgz",
+      "integrity": "sha512-HdrRONFehJdy173Heqosrsy5JLwUjH5A2/Q1xHHmDTp089YWgkSmU7aiRCprqHSz/Le5fThaOnU9WSj70BUvAw==",
+      "engines": {
+        "node": ">=10",
+        "npm": ">=6"
+      }
     },
     "node_modules/console-control-strings": {
       "version": "1.1.0",
@@ -3719,6 +3729,11 @@
       "version": "0.0.1",
       "resolved": "https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz",
       "integrity": "sha1-2Klr13/Wjfd5OnMDajug1UBdR3s="
+    },
+    "confusables": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/confusables/-/confusables-1.0.0.tgz",
+      "integrity": "sha512-HdrRONFehJdy173Heqosrsy5JLwUjH5A2/Q1xHHmDTp089YWgkSmU7aiRCprqHSz/Le5fThaOnU9WSj70BUvAw=="
     },
     "console-control-strings": {
       "version": "1.1.0",

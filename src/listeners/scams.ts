@@ -1,3 +1,4 @@
+import remove from "confusables";
 import { Listener } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake, Util } from "discord.js";
 import { unpartial } from "../bot-utils";
@@ -19,7 +20,7 @@ export default class CommandBlockedListener extends Listener {
 		if (!await unpartial(message) || !message.deletable || message.guild === null)
 			return;
 
-		const content = message.content.toLowerCase();
+		const content = remove(message.content).toLowerCase();
 		const hasURL = content.split(/\s/).some(part => {
 			try {
 				new URL(part);
@@ -29,7 +30,22 @@ export default class CommandBlockedListener extends Listener {
 			}
 		});
 
-		if (content.includes("discord") && content.includes("nitro") && content.includes("free") && hasURL) {
+		let score = 0;
+
+		if (hasURL) score += 1;
+
+		const words = [
+			"discord",
+			"nitro",
+			"free",
+			"steam",
+			"@everyone",
+			"@here"
+		];
+
+		score += words.filter(word => content.includes(word)).length;
+
+		if (score >= 4) {
 			await message.delete();
 
 			const author = message.author;
