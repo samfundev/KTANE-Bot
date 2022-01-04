@@ -1,35 +1,24 @@
-import { Command } from "discord-akairo";
-import { GuildMember } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command } from "@sapphire/framework";
 import tokens from "../../get-tokens";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
 
+@ApplyOptions<Command.Options>({
+	name: "toggle-role",
+	aliases: ["togglerole", "tr"],
+	description: "Toggles a role for a user.",
+	runIn: "GUILD_ANY",
+	requiredClientPermissions: ["MANAGE_ROLES"],
+})
 export default class ToggleRoleCommand extends Command {
-	constructor() {
-		super("toggle-role", {
-			aliases: ["togglerole", "tr"],
-			category: "administration",
-			description: "Toggles a role for a user.",
-			channel: "guild",
-			clientPermissions: ["MANAGE_ROLES"],
+	usage = "<target> <role>";
 
-			args: [
-				{
-					id: "target",
-					type: "member"
-				},
-				{
-					id: "role",
-					type: "string"
-				}
-			]
-		});
+	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+		const target = await args.pick("member");
+		const role = await args.pick("string");
 
-		this.usage = "<target> <role>";
-	}
-
-	exec(msg: GuildMessage, args: { target: GuildMember, role: string }): void {
-		const targetRole = args.role.toLowerCase();
+		const targetRole = role.toLowerCase();
 		for (const roleData of tokens.roleIDs.modAssignable) {
 			if (roleData.aliases.some(alias => alias.toLowerCase() == targetRole)) {
 				const role = msg.guild.roles.cache.get(roleData.roleID);
@@ -38,13 +27,13 @@ export default class ToggleRoleCommand extends Command {
 					return;
 				}
 
-				if (args.target.roles.cache.has(roleData.roleID)) {
-					args.target.roles.remove(role)
-						.then(() => msg.channel.send(`Removed the "${role.name}" role from ${args.target.user.username}.`))
+				if (target.roles.cache.has(roleData.roleID)) {
+					target.roles.remove(role)
+						.then(() => msg.channel.send(`Removed the "${role.name}" role from ${target.user.username}.`))
 						.catch(Logger.errorReply("remove the role", msg));
 				} else {
-					args.target.roles.add(role)
-						.then(() => msg.channel.send(`Gave the "${role.name}" role to ${args.target.user.username}.`))
+					target.roles.add(role)
+						.then(() => msg.channel.send(`Gave the "${role.name}" role to ${target.user.username}.`))
 						.catch(Logger.errorReply("give the role", msg));
 				}
 			}

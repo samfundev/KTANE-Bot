@@ -1,16 +1,10 @@
-import { Command, Listener } from "discord-akairo";
-import { Message } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { CommandDeniedPayload, Listener, UserError } from "@sapphire/framework";
 import Logger from "../log";
 
+@ApplyOptions<Listener.Options>({ event: "commandDenied" })
 export default class CommandBlockedListener extends Listener {
-	constructor() {
-		super("commandBlocked", {
-			emitter: "commandHandler",
-			event: "commandBlocked"
-		});
-	}
-
-	exec(message: Message, command: Command, reason: string): void {
-		Logger.info(`${message.author.username} was blocked from using ${command.id} because ${reason}.`);
+	run(error: UserError, { message, command }: CommandDeniedPayload): void {
+		Logger.info(`${message.author.username} was blocked from using ${command.name} because ${error.message}.`);
 	}
 }

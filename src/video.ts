@@ -1,8 +1,9 @@
+import { container } from "@sapphire/framework";
 import { Snowflake, WebhookClient } from "discord.js";
 import got from "got/dist/source";
 import cron, { ScheduledTask } from "node-cron";
-import { KTANEClient } from "./bot";
 import { sendWebhookMessage } from "./bot-utils";
+import { DB } from "./db";
 import { DBKey } from "./db";
 import tokens from "./get-tokens";
 import Logger from "./log";
@@ -29,9 +30,9 @@ export async function scanVideos(): Promise<void> {
 	if (tokens.debugging) return;
 	// Scan for new KTANE-related YouTube videos
 
-	const client = KTANEClient.instance;
-	const videosAnnounced: string[] = client.settings.get("global", "videosAnnounced", []);
-	const videoChannels: VideoChannel[] = client.settings.get("global", "videoChannels", []);
+	const { client } = container;
+	const videosAnnounced: string[] = container.db.get(DB.global, "videosAnnounced", []);
+	const videoChannels: VideoChannel[] = container.db.get(DB.global, "videoChannels", []);
 	const announcedItems: playlistItem[] = [];
 	for (const videoChannel of videoChannels) {
 		try {
@@ -60,13 +61,13 @@ export async function scanVideos(): Promise<void> {
 	}
 
 	videosAnnounced.push(...announcedItems.map(item => item.snippet.resourceId.videoId));
-	await client.settings.set("global", "videosAnnounced", videosAnnounced);
+	container.db.set(DB.global, "videosAnnounced", videosAnnounced);
 
 	// Look for tutorial videos to post in the requests channel
 	const tutorialResponse = await respondToVideos(announcedItems.map(item => ({ title: item.snippet.title, url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}` })));
 	if (tutorialResponse !== null) {
 		for (const guild of client.guilds.cache.values()) {
-			const requestsID = await client.db.get<Snowflake>(guild, DBKey.RequestsChannel);
+			const requestsID = container.db.getOrUndefined<Snowflake>(guild, DBKey.RequestsChannel);
 			if (requestsID === undefined) continue;
 
 			const channel = await client.channels.fetch(requestsID);
@@ -86,7 +87,7 @@ export function setupVideoTask(): void {
 
 	// The math below is based on this equation: 10000 (quota limit) = 1440 (minutes in a day) / minutes * channels * 3 (each request is 3 quota), solved for the variable minutes.
 	// This is to prevent going over the YouTube API quota.
-	const channelCount = KTANEClient.instance.settings.get("global", "videoChannels", []).length;
+	const channelCount = container.db.get(DB.global, "videoChannels", []).length;
 	scheduledTask = cron.schedule(`*/${Math.ceil(54 / 125 * channelCount) + 1} * * * *`, () => {
 		scanVideos().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
 	});

@@ -1,5 +1,5 @@
 import { Collection, Role, Snowflake } from "discord.js";
-import Logger from "../../log";
+import Logger from "../log";
 
 export function getRole(roleName: string | null, assignableData: Assignable[], guildRoles: Collection<string, Role>): { role: Role, roleData: Assignable } | null {
 	const targetRole = roleName?.toLowerCase();

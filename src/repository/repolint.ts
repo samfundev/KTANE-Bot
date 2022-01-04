@@ -1,5 +1,5 @@
 import child_process, { ExecException } from "child_process";
-import { AkairoClient } from "discord-akairo";
+import { container } from "@sapphire/framework";
 import { Message, MessageEmbed } from "discord.js";
 import { createWriteStream } from "fs";
 import got from "../utils/got-traces";
@@ -26,7 +26,7 @@ function hsv2rgb(h: number, s: number, v: number): [number, number, number] {
 	return [f(5) * 255, f(3) * 255, f(1) * 255];
 }
 
-export default async function lintMessage(message: Message, client: AkairoClient): Promise<void> {
+export default async function lintMessage(message: Message): Promise<void> {
 	const extensions = [".zip", ".rar", ".7z", ".html", ".svg", ".json"];
 	const files = Array.from(message.attachments.values()).filter(file => file.name !== null && extensions.some(extension => file.name?.endsWith(extension)));
 	if (files.length === 0 || message.author.bot)
@@ -70,7 +70,7 @@ export default async function lintMessage(message: Message, client: AkairoClient
 			await message.react("👍");
 		else {
 			const reportID = report.id;
-			await update<Record<string, string>>(client.settings, message.guild !== null ? message.guild.id : message.channel.id, "reportMessages", {}, (value) => {
+			await update<Record<string, string>>(container.db, message.guild !== null ? message.guild.id : message.channel.id, "reportMessages", {}, (value) => {
 				value[message.id] = reportID;
 				return value;
 			});

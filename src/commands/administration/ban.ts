@@ -1,35 +1,24 @@
-import { Command } from "discord-akairo";
-import { User } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command } from "@sapphire/framework";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
 import TaskManager from "../../task-manager";
 
+@ApplyOptions<Command.Options>({
+	name: "ban",
+	aliases: ["b"],
+	description: "Bans someone for a specified duration.",
+	runIn: "GUILD_ANY",
+	requiredClientPermissions: ["BAN_MEMBERS"],
+	requiredUserPermissions: ["BAN_MEMBERS"],
+})
 export default class BanCommand extends Command {
-	constructor() {
-		super("ban", {
-			aliases: ["ban", "b"],
-			category: "administration",
-			description: "Bans someone for a specified duration.",
-			channel: "guild",
-			clientPermissions: ["BAN_MEMBERS"],
-			userPermissions: ["BAN_MEMBERS"],
+	usage = "<target> [duration]";
 
-			args: [
-				{
-					id: "target",
-					type: "user"
-				},
-				{
-					id: "duration",
-					type: "duration"
-				}
-			]
-		});
+	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+		const target = await args.pick("member");
+		const duration = await args.pick("duration").catch(() => null);
 
-		this.usage = "<target> [duration]";
-	}
-
-	exec(msg: GuildMessage, { target, duration }: { target: User, duration: number }): void {
 		msg.guild.members.ban(target)
 			.then(() => {
 				// Remove any old tasks so we don't have multiple tasks to unban someone.

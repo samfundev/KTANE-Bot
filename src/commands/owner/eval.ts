@@ -1,39 +1,34 @@
 // From: https://github.com/discord-akairo/discord-akairo/blob/16d84c6215376c279ae9148d2a9de62328af9aa5/test/commands/eval.js
 
-import { Command } from "discord-akairo";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command, container } from "@sapphire/framework";
 import { Message } from "discord.js";
 import util from "util";
 import Logger from "../../log";
 
+@ApplyOptions<Command.Options>({
+	name: "eval",
+	aliases: ["e"],
+	description: "Toggles if someone is allowed to react.",
+	preconditions: ["OwnerOnly"]
+})
 class EvalCommand extends Command {
-	constructor() {
-		super("eval", {
-			aliases: ["eval", "e"],
-			category: "owner",
-			ownerOnly: true,
-			quoted: false,
-			args: [
-				{
-					id: "code",
-					match: "content"
-				}
-			]
-		});
+	usage = "<code>";
 
-		this.usage = "<code>";
-	}
+	async messageRun(message: Message, args: Args) {
+		const code = await args.rest("string");
 
-	async exec(message: Message, { code }: { code: string }) {
-		if (message.util === undefined || this.client.token === null)
+		const { client } = container;
+		if (client.token === null)
 			return;
 
-		if (!code) return message.util.reply("No code provided!");
+		if (!code) return message.reply("No code provided!");
 
 		const evaled: { message?: Message, errored?: boolean, output?: string } = {};
 		const logs: string[] = [];
 
-		const token = this.client.token.split("").join("[^]{0,2}");
-		const rev = this.client.token.split("").reverse().join("[^]{0,2}");
+		const token = client.token.split("").join("[^]{0,2}");
+		const rev = client.token.split("").reverse().join("[^]{0,2}");
 		const tokenRegex = new RegExp(`${token}|${rev}`, "g");
 		const cb = "```";
 
@@ -79,7 +74,7 @@ class EvalCommand extends Command {
 
 			if (output.length + code.length > 1900) output = "Output too long.";
 
-			const sent = await message.util.send([
+			const sent = await message.channel.send([
 				`📥\u2000**Input**${cb}js`,
 				code,
 				cb,
@@ -103,7 +98,7 @@ class EvalCommand extends Command {
 			error = `${logs.join("\n")}\n${logs.length && error === "undefined" ? "" : error}`;
 			error = error.replace(tokenRegex, "[TOKEN]");
 
-			const sent = await message.util.send([
+			const sent = await message.channel.send([
 				`📥\u2000**Input**${cb}js`,
 				code,
 				cb,

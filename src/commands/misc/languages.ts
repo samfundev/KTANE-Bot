@@ -1,30 +1,24 @@
-import { Command, FailureData } from "discord-akairo";
-import { Message, Util } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command, container } from "@sapphire/framework";
+import { Message } from "discord.js";
+import { DB } from "../../db";
 
+@ApplyOptions<Command.Options>({
+	name: "languages",
+	aliases: ["langs", "languages", "lang", "language"],
+	description: "Set your languages.",
+})
 export default class LanguagesCommand extends Command {
-	constructor() {
-		super("languages", {
-			category: "misc",
-			aliases: ["langs", "languages", "lang", "language"],
-			args: [
-				{
-					id: "languages",
-					type: "language",
-					match: "separate",
-					otherwise: (message: Message, data: FailureData) => `"${Util.cleanContent(data.phrase, message.channel)}" is an invalid language.`
-				}
-			]
-		});
+	usage = "<language ...>";
 
-		this.usage = "<language ...>";
-	}
+	async messageRun(message: Message, args: Args): Promise<void> {
+		const languages = await args.repeat("language");
 
-	async exec(message: Message, { languages }: { languages: (string | null)[] }): Promise<void> {
-		const storedLanguages = this.client.settings.get("global", "languages", {});
+		const storedLanguages = container.db.get<Record<string, string[]>>(DB.global, "languages", {});
 
 		storedLanguages[message.author.id] = languages;
 
-		await this.client.settings.set("global", "languages", storedLanguages);
+		container.db.set(DB.global, "languages", storedLanguages);
 
 		await message.reply(`Your languages are now set to ${languages.join(", ")}`);
 	}

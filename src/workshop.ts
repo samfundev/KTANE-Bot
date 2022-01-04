@@ -1,12 +1,12 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
-import { Util } from "discord.js";
 import got from "./utils/got-traces";
 import { Html5Entities } from "html-entities";
-import { Database } from "sqlite";
+import { Database } from "better-sqlite3";
 import { JSDOM } from "jsdom";
 import { sendWebhookMessage } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
+import { container } from "@sapphire/framework";
 
 const major_webhook = new Discord.WebhookClient(tokens.majorWebhook);
 const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook);
@@ -63,22 +63,22 @@ class WorkshopScanner {
 	avatarCache: Map<string, string>;
 	nameCache: Map<string, string>;
 
-	constructor(db: Database, client: Client) {
-		this.DB = db;
-		this.client = client;
+	constructor() {
+		this.DB = container.db.database;
+		this.client = container.client;
 		this.initialized = false;
 		this.avatarCache = new Map<string, string>();
 		this.nameCache = new Map<string, string>();
 	}
 
-	async init(): Promise<void> {
-		await this.DB.run("CREATE TABLE IF NOT EXISTS page_id (page_id INTEGER)");
-		await this.DB.run("CREATE TABLE IF NOT EXISTS author_lookup (steam_id TEXT UNIQUE, discord_id TEXT)");
-		await this.DB.run("CREATE TABLE IF NOT EXISTS workshop_mods (mod_id INTEGER PRIMARY KEY, last_post_id INTEGER)");
+	init(): void {
+		this.DB.prepare("CREATE TABLE IF NOT EXISTS page_id (page_id INTEGER)").run();
+		this.DB.prepare("CREATE TABLE IF NOT EXISTS author_lookup (steam_id TEXT UNIQUE, discord_id TEXT)").run();
+		this.DB.prepare("CREATE TABLE IF NOT EXISTS workshop_mods (mod_id INTEGER PRIMARY KEY, last_post_id INTEGER)").run();
 		this.initialized = true;
 	}
 
-	async get_page_index(): Promise<number> {
+	get_page_index(): number {
 		/*
 		if(isset($_GET["page"]))
 		{
@@ -87,7 +87,7 @@ class WorkshopScanner {
 
 		const sql = "SELECT page_id FROM page_id LIMIT 0, 1";
 
-		const page_id: { page_id: number } | undefined = await this.DB.get(sql);
+		const page_id = this.DB.prepare(sql).get() as { page_id: number } | undefined;
 		if (page_id !== undefined) {
 			return page_id.page_id;
 		}
@@ -95,10 +95,8 @@ class WorkshopScanner {
 		return 0;
 	}
 
-	async set_page_index(page_index: number): Promise<void> {
-		const sql = `UPDATE page_id SET page_id = ${page_index}`;
-
-		await this.DB.run(sql);
+	set_page_index(page_index: number): void {
+		this.DB.prepare("UPDATE page_id SET page_id = ?").run(page_index);
 	}
 
 	async scrape_workshop_list(page_number: number, number_per_page: number): Promise<string | false> {
@@ -152,7 +150,7 @@ class WorkshopScanner {
 			entry_object.description = Html5Entities.decode(entry_object.description);
 
 			entry_object.author_steamid = steamID[0];
-			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
+			entry_object.author_discordid = this.get_author_discord_id(entry_object.author_steamid);
 
 			const getSteamAuthor = async () => {
 				entry_object.author = author !== "" ? author : await this.get_steam_name(entry_object.author_steamid);
@@ -167,9 +165,8 @@ class WorkshopScanner {
 					})
 					.catch(async error => {
 						if (error instanceof DiscordAPIError) {
-							this.DB.get(`DELETE FROM author_lookup WHERE discord_id=${entry_object.author_discordid}`)
-								.then(() => Logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`))
-								.catch(Logger.error);
+							this.DB.prepare(`DELETE FROM author_lookup WHERE discord_id=${entry_object.author_discordid}`).run();
+							Logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`);
 						} else {
 							Logger.error("Could not fetch Discord avatar.", error);
 						}
@@ -212,9 +209,9 @@ class WorkshopScanner {
 		return workshop_image_entries.map(entry => entry[1]);
 	}
 
-	async get_author_discord_id(author_steam_id: string): Promise<string | false> {
-		const sql = "SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = \"" + author_steam_id + "\" LIMIT 0, 1";
-		const discord_id: { discord_id: string } | undefined = await this.DB.get(sql);
+	get_author_discord_id(author_steam_id: string): string | false {
+		const sql = "SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = ? LIMIT 0, 1";
+		const discord_id = this.DB.prepare(sql).get(author_steam_id) as { discord_id: string } | undefined;
 		if (discord_id !== undefined) {
 			return discord_id.discord_id;
 		}
@@ -265,17 +262,17 @@ class WorkshopScanner {
 	}
 
 	async check_mod(mod_id: string, entry: EntryObject, image: string): Promise<void> {
-		const last_changelog_id = await this.get_last_changelog_id(mod_id);
+		const last_changelog_id = this.get_last_changelog_id(mod_id);
 
 		const changelogs = await this.get_latest_changelogs(mod_id, last_changelog_id);
 		if (changelogs === null || changelogs.length === 0) {
 			return;
 		}
 
-		let newMod = await this.is_mod_new(mod_id) === true;
+		let newMod = this.is_mod_new(mod_id) === true;
 		const success = newMod ?
-			await this.insert_mod(mod_id, changelogs[0].id) :
-			await this.update_mod(mod_id, changelogs[0].id);
+			this.insert_mod(mod_id, changelogs[0].id) :
+			this.update_mod(mod_id, changelogs[0].id);
 
 		if (success === false)
 			return;
@@ -326,9 +323,9 @@ class WorkshopScanner {
 		}).filter(changelog => parseInt(changelog.id) > since);
 	}
 
-	async is_mod_new(mod_id: string): Promise<boolean> {
-		const sql = "SELECT workshop_mods.mod_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
-		const result = await this.DB.get(sql);
+	is_mod_new(mod_id: string): boolean {
+		const sql = "SELECT workshop_mods.mod_id FROM workshop_mods WHERE workshop_mods.mod_id = ? LIMIT 0, 1";
+		const result = this.DB.prepare(sql).get(mod_id);
 		if (result !== undefined) {
 			return false;
 		}
@@ -336,24 +333,26 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async get_last_changelog_id(mod_id: string): Promise<number> {
-		const sql = "SELECT workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = " + mod_id + " LIMIT 0, 1";
+	get_last_changelog_id(mod_id: string): number {
+		const sql = "SELECT workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = ? LIMIT 0, 1";
 
-		const result = await this.DB.get<{ last_post_id: number }>(sql);
+		const result = this.DB.prepare(sql).get(mod_id) as { last_post_id: number } | undefined;
 		if (result !== undefined)
 			return result.last_post_id;
 
 		return 0;
 	}
 
-	async insert_mod(mod_id: string, changelog_id: string): Promise<boolean> {
-		const sql = "INSERT INTO workshop_mods (mod_id, last_post_id) VALUES (" + mod_id + ", " + changelog_id + ")";
-		return this.DB.run(sql).then(() => true).catch(() => false);
+	insert_mod(mod_id: string, changelog_id: string): boolean {
+		const sql = "INSERT INTO workshop_mods (mod_id, last_post_id) VALUES (?, ?)";
+		const run = this.DB.prepare(sql).run(mod_id, changelog_id);
+		return run.changes === 1;
 	}
 
-	async update_mod(mod_id: string, changelog_id: string): Promise<boolean> {
-		const sql = "UPDATE workshop_mods SET last_post_id = " + changelog_id + " WHERE mod_id = " + mod_id;
-		return this.DB.run(sql).then(() => true).catch(() => false);
+	update_mod(mod_id: string, changelog_id: string): boolean {
+		const sql = "UPDATE workshop_mods SET last_post_id = ? WHERE mod_id = ?";
+		const run = this.DB.prepare(sql).run(changelog_id, mod_id);
+		return run.changes === 1;
 	}
 
 	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
@@ -448,27 +447,27 @@ class WorkshopScanner {
 		//	return;
 
 		if (!this.initialized) {
-			await this.init();
+			this.init();
 		}
 
-		const page_index = await this.get_page_index();
+		const page_index = this.get_page_index();
 		const expected_entry_count = 30;
 		const workshop_page = await this.scrape_workshop_list(page_index, expected_entry_count);
 
 		if (workshop_page === false) {
-			await this.set_page_index(1);
+			this.set_page_index(1);
 			return;
 		}
 
 		const entries_to_check = await this.find_workshop_mods(workshop_page);
 		if (entries_to_check === false) {
-			await this.set_page_index(1);
+			this.set_page_index(1);
 			return;
 		}
 
 		const entries_to_image = this.find_workshop_images(workshop_page);
 		if (entries_to_image === false) {
-			await this.set_page_index(1);
+			this.set_page_index(1);
 			return;
 		}
 
@@ -484,7 +483,7 @@ class WorkshopScanner {
 			image_index++;
 		}
 
-		await this.set_page_index(page_index + 1);
+		this.set_page_index(page_index + 1);
 	}
 }
 

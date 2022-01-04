@@ -1,6 +1,8 @@
 {
 	"compilerOptions": {
 		"outDir": "dist",
+		"rootDir": "src",
+		"moduleResolution": "Node16",
 		"allowJs": true,
 		"lib": ["ES2019"],
 		"module": "commonjs",
@@ -12,7 +14,10 @@
 		"noImplicitAny": true,
 		"importHelpers": true,
 		"strict": true,
-		"sourceMap": true
+		"sourceMap": true,
+		"experimentalDecorators": true,
+		// TODO: remove once we migrate to sapphire v3
+		"skipLibCheck": true
 	},
 	"include": ["src", "src/node_modules"],
 	"exclude": ["node_modules"]
