@@ -22,7 +22,7 @@
     "langs": "^2.0.0",
     "node-cron": "2.0.1",
     "sqlite": "^4.0.15",
-    "sqlite3": "^5.0.2",
+    "sqlite3": "npm:@vscode/sqlite3@^5.0.7",
     "tslib": "^2.3.1"
   },
   "repository": "samfundev/KTANE-Bot",
