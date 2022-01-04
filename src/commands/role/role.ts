@@ -1,31 +1,24 @@
-import { Command } from "discord-akairo";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command } from "@sapphire/framework";
 import { Message } from "discord.js";
 import tokens from "../../get-tokens";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
-import { getRole, RoleArgument } from "./shared";
+import { getRole } from "#utils/role";
 
+@ApplyOptions<Command.Options>({
+	name: "role",
+	aliases: ["r"],
+	description: "Toggles specific roles for your user.",
+	runIn: "GUILD_ANY",
+})
 export default class RoleCommand extends Command {
-	constructor() {
-		super("role", {
-			aliases: ["role", "r"],
-			category: "public",
-			description: "Toggles specific roles for your user.",
-			channel: "guild",
+	usage = "<role>";
 
-			args: [
-				{
-					id: "role",
-					type: "string"
-				}
-			]
-		});
+	async messageRun(msg: GuildMessage, args: Args): Promise<Message | null> {
+		const role = await args.pick("string");
 
-		this.usage = "<role>";
-	}
-
-	exec(msg: GuildMessage, args: RoleArgument): Promise<Message | null> {
-		const roleInf = getRole(args.role, tokens.roleIDs.assignable, msg.guild.roles.cache);
+		const roleInf = getRole(role, tokens.roleIDs.assignable, msg.guild.roles.cache);
 		if (roleInf !== null) {
 			const { role, roleData } = roleInf;
 			if (roleData.prereq && !roleData.prereq.some(pre => msg.member.roles.cache.has(pre))) {

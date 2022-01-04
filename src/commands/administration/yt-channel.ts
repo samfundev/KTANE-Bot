@@ -1,54 +1,46 @@
-import { Command } from "discord-akairo";
-import { Message, User } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command, container } from "@sapphire/framework";
 import { update } from "../../bot-utils";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
 import { setupVideoTask, VideoChannel } from "../../video";
 
+@ApplyOptions<Command.Options>({
+	name: "yt-channel",
+	aliases: ["channel", "ytchannel"],
+	description: ["Adds a YouTube channel to the bot.", "<user> is the user whose channel is being added.", "<channel id> should be a YT channel ID: UC_x5XG1OV2P6uZZ5FSM9Ttw"].join("\n"),
+	runIn: "GUILD_ANY",
+})
 export default class YTChannelCommand extends Command {
-	constructor() {
-		super("yt-channel", {
-			aliases: ["channel", "ytchannel"],
-			category: "administration",
-			description: ["Adds a YouTube channel to the bot.", "<user> is the user whose channel is being added.", "<channel id> should be a YT channel ID: UC_x5XG1OV2P6uZZ5FSM9Ttw"],
-			channel: "guild",
+	usage = "<user> <channel id>";
 
-			args: [
-				{
-					id: "user",
-					type: "user"
-				},
-				{
-					id: "id",
-					type: "string"
-				}
-			]
-		});
+	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+		const user = await args.pick("user");
+		const id = await args.pick("string");
 
-		this.usage = "<user> <channel id>";
-	}
-
-	exec(msg: GuildMessage, { user, id }: { user: User, id: string }): Promise<Message> {
 		const channel: VideoChannel = {
 			name: user.username,
 			mention: user.toString(),
 			id
 		};
 
-		if (!/^U[CU][0-9A-Za-z_-]{21}[AQgw]$/.test(channel.id))
-			return msg.reply("Invalid YT channel ID.");
+		if (!/^U[CU][0-9A-Za-z_-]{21}[AQgw]$/.test(channel.id)) {
+			await msg.reply("Invalid YT channel ID.");
+			return;
+		}
 
 		if (channel.id.startsWith("UC"))
 			channel.id = `UU${channel.id.substring(2)}`;
 
-		return update<VideoChannel[]>(this.client.settings, "global", "videoChannels", [], channels => {
+		update<VideoChannel[]>(container.db, "global", "videoChannels", [], channels => {
 			channels.push(channel);
 			return channels;
 		})
-			.then(() => {
+			.then(async () => {
 				setupVideoTask();
-				return msg.reply("Added channel successfully.");
+				await msg.reply("Added channel successfully.");
 			})
 			.catch(Logger.errorReply("add channel", msg));
+		return;
 	}
 }

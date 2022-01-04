@@ -1,19 +1,21 @@
+import { container } from "@sapphire/framework";
 import { Snowflake, TextChannel } from "discord.js";
 import { KTANEClient } from "./bot";
+import { DB } from "./db";
 import tokens from "./get-tokens";
 import logger from "./log";
 
 class TaskManager {
 	static get client(): KTANEClient {
-		return KTANEClient.instance;
+		return container.client;
 	}
 
 	static get tasks(): ScheduledTask[] {
-		return this.client.settings.get("global", "scheduledTasks", []);
+		return container.db.get(DB.global, "scheduledTasks", []);
 	}
 
 	static set tasks(newTasks: ScheduledTask[]) {
-		this.client.settings.set("global", "scheduledTasks", newTasks).catch(logger.errorPrefix("Failed to set tasks:"));
+		container.db.set(DB.global, "scheduledTasks", newTasks);
 	}
 
 	static modifyTasks(func: (tasks: ScheduledTask[]) => ScheduledTask[]): void {
@@ -89,8 +91,8 @@ class TaskManager {
 	}
 
 	static sendOwnerMessage(text: string): void {
-		if (typeof this.client.ownerID == "string")
-			this.client.users.fetch(this.client.ownerID).then(user => user.send(text)).catch(logger.errorPrefix("Failed to send owner message:"));
+		if (typeof container.ownerID == "string")
+			this.client.users.fetch(container.ownerID).then(user => user.send(text)).catch(logger.errorPrefix("Failed to send owner message:"));
 	}
 }
 

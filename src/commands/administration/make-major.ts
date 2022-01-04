@@ -1,32 +1,25 @@
-import { Command } from "discord-akairo";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command } from "@sapphire/framework";
 import { MessageEmbed, TextChannel, WebhookClient } from "discord.js";
 import { sendWebhookMessage } from "../../bot-utils";
 import tokens from "../../get-tokens";
 import GuildMessage from "../../guild-message";
 import Logger from "../../log";
 
+@ApplyOptions<Command.Options>({
+	name: "make-major",
+	aliases: ["makemajor", "mm"],
+	description: "Makes a minor announcement message a major announcement.",
+	runIn: "GUILD_ANY"
+})
 export default class MakeMajorCommand extends Command {
-	constructor() {
-		super("make-major", {
-			aliases: ["makemajor", "mm"],
-			category: "administration",
-			description: "Makes a minor announcement message a major announcement.",
-			channel: "guild",
+	usage = "<message id>";
 
-			args: [
-				{
-					id: "messageid",
-					type: "string"
-				}
-			]
-		});
-
-		this.usage = "<message id>";
-	}
-
-	exec(msg: GuildMessage, args: { messageid: string }): void {
+	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
 		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "GUILD_NEWS") as TextChannel;
-		channel.messages.fetch(args.messageid).then(async message => {
+		const message = await args.pick("message");
+
+		channel.messages.fetch(message.id).then(async message => {
 			if (message.embeds.length != 1) {
 				await msg.reply("Invalid number of embeds on target message.");
 				return;
@@ -53,7 +46,7 @@ export default class MakeMajorCommand extends Command {
 
 			embed.setColor("#0055aa");
 
-			sendWebhookMessage(this.client, new WebhookClient(tokens.majorWebhook), {
+			sendWebhookMessage(this.container.client, new WebhookClient(tokens.majorWebhook), {
 				content: message.content,
 				embeds: [
 					embed

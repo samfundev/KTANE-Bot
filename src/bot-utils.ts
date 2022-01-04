@@ -1,5 +1,5 @@
-import { Provider } from "discord-akairo";
 import { AllowedPartial, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageOptions } from "discord.js";
+import { DB } from "./db";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
@@ -40,10 +40,10 @@ export async function sendWebhookMessage(client: Client, webhook: WebhookClient,
 	return await channel.messages.fetch(message.id);
 }
 
-export async function update<T>(provider: Provider, id: string, key: string, defaultValue: T, updater: (value: T) => T | Promise<T>): Promise<void> {
-	const oldValue = await provider.get(id, key, defaultValue);
+export async function update<T>(database: DB, id: string, key: string, defaultValue: T, updater: (value: T) => T | Promise<T>): Promise<void> {
+	const oldValue = database.get({ id }, key, defaultValue);
 	const newValue = await updater(oldValue);
-	await provider.set(id, key, newValue);
+	database.set({ id }, key, newValue);
 }
 
 // Join together an array of strings seperated by a string but don't make it longer than the limit.

@@ -1,39 +1,29 @@
-import { Command } from "discord-akairo";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command, container } from "@sapphire/framework";
 import { Message } from "discord.js";
+import { DB } from "../../db";
 
+@ApplyOptions<Command.Options>({
+	name: "createvote",
+	aliases: ["cv"],
+	description: "Creates a new vote.",
+})
 export default class CreateVoteCommand extends Command {
-	constructor() {
-		super("createvote", {
-			aliases: ["createvote", "cv"],
-			category: "voting",
-			description: "Creates a new vote.",
+	usage = "<topic> <option ...>";
 
-			args: [
-				{
-					id: "topic",
-					type: "string"
-				},
-				{
-					id: "options",
-					type: "string",
-					match: "separate"
-				}
-			]
-		});
+	async messageRun(msg: Message, args: Args): Promise<Message> {
+		const topic = await args.pick("string");
+		const options = await args.repeat("string");
 
-		this.usage = "<topic> <option ...>";
-	}
-
-	async exec(msg: Message, args: { topic: string, options: string[] }): Promise<Message> {
-		const currentVote = this.client.settings.get("global", "vote", null);
+		const currentVote = container.db.get(DB.global, "vote", null);
 		if (currentVote != null) {
 			return msg.reply("A vote is already running.");
 		}
 
-		await this.client.settings.set("global", "vote", {
-			topic: args.topic,
-			options: args.options,
-			votes: new Array(args.options.length).fill(0),
+		container.db.set(DB.global, "vote", {
+			topic,
+			options,
+			votes: new Array(options.length).fill(0),
 			voted: []
 		});
 

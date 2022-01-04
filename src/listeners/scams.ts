@@ -1,23 +1,17 @@
+import { ApplyOptions } from "@sapphire/decorators";
+import { container, Listener } from "@sapphire/framework";
 import remove from "confusables";
-import { Listener } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake, Util } from "discord.js";
 import { isModerator, unpartial } from "../bot-utils";
 import { DBKey } from "../db";
 import checkMessage from "../phishing-domains";
 
+@ApplyOptions<Listener.Options>({ event: "messageCreate" })
 export default class ScamMessageListener extends Listener {
-	lastWarning: { [user: Snowflake]: number | undefined };
+	private readonly lastWarning: { [user: Snowflake]: number | undefined } = {};
 
-	constructor() {
-		super("scams", {
-			emitter: "client",
-			event: "messageCreate"
-		});
-
-		this.lastWarning = {};
-	}
-
-	async exec(message: Message): Promise<void> {
+	async run(message: Message): Promise<void> {
+		const { client } = this.container;
 		if (!await unpartial(message) || !message.deletable || message.guild === null || message.member === null || message.author.bot || isModerator(message))
 			return;
 
@@ -62,11 +56,11 @@ export default class ScamMessageListener extends Listener {
 			if (warning !== undefined)
 				return;
 
-			const channelID = await this.client.db.get<Snowflake>(message.guild, DBKey.AuditLog);
+			const channelID = container.db.getOrUndefined<Snowflake>(message.guild, DBKey.AuditLog);
 			if (channelID === undefined)
 				return;
 
-			const channel = await this.client.channels.fetch(channelID);
+			const channel = await client.channels.fetch(channelID);
 			if (channel?.isText()) {
 				await channel.send({
 					content: `Scam message deleted in ${message.channel}.`,

@@ -1,34 +1,31 @@
-import { Command } from "discord-akairo";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command, container } from "@sapphire/framework";
 import { Message } from "discord.js";
+import { DB } from "../../db";
+import { VoteData } from "#utils/voting";
 
+@ApplyOptions<Command.Options>({
+	name: "vote",
+	aliases: ["v"],
+	description: "Submits a vote in a vote.",
+	runIn: "GUILD_ANY",
+	requiredClientPermissions: ["MANAGE_ROLES"],
+	requiredUserPermissions: ["MUTE_MEMBERS"],
+})
 export default class VoteCommand extends Command {
-	constructor() {
-		super("vote", {
-			aliases: ["vote", "v"],
-			category: "voting",
-			description: "Submits a vote in a vote.",
+	usage = "<option ...>";
 
-			args: [
-				{
-					id: "vote",
-					type: "integer",
-					match: "separate"
-				}
-			]
-		});
+	async messageRun(msg: Message, args: Args): Promise<Message> {
+		const vote = await args.repeat("number");
 
-		this.usage = "<option ...>";
-	}
-
-	async exec(msg: Message, args: { vote: number[] }): Promise<Message> {
 		if (msg.guild !== null) {
 			await msg.delete();
 
 			return msg.reply("You should only vote in DMs.");
 		}
 
-		const currentVote = this.client.settings.get("global", "vote", null);
-		if (currentVote == null) {
+		const currentVote = container.db.getOrUndefined<VoteData>(DB.global, "vote");
+		if (currentVote === undefined) {
 			return msg.reply("There is no vote running.");
 		}
 
@@ -36,20 +33,20 @@ export default class VoteCommand extends Command {
 			return msg.reply("You have already voted.");
 		}
 
-		for (const option of args.vote) {
+		for (const option of vote) {
 			if (option > currentVote.options.length || option < 1) {
 				return msg.reply(`${option} is not a valid option.`);
 			}
 		}
 
-		for (const option of args.vote) {
+		for (const option of vote) {
 			currentVote.votes[option - 1]++;
 		}
 
 		currentVote.voted.push(msg.author.id);
 
-		await this.client.settings.set("global", "vote", currentVote);
+		container.db.set(DB.global, "vote", currentVote);
 
-		return msg.reply(`Vote recorded! Voted for: ${args.vote.join(", ")}`);
+		return msg.reply(`Vote recorded! Voted for: ${vote.join(", ")}`);
 	}
 }

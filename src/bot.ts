@@ -1,17 +1,12 @@
 #!/usr/bin/env node
 
-import { AkairoClient, CommandHandler, InhibitorHandler, ListenerHandler, SQLiteProvider } from "discord-akairo";
-import { BaseGuildVoiceChannel, CategoryChannel, Intents, MessageReaction, PartialMessageReaction, PartialUser, TextChannel, User } from "discord.js";
+import { SapphireClient, container } from "@sapphire/framework";
+import { BaseGuildVoiceChannel, CategoryChannel, Intents, MessageReaction, PartialMessageReaction, PartialUser, Snowflake, TextChannel, User } from "discord.js";
 import cron from "node-cron";
-import path from "path";
-import * as sqlite from "sqlite";
-import sqlite3 from "sqlite3";
 import { unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
 import { DB, DBKey } from "./db";
-import { parseDuration } from "./duration";
 import tokens from "./get-tokens";
-import { parseLanguage } from "./language";
 import { LFG } from "./lfg";
 import Logger from "./log";
 import lintMessage from "./repository/repolint";
@@ -19,24 +14,10 @@ import TaskManager from "./task-manager";
 import { scanVideos, setupVideoTask } from "./video";
 import WorkshopScanner from "./workshop";
 
-declare module "discord-akairo" {
-	interface AkairoClient {
-		commandHandler: CommandHandler;
-		inhibitorHandler: InhibitorHandler;
-		listenerHandler: ListenerHandler;
-		settings: SQLiteProvider;
-		db: DB;
-	}
-
-	interface Command {
-		usage: string;
-	}
-}
-
-export class KTANEClient extends AkairoClient {
+export class KTANEClient extends SapphireClient {
 	constructor() {
 		super({
-			ownerID: "76052829285916672",
+			defaultPrefix: "!",
 			partials: ["MESSAGE", "REACTION", "CHANNEL"],
 			intents: [
 				Intents.FLAGS.GUILDS,
@@ -48,63 +29,25 @@ export class KTANEClient extends AkairoClient {
 				Intents.FLAGS.DIRECT_MESSAGES
 			]
 		});
-
-		this.commandHandler = new CommandHandler(this, {
-			directory: path.join(__dirname, "commands"),
-			prefix: "!",
-			handleEdits: true,
-			commandUtil: true
-		});
-
-		this.commandHandler.resolver.addType("duration", (message, phrase) => {
-			return parseDuration(phrase);
-		});
-
-		this.commandHandler.resolver.addType("language", (message, phrase) => {
-			return parseLanguage(phrase);
-		});
-
-		this.commandHandler.loadAll();
-
-		this.inhibitorHandler = new InhibitorHandler(this, {
-			directory: path.join(__dirname, "inhibitors")
-		});
-
-		this.commandHandler.useInhibitorHandler(this.inhibitorHandler);
-		this.inhibitorHandler.loadAll();
-
-		this.listenerHandler = new ListenerHandler(this, {
-			directory: path.join(__dirname, "listeners")
-		});
-
-		this.commandHandler.useListenerHandler(this.listenerHandler);
-		this.listenerHandler.setEmitters({
-			commandHandler: this.commandHandler
-		});
-		this.listenerHandler.loadAll();
-
-		// eslint-disable-next-line @typescript-eslint/unbound-method
-		this.settings = new SQLiteProvider(sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }), "settings", {
-			dataColumn: "settings"
-		});
-
-		this.db = new DB(this.settings);
 	}
 
-	static instance: KTANEClient;
-
 	async login(token: string): Promise<string> {
-		await this.settings.init();
 		LFG.loadPlayers();
 		setupVideoTask();
 
 		return super.login(token);
 	}
+
+	destroy(): void {
+		container.db.database.close();
+
+		return super.destroy();
+	}
 }
 
-const client = new KTANEClient();
+container.db = new DB();
 
-KTANEClient.instance = client;
+const client = new KTANEClient();
 
 const voiceChannelsRenamed: { [id: string]: boolean } = {};
 
@@ -120,11 +63,11 @@ client
 
 		scanVideos().catch(Logger.errorPrefix("Failed to scan videos:"));
 
-		if (client.settings.get("global", "updating", false)) {
-			client.settings.delete("global", "updating").catch(Logger.errorPrefix("Failed to delete updating state:"));
+		if (container.db.get(DB.global, "updating", false)) {
+			container.db.delete(DB.global, "updating");
 
-			if (typeof client.ownerID == "string")
-				client.users.fetch(client.ownerID).then(user => user.send("Update is complete.")).catch(Logger.errorPrefix("Failed to send updated message:"));
+			if (typeof container.ownerID == "string")
+				client.users.fetch(container.ownerID).then(user => user.send("Update is complete.")).catch(Logger.errorPrefix("Failed to send updated message:"));
 		}
 	})
 	.on("disconnect", () => { Logger.warn("Disconnected!"); })
@@ -143,7 +86,7 @@ client
 				return;
 			}
 
-			const requestsID = await client.db.get(message.guild, DBKey.RequestsChannel);
+			const requestsID = container.db.getOrUndefined<Snowflake>(message.guild, DBKey.RequestsChannel);
 
 			if (message.channel.name.includes("voice-text")) {
 				message.attachments.some(attachment => {
@@ -162,20 +105,20 @@ client
 					return false;
 				});
 			} else if (message.channel.id == requestsID) {
-				await lintMessage(message, client);
+				await lintMessage(message);
 			}
 		}
 	})
-	.on("messageDelete", async message => {
+	.on("messageDelete", message => {
 		if (message.channel.type == "GUILD_TEXT" && message.guild !== null) {
-			const requestsID = await client.db.get(message.guild, DBKey.RequestsChannel);
+			const requestsID = container.db.getOrUndefined<Snowflake>(message.guild, DBKey.RequestsChannel);
 			if (message.channel.id !== requestsID)
 				return;
 		} else if (message.channel.type !== "DM")
 			return;
 
 		const id = (message.channel.type == "GUILD_TEXT" && message.guild != null) ? message.guild.id : message.channel.id;
-		update<Record<string, string>>(client.settings, id, "reportMessages", {}, async (value) => {
+		update<Record<string, string>>(container.db, id, "reportMessages", {}, async (value) => {
 			const reportID = value[message.id];
 			if (reportID === undefined)
 				return value;
@@ -294,9 +237,7 @@ client
 	.on("messageReactionRemove", async (reaction, user) => await handleReaction(reaction, user, false));
 
 
-let workshopScanner: WorkshopScanner;
-// eslint-disable-next-line @typescript-eslint/unbound-method
-sqlite.open({ filename: path.join(__dirname, "..", "database.sqlite3"), driver: sqlite3.cached.Database }).then(db => workshopScanner = new WorkshopScanner(db, client)).catch(Logger.errorPrefix("Failed to load database:"));
+const workshopScanner: WorkshopScanner = new WorkshopScanner();
 
 async function handleReaction(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser, reactionAdded: boolean) {
 	if (user.partial)

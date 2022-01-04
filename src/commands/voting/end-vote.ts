@@ -1,18 +1,18 @@
-import { Command } from "discord-akairo";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Command, container } from "@sapphire/framework";
 import { Message, MessageEmbed } from "discord.js";
+import { DB } from "../../db";
+import { VoteData } from "#utils/voting";
 
+@ApplyOptions<Command.Options>({
+	name: "endvote",
+	aliases: ["ev"],
+	description: "Ends the current vote.",
+})
 export default class EndVoteCommand extends Command {
-	constructor() {
-		super("endvote", {
-			aliases: ["endvote", "ev"],
-			category: "voting",
-			description: "Ends the current vote.",
-		});
-	}
-
-	async exec(msg: Message): Promise<Message> {
-		const currentVote = this.client.settings.get("global", "vote", null);
-		if (currentVote == null) {
+	async messageRun(msg: Message): Promise<Message> {
+		const currentVote = container.db.getOrUndefined<VoteData>(DB.global, "vote");
+		if (currentVote === undefined) {
 			return msg.reply("There is no vote running.");
 		}
 
@@ -30,7 +30,7 @@ export default class EndVoteCommand extends Command {
 			}
 		});
 
-		await this.client.settings.delete("global", "vote");
+		container.db.delete(DB.global, "vote");
 
 		embed.setColor("#00ff00");
 

@@ -1,24 +1,25 @@
+import { container } from "@sapphire/framework";
 import { createHash } from "crypto";
-import { AkairoClient } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake, User } from "discord.js";
 import { KTANEClient } from "./bot";
 import { joinLimit } from "./bot-utils";
+import { DB } from "./db";
 import { compareLanguage } from "./language";
 import Logger from "./log";
 
 export class LFG {
 	static get client(): KTANEClient {
-		return KTANEClient.instance;
+		return container.client;
 	}
 
 	static players: Player[];
 
 	static loadPlayers(): void {
-		this.players = this.client.settings.get("global", "lfg_players", []).map(Player.fromData);
+		this.players = container.db.get(DB.global, "lfg_players", []).map(Player.fromData);
 	}
 
-	static async savePlayers(): Promise<void> {
-		await this.client.settings.set("global", "lfg_players", this.players);
+	static savePlayers(): void {
+		container.db.set(DB.global, "lfg_players", this.players);
 	}
 
 	static join(user: User, games: Game[]): void {
@@ -46,7 +47,7 @@ export class LFG {
 			return;
 		}
 
-		const matched = this.players.filter(otherPlayer => player.matches(otherPlayer, this.client));
+		const matched = this.players.filter(otherPlayer => player.matches(otherPlayer));
 		if (matched.length == 0) {
 			await message.reply("Wait for another player to matched up with you.");
 			return;
@@ -71,7 +72,7 @@ export class LFG {
 
 	static async updateMessages(): Promise<void> {
 		for (const player of this.players) {
-			const matched = this.players.filter(otherPlayer => player.matches(otherPlayer, this.client));
+			const matched = this.players.filter(otherPlayer => player.matches(otherPlayer));
 			const hasMatch = matched.length > 0;
 
 			const embed = new MessageEmbed({
@@ -115,7 +116,7 @@ export class LFG {
 			player.hash = embedHash;
 		}
 
-		await this.savePlayers();
+		this.savePlayers();
 	}
 }
 
@@ -134,13 +135,13 @@ class Player {
 		this.hash = null;
 	}
 
-	matches(otherPlayer: Player, client: AkairoClient): boolean {
+	matches(otherPlayer: Player): boolean {
 		/* Check that:
 		1. They aren't the same player.
 		2. They speak a language in common.
 		3. They have a game they both want to play. */
 		return this.user != otherPlayer.user &&
-			compareLanguage(this.user, otherPlayer.user, client) &&
+			compareLanguage(this.user, otherPlayer.user) &&
 			this.games.some(game => otherPlayer.games.some(otherGame => game.matches(otherGame)));
 	}
 

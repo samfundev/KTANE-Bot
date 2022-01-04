@@ -2,7 +2,7 @@ import { Message, MessageOptions } from "discord.js";
 import { distance } from "fastest-levenshtein";
 import got from "../utils/got-traces";
 import archiver from "archiver";
-import { KTANEClient } from "../bot";
+import { container } from "@sapphire/framework";
 import { update } from "../bot-utils";
 
 async function getModuleNames() {
@@ -94,7 +94,7 @@ export async function scanForTutorials(message: Message): Promise<void> {
 
 	const report = await message.reply(response);
 
-	await update<Record<string, string>>(KTANEClient.instance.settings, message.guild.id, "reportMessages", {}, (value) => {
+	await update<Record<string, string>>(container.db, message.guild.id, "reportMessages", {}, (value) => {
 		value[message.id] = report.id;
 		return value;
 	});

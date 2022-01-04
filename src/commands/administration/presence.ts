@@ -1,27 +1,19 @@
-import { Command } from "discord-akairo";
-import { GuildMember, Message } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command } from "@sapphire/framework";
+import { Message } from "discord.js";
 import checkStreamingStatus from "../../check-stream";
 
+@ApplyOptions<Command.Options>({
+	name: "presence",
+	description: "Checks someone presence to see if they're streaming.",
+	runIn: "GUILD_ANY"
+})
 export default class PresenceCommand extends Command {
-	constructor() {
-		super("presence", {
-			aliases: ["presence"],
-			category: "administration",
-			description: "Checks someone presence to see if they're streaming.",
-			channel: "guild",
+	usage = "<target>";
 
-			args: [
-				{
-					id: "target",
-					type: "member"
-				}
-			]
-		});
+	async messageRun(_msg: Message, args: Args): Promise<void> {
+		const target = await args.pick("member");
 
-		this.usage = "<target>";
-	}
-
-	async exec(_msg: Message, { target }: { target: GuildMember }): Promise<void> {
 		await checkStreamingStatus(target.presence, false);
 	}
 }

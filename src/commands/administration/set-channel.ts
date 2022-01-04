@@ -1,44 +1,37 @@
-import { Command } from "discord-akairo";
-import { GuildChannel } from "discord.js";
+import { ApplyOptions } from "@sapphire/decorators";
+import { Args, Command, container } from "@sapphire/framework";
 import { DBKey } from "../../db";
 import GuildMessage from "../../guild-message";
 
+@ApplyOptions<Command.Options>({
+	name: "set-channel",
+	aliases: ["setchannel"],
+	description: ["Marks a channel for the bot to use.", "<type> can be requests or auditlog."].join("\n"),
+	runIn: "GUILD_ANY",
+	requiredClientPermissions: ["MANAGE_ROLES"],
+	requiredUserPermissions: ["MUTE_MEMBERS"],
+})
 export default class SetChannelCommand extends Command {
-	constructor() {
-		super("set-channel", {
-			aliases: ["setchannel"],
-			category: "administration",
-			description: ["Marks a channel for the bot to use.", "<type> can be requests or auditlog."],
-			channel: "guild",
+	usage = "<type> <channel>";
 
-			args: [
-				{
-					id: "type",
-					type: "string"
-				},
-				{
-					id: "channel",
-					type: "channel"
-				}
-			]
+	channelTypes: { [type: string]: DBKey | undefined } = {
+		requests: DBKey.RequestsChannel,
+		auditlog: DBKey.AuditLog,
+	};
+
+	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+		const type = await args.peek("enum", {
+			array: Object.keys(this.channelTypes)
 		});
+		const channel = await args.peek("guildChannel");
 
-		this.usage = "<type> <channel>";
-	}
-
-	async exec(msg: GuildMessage, { type, channel }: { type: string, channel: GuildChannel }): Promise<void> {
-		const channelTypes: { [type: string]: DBKey | undefined } = {
-			requests: DBKey.RequestsChannel,
-			auditlog: DBKey.AuditLog,
-		};
-
-		const channelType = channelTypes[type];
+		const channelType = this.channelTypes[type];
 		if (channelType === undefined) {
 			await msg.reply(`Unknown channel type ${type}.`);
 			return;
 		}
 
-		await this.client.db.set(msg.guild, channelType, channel.id);
+		container.db.set(msg.guild, channelType, channel.id);
 		await msg.reply(`Set ${channel.name} to ${type}.`);
 	}
 }
