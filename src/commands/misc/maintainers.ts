@@ -12,12 +12,12 @@ export default class MaintainersCommand extends Command {
 		});
 	}
 
-	public condition(message: Message): boolean {
-		return message.member?.roles.cache.has(tokens.roleIDs.maintainer) ?? false;
-	}
+	async exec(message: Message): Promise<void> {
+		if (!(message.member?.roles.cache.has(tokens.roleIDs.maintainer) ?? false)) {
+			return;
+		}
 
-	async exec(msg: Message): Promise<void> {
-		await msg.channel.send({ content: `<@${tokens.roleIDs.maintainer}> ` + msg.content, allowedMentions: { roles: [ tokens.roleIDs.maintainer ] } });
-		await msg.delete();
+		await message.channel.send({ content: `<@&${tokens.roleIDs.maintainer}> ` + message.content, allowedMentions: { roles: [ tokens.roleIDs.maintainer ] } });
+		await message.delete();
 	}
 }
