@@ -21,6 +21,10 @@ export default class ModeratorInhibitor extends Inhibitor {
 		if (command != null && (command.id == "refresh-rolemenu" || (command.id == "agree" && message.channel.name == "rules")))
 			return false;
 
+		// maintainers can be used in repo- channels
+		if (command != null && (command.id == "maintainers" && message.channel.name.startsWith("repo-")))
+			return false;
+
 		return true;
 	}
 }
