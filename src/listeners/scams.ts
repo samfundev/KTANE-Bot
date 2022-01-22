@@ -20,7 +20,8 @@ export default class CommandBlockedListener extends Listener {
 		if (!await unpartial(message) || !message.deletable || message.guild === null || isModerator(message))
 			return;
 
-		const content = remove(message.content).toLowerCase();
+		const text = [message.content, ...message.embeds.flatMap(embed => [embed.title, embed.description])].join(" ");
+		const content = remove(text).toLowerCase();
 		const hasURL = content.split(/\s/).some(part => {
 			try {
 				new URL(part);
