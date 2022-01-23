@@ -3,6 +3,7 @@ import { Listener } from "discord-akairo";
 import { Message, MessageEmbed, Snowflake, Util } from "discord.js";
 import { isModerator, unpartial } from "../bot-utils";
 import { DBKey } from "../db";
+import checkMessage from "../phishing-domains";
 
 export default class CommandBlockedListener extends Listener {
 	lastWarning: { [user: Snowflake]: number | undefined };
@@ -17,7 +18,7 @@ export default class CommandBlockedListener extends Listener {
 	}
 
 	async exec(message: Message): Promise<void> {
-		if (!await unpartial(message) || !message.deletable || message.guild === null || isModerator(message))
+		if (!await unpartial(message) || !message.deletable || message.guild === null || message.author.bot || isModerator(message))
 			return;
 
 		const text = [message.content, ...message.embeds.flatMap(embed => [embed.title, embed.description])].join(" ");
@@ -46,7 +47,7 @@ export default class CommandBlockedListener extends Listener {
 
 		score += words.filter(word => content.includes(word)).length;
 
-		if (score >= 4) {
+		if (score >= 4 || await checkMessage(message)) {
 			await message.delete();
 
 			const author = message.author;
