@@ -1598,14 +1598,22 @@
       }
     },
     "node_modules/node-fetch": {
-      "version": "2.6.6",
-      "resolved": "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.6.tgz",
-      "integrity": "sha512-Z8/6vRlTUChSdIgMa51jxQ4lrw/Jy5SOW10ObaA47/RElsAN2c5Pn8bTgFGWn/ibwzXTE8qwr1Yzx28vsecXEA==",
+      "version": "2.6.7",
+      "resolved": "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.7.tgz",
+      "integrity": "sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==",
       "dependencies": {
         "whatwg-url": "^5.0.0"
       },
       "engines": {
         "node": "4.x || >=6.0.0"
+      },
+      "peerDependencies": {
+        "encoding": "^0.1.0"
+      },
+      "peerDependenciesMeta": {
+        "encoding": {
+          "optional": true
+        }
       }
     },
     "node_modules/node-windows": {
@@ -3534,16 +3542,16 @@
       }
     },
     "node-fetch": {
-      "version": "2.6.6",
-      "resolved": "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.6.tgz",
-      "integrity": "sha512-Z8/6vRlTUChSdIgMa51jxQ4lrw/Jy5SOW10ObaA47/RElsAN2c5Pn8bTgFGWn/ibwzXTE8qwr1Yzx28vsecXEA==",
+      "version": "2.6.7",
+      "resolved": "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.7.tgz",
+      "integrity": "sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==",
       "requires": {
         "whatwg-url": "^5.0.0"
       }
     },
     "node-windows": {
       "version": "git+ssh://git@github.com/samfundev/node-windows.git#d27bc7de521bf41eca1c140ecdbdcc3cae9bb16f",
-      "from": "node-windows@github:samfundev/node-windows",
+      "from": "github:samfundev/node-windows",
       "optional": true,
       "requires": {
         "xml": "0.0.12",
