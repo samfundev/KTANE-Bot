@@ -14,7 +14,7 @@ import tokens from "./get-tokens";
 import { parseLanguage } from "./language";
 import { LFG } from "./lfg";
 import Logger from "./log";
-import lintMessage from "./repolint";
+import lintMessage from "./repository/repolint";
 import TaskManager from "./task-manager";
 import { scanVideos, setupVideoTask } from "./video";
 import WorkshopScanner from "./workshop";

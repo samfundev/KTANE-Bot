@@ -1,7 +1,7 @@
 import { Command } from "discord-akairo";
 import { Message } from "discord.js";
 import Logger from "../../log";
-import lintMessage from "../../repolint";
+import lintMessage from "../../repository/repolint";
 
 export default class LintCommand extends Command {
 	constructor() {

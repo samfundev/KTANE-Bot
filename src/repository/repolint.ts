@@ -6,10 +6,10 @@ import got from "got";
 import path from "path";
 import stream from "stream";
 import { promisify } from "util";
-import { joinLimit, update } from "./bot-utils";
-import tokens from "./get-tokens";
-import Logger from "./log";
-import TaskManager from "./task-manager";
+import { joinLimit, update } from "../bot-utils";
+import tokens from "../get-tokens";
+import Logger from "../log";
+import TaskManager from "../task-manager";
 
 const pipeline = promisify(stream.pipeline);
 
@@ -27,7 +27,7 @@ function hsv2rgb(h: number, s: number, v: number): [number, number, number] {
 export default async function lintMessage(message: Message, client: AkairoClient): Promise<void> {
 	const extensions = [".zip", ".rar", ".7z", ".html", ".svg", ".json"];
 	const file = Array.from(message.attachments.values()).find(attachment => extensions.some(extension => attachment.name?.endsWith(extension)));
-	if (file === undefined || file.name === null)
+	if (file === undefined || file.name === null || message.author.bot)
 		return;
 
 	const fileName = message.id + file.name.substring(file.name.lastIndexOf("."));
