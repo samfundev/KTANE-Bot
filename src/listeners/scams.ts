@@ -67,10 +67,10 @@ export default class CommandBlockedListener extends Listener {
 			const channel = await this.client.channels.fetch(channelID);
 			if (channel?.isText()) {
 				await channel.send({
+					content: `Scam message deleted in ${message.channel}.`,
 					embeds: [
 						new MessageEmbed({
-							title: "Scam Message Deleted",
-							description: `**Original message:**\n${Util.escapeMarkdown(message.content)}`,
+							description: Util.escapeMarkdown(message.content),
 							author: {
 								iconURL: author.displayAvatarURL(),
 								name: `${author.username}#${author.discriminator} (${author.id})`
