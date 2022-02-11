@@ -18,7 +18,7 @@ export default class CommandBlockedListener extends Listener {
 	}
 
 	async exec(message: Message): Promise<void> {
-		if (!await unpartial(message) || !message.deletable || message.guild === null || message.author.bot || isModerator(message))
+		if (!await unpartial(message) || !message.deletable || message.guild === null || message.member === null || message.author.bot || isModerator(message))
 			return;
 
 		const text = [message.content, ...message.embeds.flatMap(embed => [embed.title, embed.description])].join(" ");
@@ -49,6 +49,7 @@ export default class CommandBlockedListener extends Listener {
 
 		if (score >= 4 || await checkMessage(message)) {
 			await message.delete();
+			await message.member.timeout(1000 * 60 * 60 * 24, "Scam message.");
 
 			const author = message.author;
 			let warning = this.lastWarning[author.id];
