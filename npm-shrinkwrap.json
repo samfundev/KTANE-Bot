@@ -3551,7 +3551,7 @@
     },
     "node-windows": {
       "version": "git+ssh://git@github.com/samfundev/node-windows.git#d27bc7de521bf41eca1c140ecdbdcc3cae9bb16f",
-      "from": "github:samfundev/node-windows",
+      "from": "node-windows@github:samfundev/node-windows",
       "optional": true,
       "requires": {
         "xml": "0.0.12",
