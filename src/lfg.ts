@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { AkairoClient } from "discord-akairo";
-import { Message, MessageEmbed, Snowflake } from "discord.js";
+import { Message, MessageEmbed, Snowflake, User } from "discord.js";
 import { KTANEClient } from "./bot";
 import { joinLimit } from "./bot-utils";
 import { compareLanguage } from "./language";
@@ -21,11 +21,11 @@ export class LFG {
 		await this.client.settings.set("global", "lfg_players", this.players);
 	}
 
-	static join(user: Snowflake, games: Game[]): void {
-		const oldPlayer = this.players.find(player => player.user == user);
+	static join(user: User, games: Game[]): void {
+		const oldPlayer = this.players.find(player => player.user == user.id);
 		if (oldPlayer === undefined) {
-			const newPlayers = this.players.filter(player => player.user != user);
-			newPlayers.push(new Player(user, games));
+			const newPlayers = this.players.filter(player => player.user != user.id);
+			newPlayers.push(new Player(user.id, user.username + "#" + user.discriminator, games));
 			this.players = newPlayers;
 		} else {
 			oldPlayer.games = games;
@@ -81,7 +81,7 @@ export class LFG {
 				}
 			});
 
-			if (hasMatch) embed.addField("Players:", joinLimit(matched.map((match, index) => `${index + 1}. <@${match.user}> - ${match.getQuery()}`), "\n", 1024));
+			if (hasMatch) embed.addField("Players:", joinLimit(matched.map((match, index) => `${index + 1}. ${match.username} - ${match.getQuery()}`), "\n", 1024));
 			embed.addField("Query:", player.getQuery());
 
 			embed.setColor(hasMatch ? "GREEN" : "RED");
@@ -121,12 +121,14 @@ export class LFG {
 
 class Player {
 	user: Snowflake;
+	username: string;
 	games: Game[];
 	message: Snowflake | null;
 	hash: string | null;
 
-	constructor(user: Snowflake, games: Game[]) {
+	constructor(user: Snowflake, username: string, games: Game[]) {
 		this.user = user;
+		this.username = username;
 		this.games = games;
 		this.message = null;
 		this.hash = null;
@@ -143,9 +145,16 @@ class Player {
 	}
 
 	static fromData(data: any): Player {
-		const player = new Player(data.user, data.games.map(Game.fromData));
+		const player = new Player(data.user, data.username, data.games.map(Game.fromData));
 		player.message = data.message;
 		player.hash = data.hash;
+
+		if (data.username == undefined) {
+			LFG.client.users.fetch(data.user)
+				.then(user => player.username = user.username + "#" + user.discriminator)
+				.catch(Logger.error);
+		}
+
 		return player;
 	}
 

@@ -24,6 +24,6 @@ export default class LFGJoinCommand extends Command {
 			return;
 		}
 
-		LFG.join(message.author.id, games);
+		LFG.join(message.author, games);
 	}
 }
