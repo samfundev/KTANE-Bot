@@ -3,7 +3,7 @@ import { Util } from "discord.js";
 import got from "got";
 import { Html5Entities } from "html-entities";
 import { Database } from "sqlite";
-import { DOMParser } from "@xmldom/xmldom";
+import { JSDOM } from "jsdom";
 import { sendWebhookMessage } from "./bot-utils";
 import tokens from "./get-tokens";
 import Logger from "./log";
@@ -118,37 +118,44 @@ class WorkshopScanner {
 		return body;
 	}
 
-	async find_workshop_mods(workshop_page: string): Promise<false | { [id: string]: EntryObject; }> {
-		const workshop_mod_entries = matchAll(/workshopItemAuthorName.+?">by&nbsp;<a .+ href="[^]+?(id|profiles)\/([^]+?)\/[^]+?">([^]*?)<\/a>[^]+?SharedFileBindMouseHover\([^]+?(\{[^]+?\})/mg, workshop_page);
+	async find_workshop_mods(workshop_page: string): Promise<false | Map<string, EntryObject>> {
+		const htmlDocument = new JSDOM(workshop_page).window.document;
 
-		if (workshop_mod_entries.length === 0) {
-			Logger.error("Failed to find any workshop entries");
+		const itemsElement = htmlDocument.querySelector(".workshopBrowseItems");
+		if (itemsElement === null) {
+			Logger.error("Failed to find workshop items element");
 			return false;
 		}
 
-		Logger.info(`Found ${workshop_mod_entries.length} workshop entry matches`);
+		const entries_to_check = new Map<string, EntryObject>();
+		for (let i = 0; i < itemsElement.children.length; i += 2) {
+			const authorLink = itemsElement.children[i].querySelector(".workshop_author_link");
+			if (authorLink === null) continue;
 
-		const entries_to_check: { [id: string]: EntryObject } = {};
-		for (let match_index = 0; match_index < workshop_mod_entries.length; match_index++) {
+			const author = authorLink.textContent;
+			const steamID = authorLink.getAttribute("href")?.match(/(id|profiles)\/[^/]+/);
+			if (author === null || steamID == null) continue;
+
+			const script = itemsElement.children[i + 1];
+			const jsonMatch = script.textContent?.match(/{.+}/);
+			if (jsonMatch == null) continue;
+
 			let entry_object: EntryObject;
-			const workshop_mod_entry = workshop_mod_entries[match_index];
-			const workshop_mod_entry_json = workshop_mod_entry[4];
-
 			try {
-				entry_object = JSON.parse(workshop_mod_entry_json);
+				entry_object = JSON.parse(jsonMatch[0]) as EntryObject;
 			} catch (exception) {
-				Logger.error(`Failed to JSON-parse a workshop entry, skipping; scraped contents were: ${workshop_mod_entry_json}`);
+				Logger.error(`Failed to JSON-parse a workshop entry, skipping; scraped contents were: ${jsonMatch[0]}`);
 				continue;
 			}
 
 			entry_object.title = Html5Entities.decode(entry_object.title);
 			entry_object.description = Html5Entities.decode(entry_object.description);
 
-			entry_object.author_steamid = `${workshop_mod_entry[1]}/${workshop_mod_entry[2]}`;
+			entry_object.author_steamid = steamID[0];
 			entry_object.author_discordid = await this.get_author_discord_id(entry_object.author_steamid);
 
 			const getSteamAuthor = async () => {
-				entry_object.author = workshop_mod_entry[3] !== "" ? workshop_mod_entry[3] : await this.get_steam_name(entry_object.author_steamid);
+				entry_object.author = author !== "" ? author : await this.get_steam_name(entry_object.author_steamid);
 				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
 			};
 
@@ -180,8 +187,15 @@ class WorkshopScanner {
 			else
 				continue;
 
-			entries_to_check[entry_object.id] = entry_object;
+			entries_to_check.set(entry_object.id, entry_object);
 		}
+
+		if (entries_to_check.size === 0) {
+			Logger.error("Failed to find any workshop entries");
+			return false;
+		}
+
+		Logger.info(`Found ${entries_to_check.size} workshop entry matches`);
 
 		return entries_to_check;
 	}
@@ -237,7 +251,7 @@ class WorkshopScanner {
 			return false;
 		}
 
-		const xml_document = new DOMParser().parseFromString(body, "text/xml");
+		const xml_document = new JSDOM(body).window.document;
 
 		// Users who haven't set up their profile yet don't have an avatar, so we can't get any information for them.
 		const avatarTags = xml_document.getElementsByTagName("avatarMedium");
@@ -457,8 +471,7 @@ class WorkshopScanner {
 		}
 
 		let image_index = 0;
-		for (const mod_id in entries_to_check) {
-			const entry = entries_to_check[mod_id];
+		for (const [mod_id, entry] of entries_to_check.entries()) {
 			const image = entries_to_image[image_index];
 			await this.check_mod(mod_id, entry, image);
 			image_index++;
