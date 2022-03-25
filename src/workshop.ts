@@ -209,12 +209,7 @@ class WorkshopScanner {
 
 		Logger.info(`Found ${workshop_image_entries.length} workshop image entry matches`);
 
-		const entries_to_image = [];
-		for (const workshop_mod_entry of workshop_image_entries) {
-			entries_to_image.unshift(workshop_mod_entry[1]);
-		}
-
-		return entries_to_image;
+		return workshop_image_entries.map(entry => entry[1]);
 	}
 
 	async get_author_discord_id(author_steam_id: string): Promise<string | false> {
@@ -465,8 +460,8 @@ class WorkshopScanner {
 			return;
 		}
 
-		if (Object.keys(entries_to_check).length != entries_to_image.length) {
-			Logger.warn(`The number of entries (${Object.keys(entries_to_check).length}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned. Body: ${workshop_page}`);
+		if (entries_to_check.size != entries_to_image.length) {
+			Logger.warn(`The number of entries (${entries_to_check.size}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned. Body: ${workshop_page}`);
 			return;
 		}
 

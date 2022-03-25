@@ -36,7 +36,7 @@ export async function scanForTutorials(message: Message): Promise<void> {
 
 		const lines = response.split("\n");
 		const url = embed.url.replace("https://www.youtube.com/watch?v=", "https://youtu.be/");
-		lines.splice(lines.length - 2, 0, `  "TutorialVideoUrl": { "default": "${url}" },`);
+		lines.splice(lines.length - 2, 0, `  "TutorialVideos": [ {\n    "Language": "English",\n    "Url": "${url}"\n  } ],`);
 		files.push({ name: `${moduleName}.json`, attachment: Buffer.from(lines.join("\n")) });
 	}
 
