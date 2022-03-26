@@ -360,7 +360,7 @@ class WorkshopScanner {
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
-			description: Util.removeMentions(entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000)),
+			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
 				name: entry.author,
 				icon_url: entry.avatar,
@@ -374,12 +374,18 @@ class WorkshopScanner {
 
 		embed.setColor("#00aa00");
 
-		const data = {
+		const data: Discord.WebhookMessageOptions = {
 			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${entry.authorMention}:`,
 			embeds: [
 				embed
 			],
 		};
+
+		if (entry.author_discordid !== false) {
+			data.allowedMentions = {
+				users: [entry.author_discordid]
+			};
+		}
 
 		return await this.post_discord(data, true);
 	}
@@ -388,7 +394,7 @@ class WorkshopScanner {
 		const embed = new Discord.MessageEmbed({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
-			description: Util.removeMentions(changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000)),
+			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
 				name: entry.author,
 				icon_url: entry.avatar,
@@ -402,12 +408,18 @@ class WorkshopScanner {
 
 		embed.setColor("#0055aa");
 
-		const data = {
+		const data: Discord.WebhookMessageOptions = {
 			content: `:loudspeaker: ${entry.authorMention} has posted an update to **${entry.title}** on the Steam Workshop!`,
 			embeds: [
 				embed
 			],
 		};
+
+		if (entry.author_discordid !== false) {
+			data.allowedMentions = {
+				users: [entry.author_discordid]
+			};
+		}
 
 		const major_regex = /major change|major update|rule[- ]breaking change|manual reprint( is)? (?:required|necessary|needed)|manual update|updated? manual/ig;
 		const major_matches = matchAll(major_regex, changelog.description);
