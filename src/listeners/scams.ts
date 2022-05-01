@@ -50,6 +50,7 @@ export default class CommandBlockedListener extends Listener {
 		if (score >= 4 || await checkMessage(message)) {
 			await message.delete();
 			await message.member.timeout(1000 * 60 * 60 * 24, "Scam message.");
+			await message.member.send("You've been automatically timed out for a possible scam message. If this action was done incorrectly, please message the moderation team through <@575252669443211264>.");
 
 			const author = message.author;
 			let warning = this.lastWarning[author.id];
