@@ -39,7 +39,7 @@ export async function scanForTutorials(message: Message): Promise<void> {
 	for (const embed of message.embeds) {
 		if (embed.video === null || embed.title === null || embed.url === null) continue;
 
-		const matches = /ktane(?: ?. ?)?how to(?: ?. ?)?(.+)/i.exec(embed.title.replace(/\s+/g, " "));
+		const matches = /ktane[^\w]*how[^\w]*to[^\w]*(.+)/i.exec(embed.title);
 		if (matches === null) continue;
 
 		const moduleName = closest(matches[1], await getModuleNames());
