@@ -1,10 +1,12 @@
-import { WebhookClient } from "discord.js";
+import { Snowflake, WebhookClient } from "discord.js";
 import got from "got/dist/source";
 import cron, { ScheduledTask } from "node-cron";
 import { KTANEClient } from "./bot";
 import { sendWebhookMessage } from "./bot-utils";
+import { DBKey } from "./db";
 import tokens from "./get-tokens";
 import Logger from "./log";
+import { respondToVideos } from "./repository/tutorial-scanner";
 
 export type VideoChannel = {
 	name: string,
@@ -30,6 +32,7 @@ export async function scanVideos(): Promise<void> {
 	const client = KTANEClient.instance;
 	const videosAnnounced: string[] = client.settings.get("global", "videosAnnounced", []);
 	const videoChannels: VideoChannel[] = client.settings.get("global", "videoChannels", []);
+	const announcedItems: playlistItem[] = [];
 	for (const videoChannel of videoChannels) {
 		try {
 			const response = await got(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=${tokens.youtubeAPIKey}`, {
@@ -44,16 +47,32 @@ export async function scanVideos(): Promise<void> {
 				if (snippet.title.toLowerCase().indexOf("ktane") === -1 &&
 					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
 					continue;
-				videosAnnounced.push(snippet.resourceId.videoId);
+				announcedItems.push(item);
 				sendWebhookMessage(client, videoBot, { content: `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}` })
 					.catch(Logger.error);
 				Logger.info(`Announced ${videoChannel.name} video ${snippet.title} (${snippet.resourceId.videoId}).`);
 			}
 
 			Logger.info(`Video channel ${videoChannel.name} checked.`);
-			await client.settings.set("global", "videosAnnounced", videosAnnounced);
 		} catch (error) {
-			Logger.error(`Failed to get videos at "${`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=<KEY>`}", error: ${error}`);
+			Logger.error(`Failed to get videos at "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${videoChannel.id}&key=<KEY>", error: ${error}`);
+		}
+	}
+
+	videosAnnounced.push(...announcedItems.map(item => item.snippet.resourceId.videoId));
+	await client.settings.set("global", "videosAnnounced", videosAnnounced);
+
+	// Look for tutorial videos to post in the requests channel
+	const tutorialResponse = await respondToVideos(announcedItems.map(item => ({ title: item.snippet.title, url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}` })));
+	if (tutorialResponse !== null) {
+		for (const guild of client.guilds.cache.values()) {
+			const requestsID = await client.db.get<Snowflake>(guild, DBKey.RequestsChannel);
+			if (requestsID === undefined) continue;
+
+			const channel = await client.channels.fetch(requestsID);
+			if (!channel?.isText()) continue;
+
+			await channel.send(tutorialResponse);
 		}
 	}
 }

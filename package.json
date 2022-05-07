@@ -13,6 +13,7 @@
     "@types/node-cron": "^2.0.3",
     "@types/sqlite3": "^3.1.6",
     "@types/ws": "^7.2.9",
+    "archiver": "^5.3.1",
     "confusables": "^1.0.0",
     "discord-akairo": "discord-akairo/discord-akairo",
     "discord.js": "^13.1.0",
@@ -31,6 +32,7 @@
   "author": "samfundev",
   "license": "MIT",
   "devDependencies": {
+    "@types/archiver": "^5.3.1",
     "@types/jsdom": "^16.2.14",
     "@types/psl": "^1.1.0",
     "@typescript-eslint/eslint-plugin": "^3.10.1",

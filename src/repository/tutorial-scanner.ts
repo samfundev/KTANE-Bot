@@ -1,6 +1,7 @@
-import { Message } from "discord.js";
+import { Message, MessageOptions } from "discord.js";
 import { distance } from "fastest-levenshtein";
 import got from "got";
+import archiver from "archiver";
 import { KTANEClient } from "../bot";
 import { update } from "../bot-utils";
 
@@ -24,6 +25,51 @@ function closest(target: string, options: string[]): string | null {
 	return bestIndex !== -1 ? options[bestIndex] : null;
 }
 
+export async function respondToVideos(videos: { title: string, url: string }[]): Promise<MessageOptions | null> {
+	const moduleNames = await getModuleNames();
+
+	const files = [];
+	for (const video of videos) {
+		const matches = /ktane[^\w]*how[^\w]*to[^\w]*(.+)/i.exec(video.title);
+		if (matches === null) continue;
+
+		const moduleName = closest(matches[1], moduleNames);
+		if (moduleName === null) continue;
+
+		const response = await got(`https://raw.githubusercontent.com/Timwi/KtaneContent/master/JSON/${moduleName}.json`).text();
+
+		if (response.includes("\"TutorialVideoUrl\":")) continue;
+
+		const lines = response.split("\n");
+		const url = video.url.replace("https://www.youtube.com/watch?v=", "https://youtu.be/");
+		lines.splice(lines.length - 2, 0, `  "TutorialVideos": [ {\n    "Language": "English",\n    "Url": "${url}"\n  } ],`);
+		files.push({ name: `${moduleName}.json`, attachment: Buffer.from(lines.join("\n")) });
+	}
+
+	switch (files.length) {
+		case 0:
+			return null;
+		case 1:
+			return {
+				content: "JSON with the tutorial added:",
+				files
+			};
+		default: {
+			const zip = archiver("zip");
+			for (const file of files) {
+				zip.append(file.attachment, { name: file.name });
+			}
+
+			await zip.finalize();
+
+			return {
+				content: "JSON for Tutorials:",
+				files: [{ name: "Tutorials.zip", attachment: zip }]
+			};
+		}
+	}
+}
+
 export async function scanForTutorials(message: Message): Promise<void> {
 	// Sometimes discord.js will get the message before Discord adds the embeds.
 	if (message.embeds.length === 0) {
@@ -35,32 +81,13 @@ export async function scanForTutorials(message: Message): Promise<void> {
 
 	if (message.guild === null) return;
 
-	const files = [];
-	for (const embed of message.embeds) {
-		if (embed.video === null || embed.title === null || embed.url === null) continue;
+	const videos = message.embeds
+		.filter(embed => embed.video !== null && embed.title !== null && embed.url !== null)
+		.map(embed => ({ title: embed.title as string, url: embed.url as string }));
+	const response = await respondToVideos(videos);
+	if (response === null) return;
 
-		const matches = /ktane[^\w]*how[^\w]*to[^\w]*(.+)/i.exec(embed.title);
-		if (matches === null) continue;
-
-		const moduleName = closest(matches[1], await getModuleNames());
-		if (moduleName === null) continue;
-
-		const response = await got(`https://raw.githubusercontent.com/Timwi/KtaneContent/master/JSON/${moduleName}.json`).text();
-
-		if (response.includes("\"TutorialVideoUrl\":")) continue;
-
-		const lines = response.split("\n");
-		const url = embed.url.replace("https://www.youtube.com/watch?v=", "https://youtu.be/");
-		lines.splice(lines.length - 2, 0, `  "TutorialVideos": [ {\n    "Language": "English",\n    "Url": "${url}"\n  } ],`);
-		files.push({ name: `${moduleName}.json`, attachment: Buffer.from(lines.join("\n")) });
-	}
-
-	if (files.length === 0) return;
-
-	const report = await message.reply({
-		content: "JSON with the tutorial added:",
-		files
-	});
+	const report = await message.reply(response);
 
 	await update<Record<string, string>>(KTANEClient.instance.settings, message.guild.id, "reportMessages", {}, (value) => {
 		value[message.id] = report.id;
