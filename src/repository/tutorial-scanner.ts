@@ -62,9 +62,14 @@ export async function respondToVideos(videos: { title: string, url: string }[]):
 
 			await zip.finalize();
 
+			// For some reason, discord.js doesn't recognize archiver as a stream.
+			// Let's turn it into a buffer.
+			const buffers = [];
+			for await (const data of zip) buffers.push(data);
+
 			return {
 				content: "JSON for Tutorials:",
-				files: [{ name: "Tutorials.zip", attachment: zip }]
+				files: [{ name: "Tutorials.zip", attachment: Buffer.concat(buffers) }]
 			};
 		}
 	}
