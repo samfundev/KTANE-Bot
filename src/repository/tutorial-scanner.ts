@@ -38,7 +38,7 @@ export async function respondToVideos(videos: { title: string, url: string }[]):
 
 		const response = await got(`https://raw.githubusercontent.com/Timwi/KtaneContent/master/JSON/${moduleName}.json`).text();
 
-		if (response.includes("\"TutorialVideoUrl\":")) continue;
+		if (response.includes("\"TutorialVideos\":")) continue;
 
 		const lines = response.split("\n");
 		const url = video.url.replace("https://www.youtube.com/watch?v=", "https://youtu.be/");
