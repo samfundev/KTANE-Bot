@@ -1,6 +1,6 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
 import { Util } from "discord.js";
-import got from "got";
+import got from "./utils/got-traces";
 import { Html5Entities } from "html-entities";
 import { Database } from "sqlite";
 import { JSDOM } from "jsdom";

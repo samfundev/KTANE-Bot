@@ -1,6 +1,6 @@
 import { Message, MessageOptions } from "discord.js";
 import { distance } from "fastest-levenshtein";
-import got from "got";
+import got from "../utils/got-traces";
 import archiver from "archiver";
 import { KTANEClient } from "../bot";
 import { update } from "../bot-utils";

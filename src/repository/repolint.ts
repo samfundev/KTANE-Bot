@@ -2,7 +2,7 @@ import { exec, ExecException } from "child_process";
 import { AkairoClient } from "discord-akairo";
 import { Message, MessageEmbed } from "discord.js";
 import { createWriteStream, unlink } from "fs";
-import got from "got";
+import got from "../utils/got-traces";
 import path from "path";
 import stream from "stream";
 import { promisify } from "util";

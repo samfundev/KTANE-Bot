@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import got from "got";
+import got from "./utils/got-traces";
 import * as psl from "psl";
 
 let phishingDomains: Set<string> = new Set();
