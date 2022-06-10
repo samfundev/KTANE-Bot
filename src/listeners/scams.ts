@@ -5,7 +5,7 @@ import { isModerator, unpartial } from "../bot-utils";
 import { DBKey } from "../db";
 import checkMessage from "../phishing-domains";
 
-export default class CommandBlockedListener extends Listener {
+export default class ScamMessageListener extends Listener {
 	lastWarning: { [user: Snowflake]: number | undefined };
 
 	constructor() {
