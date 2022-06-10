@@ -25,6 +25,8 @@ export default async function checkMessage(message: Message): Promise<boolean> {
 		for (const domain of recentDomains) {
 			phishingDomains.add(domain);
 		}
+
+		lastUpdate = Date.now();
 	}
 
 	// Check the message for URLs and see if their hostname contains a phishing domain.
