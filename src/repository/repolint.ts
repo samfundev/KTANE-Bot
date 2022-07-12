@@ -28,8 +28,8 @@ function hsv2rgb(h: number, s: number, v: number): [number, number, number] {
 
 export default async function lintMessage(message: Message, client: AkairoClient): Promise<void> {
 	const extensions = [".zip", ".rar", ".7z", ".html", ".svg", ".json"];
-	const file = Array.from(message.attachments.values()).find(attachment => extensions.some(extension => attachment.name?.endsWith(extension)));
-	if (file === undefined || file.name === null || message.author.bot)
+	const files = Array.from(message.attachments.values()).filter(file => file.name !== null && extensions.some(extension => file.name?.endsWith(extension)));
+	if (files.length === 0 || message.author.bot)
 		return;
 
 	const directory = `lint_${message.id}`;
@@ -39,19 +39,31 @@ export default async function lintMessage(message: Message, client: AkairoClient
 	if (notInDM) await message.react("💭");
 
 	try {
-		const filePath = path.join(directory, file.name);
-		await pipeline(
-			got.stream(file.url),
-			createWriteStream(filePath)
-		);
+		let report: Message | null = null;
+		const results = [];
+		for (const file of files) {
+			if (file.name === null) continue;
 
-		const lintResult = await lintFile(filePath);
-		let report: Message | null;
-		if (typeof lintResult === "string") {
-			// There was an error with the user's input.
-			report = await message.reply(lintResult);
-		} else {
-			report = await generateReport(message, lintResult);
+			const filePath = path.join(directory, file.name);
+			await pipeline(
+				got.stream(file.url),
+				createWriteStream(filePath)
+			);
+
+			const lintResult = await lintFile(filePath);
+			if (typeof lintResult === "string") {
+				// There was an error with the user's input.
+				// Reporting partial results isn't currently supported.
+				report = await message.reply(lintResult);
+				break;
+			} else {
+				results.push(...lintResult);
+			}
+		}
+
+		// If we got this far, we can generate the report for all the files.
+		if (report === null) {
+			report = await generateReport(message, results);
 		}
 
 		if (report === null)
