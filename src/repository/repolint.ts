@@ -71,9 +71,9 @@ export default async function lintMessage(message: Message, client: AkairoClient
 function lintZip(message: Message, zipPath: string): Promise<Message | null> {
 	return new Promise((resolve, reject) => {
 		exec(`dotnet run -c Release --no-build ${path.resolve(zipPath)}`, { cwd: tokens.repoLintPath }, (error: ExecException | null, stdout: string, stderr: string) => {
-			if (error !== null || stderr !== "") {
+			if (error !== null && error.code !== 0) {
 				// RepoLint will use error code 2 to represent an error with the user input.
-				if (error !== null && error.code == 2 && stderr !== "") {
+				if (error.code == 2 && stderr !== "") {
 					resolve(message.reply(stderr));
 					return;
 				}
@@ -87,7 +87,7 @@ function lintZip(message: Message, zipPath: string): Promise<Message | null> {
 			let totalProblems = 0;
 			for (let line of stdout.split("\n")) {
 				line = line.trimEnd();
-				if (line === "" || line === "Failed to load the repository. Some rules will not work.")
+				if (line === "")
 					continue;
 
 				if (!line.startsWith("    ")) {
