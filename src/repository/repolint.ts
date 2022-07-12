@@ -1,4 +1,4 @@
-import { exec, ExecException } from "child_process";
+import child_process, { ExecException } from "child_process";
 import { AkairoClient } from "discord-akairo";
 import { Message, MessageEmbed } from "discord.js";
 import { createWriteStream } from "fs";
@@ -13,6 +13,7 @@ import TaskManager from "../task-manager";
 import { mkdir, rm } from "fs/promises";
 
 const pipeline = promisify(stream.pipeline);
+const exec = promisify(child_process.exec);
 
 function pluralize(count: number, noun: string) {
 	return `${count} ${noun}${count !== 1 ? "s" : ""}`;
@@ -68,66 +69,64 @@ export default async function lintMessage(message: Message, client: AkairoClient
 	}
 }
 
-function lintZip(message: Message, zipPath: string): Promise<Message | null> {
-	return new Promise((resolve, reject) => {
-		exec(`dotnet run -c Release --no-build ${path.resolve(zipPath)}`, { cwd: tokens.repoLintPath }, (error: ExecException | null, stdout: string, stderr: string) => {
-			if (error !== null && error.code !== 0) {
-				// RepoLint will use error code 2 to represent an error with the user input.
-				if (error.code == 2 && stderr !== "") {
-					resolve(message.reply(stderr));
-					return;
-				}
+function isExecException(error: unknown): error is ExecException & { stderr: string } {
+	return error instanceof Error && typeof (error as ExecException).code === "number";
+}
 
-				reject(error ?? stderr);
-				return;
-			}
+async function lintZip(message: Message, zipPath: string): Promise<Message | null> {
+	try {
+		const { stdout } = await exec(`dotnet run -c Release --no-build ${path.resolve(zipPath)}`, { cwd: tokens.repoLintPath });
 
-			const files = [];
-			let file: { name: string, problems: string[] } | null = null;
-			let totalProblems = 0;
-			for (let line of stdout.split("\n")) {
-				line = line.trimEnd();
-				if (line === "")
+		const files = [];
+		let file: { name: string, problems: string[] } | null = null;
+		let totalProblems = 0;
+		for (let line of stdout.split("\n")) {
+			line = line.trimEnd();
+			if (line === "")
+				continue;
+
+			if (!line.startsWith("    ")) {
+				file = { name: line, problems: [] };
+				files.push(file);
+
+				const match = /\((\d+) problems?\)$/.exec(line);
+				if (match == null) {
+					Logger.error("Unable to match problem count:", line);
 					continue;
-
-				if (!line.startsWith("    ")) {
-					file = { name: line, problems: [] };
-					files.push(file);
-
-					const match = /\((\d+) problems?\)$/.exec(line);
-					if (match == null) {
-						Logger.error("Unable to match problem count:", line);
-						continue;
-					}
-
-					totalProblems += parseInt(match[1]);
-				} else if (file !== null) {
-					file.problems.push(line);
 				}
+
+				totalProblems += parseInt(match[1]);
+			} else if (file !== null) {
+				file.problems.push(line);
 			}
+		}
 
-			if (totalProblems === 0) {
-				resolve(null);
-				return;
-			}
+		if (totalProblems === 0) {
+			return null;
+		}
 
-			const embed = new MessageEmbed()
-				.setTitle("Linting Completed")
-				.setDescription(`Found ${pluralize(totalProblems, "problem")} in ${pluralize(files.length, "file")}.`)
-				.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1));
+		const embed = new MessageEmbed()
+			.setTitle("Linting Completed")
+			.setDescription(`Found ${pluralize(totalProblems, "problem")} in ${pluralize(files.length, "file")}.`)
+			.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1));
 
-			for (let i = 0; i < Math.min(files.length, 25); i++) {
-				const file = files[i];
-				const field = { name: file.name, value: joinLimit(file.problems, "\n", 1024) };
+		for (let i = 0; i < Math.min(files.length, 25); i++) {
+			const file = files[i];
+			const field = { name: file.name, value: joinLimit(file.problems, "\n", 1024) };
 
-				if (embed.length + field.name.length + field.value.length > 6000)
-					break;
+			if (embed.length + field.name.length + field.value.length > 6000)
+				break;
 
-				embed.addField(field.name, field.value);
-			}
+			embed.addField(field.name, field.value);
+		}
 
-			const report = message.reply({ embeds: [embed] });
-			resolve(report);
-		});
-	});
+		return message.reply({ embeds: [embed] });
+	} catch (error) {
+		// RepoLint will use error code 2 to represent an error with the user input.
+		if (isExecException(error) && error.code == 2 && error.stderr !== "") {
+			return message.reply(error.stderr);
+		}
+
+		throw error;
+	}
 }
