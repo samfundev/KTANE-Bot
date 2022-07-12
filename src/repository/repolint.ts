@@ -113,7 +113,6 @@ function lintZip(message: Message, zipPath: string): Promise<Message | null> {
 
 			const embed = new MessageEmbed()
 				.setTitle("Linting Completed")
-				.setURL(message.url)
 				.setDescription(`Found ${pluralize(totalProblems, "problem")} in ${pluralize(files.length, "file")}.`)
 				.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1));
 
@@ -127,7 +126,7 @@ function lintZip(message: Message, zipPath: string): Promise<Message | null> {
 				embed.addField(field.name, field.value);
 			}
 
-			const report = message.channel.send({ embeds: [embed] });
+			const report = message.reply({ embeds: [embed] });
 			resolve(report);
 		});
 	});
