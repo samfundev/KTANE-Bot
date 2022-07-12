@@ -45,14 +45,24 @@ export default async function lintMessage(message: Message, client: AkairoClient
 			createWriteStream(filePath)
 		);
 
-		const report = await lintZip(message, filePath);
+		const lintResult = await lintFile(filePath);
+		let report: Message | null;
+		if (typeof lintResult === "string") {
+			// There was an error with the user's input.
+			report = await message.reply(lintResult);
+		} else {
+			report = await generateReport(message, lintResult);
+		}
+
 		if (report === null)
 			await message.react("👍");
-		else
+		else {
+			const reportID = report.id;
 			await update<Record<string, string>>(client.settings, message.guild !== null ? message.guild.id : message.channel.id, "reportMessages", {}, (value) => {
-				value[message.id] = report.id;
+				value[message.id] = reportID;
 				return value;
 			});
+		}
 	} catch (error) {
 		Logger.error("Linting failed.", error);
 		TaskManager.sendOwnerMessage("An error ocurred while linting. Check the logs.");
@@ -69,24 +79,25 @@ export default async function lintMessage(message: Message, client: AkairoClient
 	}
 }
 
+type FileProblems = { name: string, problems: string[], total: number };
+
 function isExecException(error: unknown): error is ExecException & { stderr: string } {
 	return error instanceof Error && typeof (error as ExecException).code === "number";
 }
 
-async function lintZip(message: Message, zipPath: string): Promise<Message | null> {
+async function lintFile(zipPath: string): Promise<FileProblems[] | string> {
 	try {
 		const { stdout } = await exec(`dotnet run -c Release --no-build ${path.resolve(zipPath)}`, { cwd: tokens.repoLintPath });
 
 		const files = [];
-		let file: { name: string, problems: string[] } | null = null;
-		let totalProblems = 0;
+		let file: FileProblems | null = null;
 		for (let line of stdout.split("\n")) {
 			line = line.trimEnd();
 			if (line === "")
 				continue;
 
 			if (!line.startsWith("    ")) {
-				file = { name: line, problems: [] };
+				file = { name: line, problems: [], total: 0 };
 				files.push(file);
 
 				const match = /\((\d+) problems?\)$/.exec(line);
@@ -95,38 +106,43 @@ async function lintZip(message: Message, zipPath: string): Promise<Message | nul
 					continue;
 				}
 
-				totalProblems += parseInt(match[1]);
+				file.total += parseInt(match[1]);
 			} else if (file !== null) {
 				file.problems.push(line);
 			}
 		}
 
-		if (totalProblems === 0) {
-			return null;
-		}
-
-		const embed = new MessageEmbed()
-			.setTitle("Linting Completed")
-			.setDescription(`Found ${pluralize(totalProblems, "problem")} in ${pluralize(files.length, "file")}.`)
-			.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1));
-
-		for (let i = 0; i < Math.min(files.length, 25); i++) {
-			const file = files[i];
-			const field = { name: file.name, value: joinLimit(file.problems, "\n", 1024) };
-
-			if (embed.length + field.name.length + field.value.length > 6000)
-				break;
-
-			embed.addField(field.name, field.value);
-		}
-
-		return message.reply({ embeds: [embed] });
+		return files;
 	} catch (error) {
 		// RepoLint will use error code 2 to represent an error with the user input.
 		if (isExecException(error) && error.code == 2 && error.stderr !== "") {
-			return message.reply(error.stderr);
+			return error.stderr;
 		}
 
 		throw error;
 	}
+}
+
+async function generateReport(message: Message, files: FileProblems[]): Promise<Message | null> {
+	const total = files.map(problem => problem.total).reduce((a, b) => a + b, 0);
+	if (total === 0) {
+		return null;
+	}
+
+	const embed = new MessageEmbed()
+		.setTitle("Linting Completed")
+		.setDescription(`Found ${pluralize(total, "problem")} in ${pluralize(files.length, "file")}.`)
+		.setColor(hsv2rgb((1 - Math.min(total, 15) / 15) * 120, 1, 1));
+
+	for (let i = 0; i < Math.min(files.length, 25); i++) {
+		const file = files[i];
+		const field = { name: file.name, value: joinLimit(file.problems, "\n", 1024) };
+
+		if (embed.length + field.name.length + field.value.length > 6000)
+			break;
+
+		embed.addField(field.name, field.value);
+	}
+
+	return await message.reply({ embeds: [embed] });
 }
