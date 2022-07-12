@@ -1,7 +1,7 @@
 import { exec, ExecException } from "child_process";
 import { AkairoClient } from "discord-akairo";
 import { Message, MessageEmbed } from "discord.js";
-import { createWriteStream, unlink } from "fs";
+import { createWriteStream } from "fs";
 import got from "../utils/got-traces";
 import path from "path";
 import stream from "stream";
@@ -10,6 +10,7 @@ import { joinLimit, update } from "../bot-utils";
 import tokens from "../get-tokens";
 import Logger from "../log";
 import TaskManager from "../task-manager";
+import { mkdir, rm } from "fs/promises";
 
 const pipeline = promisify(stream.pipeline);
 
@@ -30,17 +31,20 @@ export default async function lintMessage(message: Message, client: AkairoClient
 	if (file === undefined || file.name === null || message.author.bot)
 		return;
 
-	const fileName = message.id + file.name.substring(file.name.lastIndexOf("."));
+	const directory = `lint_${message.id}`;
+	await mkdir(directory, { recursive: true });
+
 	const notInDM = message.channel.type !== "DM";
 	if (notInDM) await message.react("💭");
 
 	try {
+		const filePath = path.join(directory, file.name);
 		await pipeline(
 			got.stream(file.url),
-			createWriteStream(fileName)
+			createWriteStream(filePath)
 		);
 
-		const report = await lintZip(message, fileName, file.name);
+		const report = await lintZip(message, filePath);
 		if (report === null)
 			await message.react("👍");
 		else
@@ -54,17 +58,17 @@ export default async function lintMessage(message: Message, client: AkairoClient
 
 		await message.react("⚠️");
 	} finally {
-		unlink(fileName, error => {
-			if (error != null) {
-				Logger.error("Unlinking failed:", error);
-			}
-		});
+		try {
+			await rm(directory, { recursive: true, force: true });
+		} catch (error) {
+			Logger.error("rm -rf failed:", error);
+		}
 
 		if (notInDM) await message.reactions.cache.get("💭")?.remove();
 	}
 }
 
-function lintZip(message: Message, zipPath: string, originalName: string): Promise<Message | null> {
+function lintZip(message: Message, zipPath: string): Promise<Message | null> {
 	return new Promise((resolve, reject) => {
 		exec(`dotnet run -c Release --no-build ${path.resolve(zipPath)}`, { cwd: tokens.repoLintPath }, (error: ExecException | null, stdout: string, stderr: string) => {
 			if (error !== null || stderr !== "") {
@@ -111,7 +115,6 @@ function lintZip(message: Message, zipPath: string, originalName: string): Promi
 				.setTitle("Linting Completed")
 				.setURL(message.url)
 				.setDescription(`Found ${pluralize(totalProblems, "problem")} in ${pluralize(files.length, "file")}.`)
-				.setFooter(originalName)
 				.setColor(hsv2rgb((1 - Math.min(totalProblems, 15) / 15) * 120, 1, 1));
 
 			for (let i = 0; i < Math.min(files.length, 25); i++) {
