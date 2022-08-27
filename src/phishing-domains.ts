@@ -30,12 +30,15 @@ export default async function checkMessage(message: Message): Promise<boolean> {
 	if (difference >= 60 * 60) {
 		try {
 			// Add a bit of wiggle room, just in case.
-			const response = await got(`https://phish.sinking.yachts/v2/recent/${difference + 60}`);
-			const recentDomains = JSON.parse(response.body) as string[];
+			const response = await got(`https://phish.sinking.yachts/v2/recent/${Math.floor(difference) + 60}`);
+			const recentChanges = JSON.parse(response.body) as { type: "add" | "delete", domains: string[] }[];
 
 			// Add any new domains.
-			for (const domain of recentDomains) {
-				phishingDomains.add(domain);
+			for (const change of recentChanges) {
+				for (const domain of change.domains) {
+					if (change.type === "add") phishingDomains.add(domain);
+					else if (change.type === "delete") phishingDomains.delete(domain);
+				}
 			}
 
 			lastUpdate = Date.now();
