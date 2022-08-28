@@ -4,7 +4,7 @@ import { Message } from "discord.js";
 import tokens from "../../get-tokens";
 
 @ApplyOptions<Command.Options>({
-	name: "reaction",
+	name: "maintainers",
 	aliases: ["maintainer"],
 	description: "Sends a ping to other maintainers.",
 	runIn: "GUILD_ANY",
