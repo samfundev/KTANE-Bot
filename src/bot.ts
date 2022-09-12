@@ -254,15 +254,14 @@ async function handleReaction(reaction: MessageReaction | PartialMessageReaction
 	if (!await unpartial(message) || message.partial)
 		return;
 
-	const anyChannel = message.channel;
-	if (anyChannel == null || anyChannel.type != "GUILD_TEXT" || message.guild == null) return;
-	const channel: TextChannel = anyChannel;
+	const channel = message.channel;
+	if (channel == null || (channel.type != "GUILD_TEXT" && channel.type != "GUILD_PUBLIC_THREAD") || message.guild == null) return;
 
 	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
 	if (emojiKey == null)
 		return;
 
-	if (channel.id == "612414629179817985") {
+	if (channel.id == "612414629179817985" || channel.parentId == "612414629179817985") {
 		if (!reactionAdded || reaction.emoji.name != "solved" || message.pinned || !message.guild.members.cache.get(user.id)?.roles.cache.has(tokens.roleIDs.maintainer)) return;
 
 		message.delete().catch(Logger.error);
