@@ -48,6 +48,7 @@ export async function scanVideos(): Promise<void> {
 				if (snippet.title.toLowerCase().indexOf("ktane") === -1 &&
 					snippet.title.toLowerCase().indexOf("keep talking and nobody explodes") === -1)
 					continue;
+				videosAnnounced.push(snippet.resourceId.videoId);
 				announcedItems.push(item);
 				sendWebhookMessage(client, videoBot, { content: `New video by ${videoChannel.mention}: **${snippet.title}**: https://www.youtube.com/watch?v=${snippet.resourceId.videoId}` })
 					.catch(Logger.error);
@@ -60,7 +61,6 @@ export async function scanVideos(): Promise<void> {
 		}
 	}
 
-	videosAnnounced.push(...announcedItems.map(item => item.snippet.resourceId.videoId));
 	container.db.set(DB.global, "videosAnnounced", videosAnnounced);
 
 	// Look for tutorial videos to post in the requests channel
