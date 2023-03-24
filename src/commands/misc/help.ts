@@ -14,7 +14,7 @@ export default class HelpCommand extends Command {
 		const command = await args.peek("command");
 		await msg.reply({
 			embeds: [new MessageEmbed({
-				title: `${command.aliases[0]} ${command.usage ?? ""}`,
+				title: `${command.name} ${command.usage ?? ""}`,
 				description: `${command.description}\n\n**Aliases:** ${command.aliases.join(", ")}`,
 			}).setColor([52, 152, 219])]
 		});
