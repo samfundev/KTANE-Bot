@@ -27,7 +27,8 @@ export class KTANEClient extends SapphireClient {
 				Intents.FLAGS.GUILD_PRESENCES,
 
 				Intents.FLAGS.DIRECT_MESSAGES
-			]
+			],
+			loadMessageCommandListeners: true
 		});
 	}
 

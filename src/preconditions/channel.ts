@@ -4,7 +4,7 @@ import { Message } from "discord.js";
 
 @ApplyOptions<Precondition.Options>({ position: 0 })
 export default class ChannelPrecondition extends Precondition {
-	run(message: Message, command: Command): Precondition.Result {
+	messageRun(message: Message, command: Command): Precondition.Result {
 		// Don't block any DM commands
 		if (message.guild == null || message.channel.type == "DM")
 			return this.ok();
