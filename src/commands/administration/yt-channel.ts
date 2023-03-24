@@ -24,7 +24,7 @@ export default class YTChannelCommand extends Command {
 			id
 		};
 
-		if (!/^U[CU][0-9A-Za-z_-]{21}[AQgw]$/.test(channel.id)) {
+		if (!/^U[CU][0-9A-Za-z_-]+[AQgw]$/.test(channel.id)) {
 			await msg.reply("Invalid YT channel ID.");
 			return;
 		}
