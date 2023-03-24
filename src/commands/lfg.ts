@@ -1,16 +1,21 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args } from "@sapphire/framework";
-import { SubCommandPluginCommand } from "@sapphire/plugin-subcommands";
+import { Subcommand } from "@sapphire/plugin-subcommands";
 import { Message, Util } from "discord.js";
 import { LFG, QueryParser } from "../lfg";
 import Logger from "../log";
 
-@ApplyOptions<SubCommandPluginCommand.Options>({
+@ApplyOptions<Subcommand.Options>({
 	name: "lfg",
 	runIn: "DM",
-	subCommands: [{ input: "help", default: true }, "invite", "join", "leave"],
+	subcommands: [
+		{ name: "help", messageRun: "help", default: true },
+		{ name: "invite", messageRun: "invite" },
+		{ name: "join", messageRun: "join" },
+		{ name: "leave", messageRun: "leave" }
+	],
 })
-export default class LFGBaseCommand extends SubCommandPluginCommand {
+export default class LFGBaseCommand extends Subcommand {
 	topics: Record<string, string> = {
 		basics: "LFG basics:\n- `!lfg join <games>` searches for other players who want to play those games. After a game you can optionally specify tags to filter down who you're looking for. Example: `!lfg join ktane modded among_us` will look for someone who wants to play modded KTANE or Among Us.\n- `!lfg leave` stops looking for another players.\n- `!lfg help <topic>` gives you more information on a topic. Available topics: games, tags and languages.",
 		games: "Games let you specify what you want to play. Games cannot use spaces and are case-insensitive.\nAvailable games: " + Util.escapeMarkdown(QueryParser.stringify(QueryParser.games)),
