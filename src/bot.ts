@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { SapphireClient, container } from "@sapphire/framework";
-import { BaseGuildVoiceChannel, CategoryChannel, Intents, MessageReaction, PartialMessageReaction, PartialUser, Snowflake, TextChannel, User } from "discord.js";
+import { BaseGuildVoiceChannel, CategoryChannel, Intents, MessageReaction, PartialMessageReaction, PartialUser, Snowflake, User } from "discord.js";
 import cron from "node-cron";
 import { unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
@@ -47,6 +47,7 @@ export class KTANEClient extends SapphireClient {
 }
 
 container.db = new DB();
+container.ownerID = "76052829285916672";
 
 const client = new KTANEClient();
 
