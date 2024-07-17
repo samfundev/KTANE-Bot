@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import { MessageEmbed, TextChannel, WebhookClient } from "discord.js";
+import { ChannelType, EmbedBuilder, TextChannel, WebhookClient } from "discord.js";
 import { sendWebhookMessage } from "../../bot-utils";
 import tokens from "../../get-tokens";
 import GuildMessage from "../../guild-message";
@@ -16,7 +16,7 @@ export default class MakeMajorCommand extends Command {
 	usage = "<message id>";
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === "GUILD_NEWS") as TextChannel;
+		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === ChannelType.GuildAnnouncement) as TextChannel;
 		const messageID = await args.pick("string");
 
 		channel.messages.fetch(messageID).then(async message => {
@@ -29,17 +29,17 @@ export default class MakeMajorCommand extends Command {
 			if (targetEmbed.timestamp === null || targetEmbed.title === null || targetEmbed.url === null || targetEmbed.description == null)
 				return;
 
-			const embed = new MessageEmbed({
+			const embed = new EmbedBuilder({
 				title: targetEmbed.title,
 				url: targetEmbed.url,
 				description: targetEmbed.description,
 				author: {
-					name: targetEmbed.author?.name,
+					name: targetEmbed.author?.name ?? "",
 					icon_url: targetEmbed.author?.iconURL,
 					url: targetEmbed.author?.url
 				},
 				thumbnail: {
-					url: targetEmbed.thumbnail?.url
+					url: targetEmbed.thumbnail?.url ?? ""
 				},
 				timestamp: targetEmbed.timestamp
 			});

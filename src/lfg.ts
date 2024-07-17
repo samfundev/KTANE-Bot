@@ -1,6 +1,6 @@
 import { container } from "@sapphire/framework";
 import { createHash } from "crypto";
-import { Message, MessageEmbed, Snowflake, User } from "discord.js";
+import { Message, EmbedBuilder, Snowflake, User } from "discord.js";
 import { KTANEClient } from "./bot";
 import { joinLimit } from "./bot-utils";
 import { DB } from "./db";
@@ -75,17 +75,17 @@ export class LFG {
 			const matched = this.players.filter(otherPlayer => player.matches(otherPlayer));
 			const hasMatch = matched.length > 0;
 
-			const embed = new MessageEmbed({
+			const embed = new EmbedBuilder({
 				title: hasMatch ? "Found a Game!" : "Looking for a Game...",
 				footer: {
 					text: "Use `!lfg leave` when you're done." + (hasMatch ? " Use `!lfg invite 1 3 5` to send an invite to those numbered users." : "")
 				}
 			});
 
-			if (hasMatch) embed.addField("Players:", joinLimit(matched.map((match, index) => `${index + 1}. ${match.username} - ${match.getQuery()}`), "\n", 1024));
-			embed.addField("Query:", player.getQuery());
+			if (hasMatch) embed.addFields({ name: "Players:", value: joinLimit(matched.map((match, index) => `${index + 1}. ${match.username} - ${match.getQuery()}`), "\n", 1024) });
+			embed.addFields({ name: "Query:", value: player.getQuery() });
 
-			embed.setColor(hasMatch ? "GREEN" : "RED");
+			embed.setColor(hasMatch ? "Green" : "Red");
 
 			// To prevent us from sending the embed to the user, we hash it and compare it to the hash of the last embed we sent.
 			const embedHash = createHash("md5").update(JSON.stringify(embed.toJSON())).digest("hex");

@@ -1,4 +1,4 @@
-import { Message, MessageOptions } from "discord.js";
+import { Message, MessageReplyOptions } from "discord.js";
 import { distance } from "fastest-levenshtein";
 import got from "../utils/got-traces";
 import archiver from "archiver";
@@ -25,7 +25,7 @@ function closest(target: string, options: string[]): string | null {
 	return bestIndex !== -1 ? options[bestIndex] : null;
 }
 
-export async function respondToVideos(videos: { title: string, url: string }[]): Promise<MessageOptions | null> {
+export async function respondToVideos(videos: { title: string, url: string }[]): Promise<MessageReplyOptions | null> {
 	const moduleNames = await getModuleNames();
 
 	const files = [];

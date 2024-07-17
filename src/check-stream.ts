@@ -1,4 +1,4 @@
-import { Presence } from "discord.js";
+import { ActivityType, Presence } from "discord.js";
 import tokens from "./get-tokens";
 import Logger from "./log";
 
@@ -20,7 +20,7 @@ export default async function checkStreamingStatus(presence: Presence | null, fe
 	}
 
 	const activities = presence.activities;
-	const streamingKTANE = activities.some(game => game.type === "STREAMING" && game.state === "Keep Talking and Nobody Explodes");
+	const streamingKTANE = activities.some(game => game.type === ActivityType.Streaming && game.state === "Keep Talking and Nobody Explodes");
 	const hasRole = member.roles.cache.has(tokens.roleIDs.streaming);
 	let actionTaken = null;
 	if (hasRole && !streamingKTANE) {

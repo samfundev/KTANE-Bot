@@ -1,7 +1,7 @@
 import { container } from "@sapphire/framework";
-import { Snowflake, WebhookClient } from "discord.js";
-import got from "got/dist/source";
-import cron, { ScheduledTask } from "node-cron";
+import { ChannelType, Snowflake, WebhookClient } from "discord.js";
+import got from "got";
+import { CronJob } from "cron";
 import { sendWebhookMessage } from "./bot-utils";
 import { DB } from "./db";
 import { DBKey } from "./db";
@@ -71,24 +71,28 @@ export async function scanVideos(): Promise<void> {
 			if (requestsID === undefined) continue;
 
 			const channel = await client.channels.fetch(requestsID);
-			if (!channel?.isText()) continue;
+			if (channel?.type !== ChannelType.GuildText) continue;
 
 			await channel.send(tutorialResponse);
 		}
 	}
 }
 
-let scheduledTask: ScheduledTask | null = null;
+let scheduledTask: CronJob | null = null;
 export function setupVideoTask(): void {
 	if (scheduledTask !== null) {
-		scheduledTask.destroy();
+		scheduledTask.stop();
 		scheduledTask = null;
 	}
 
 	// The math below is based on this equation: 10000 (quota limit) = 1440 (minutes in a day) / minutes * channels * 3 (each request is 3 quota), solved for the variable minutes.
 	// This is to prevent going over the YouTube API quota.
 	const channelCount = container.db.get(DB.global, "videoChannels", []).length;
-	scheduledTask = cron.schedule(`*/${Math.ceil(54 / 125 * channelCount) + 1} * * * *`, () => {
-		scanVideos().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
+	scheduledTask = CronJob.from({
+		cronTime: `*/${Math.ceil(54 / 125 * channelCount) + 1} * * * *`,
+		onTick: () => {
+			scanVideos().catch(Logger.errorPrefix("Failed to run scheduled tasks:"));
+		},
+		start: true
 	});
 }

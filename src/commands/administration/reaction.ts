@@ -10,8 +10,8 @@ import TaskManager from "../../task-manager";
 	aliases: ["react"],
 	description: "Toggles if someone is allowed to react.",
 	runIn: "GUILD_ANY",
-	requiredClientPermissions: ["MANAGE_ROLES"],
-	requiredUserPermissions: ["MUTE_MEMBERS"],
+	requiredClientPermissions: ["ManageRoles"],
+	requiredUserPermissions: ["MuteMembers"],
 })
 export default class ReactionCommand extends Command {
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { SapphireClient, container } from "@sapphire/framework";
-import { BaseGuildVoiceChannel, CategoryChannel, Intents, MessageReaction, PartialMessageReaction, PartialUser, Snowflake, User } from "discord.js";
-import cron from "node-cron";
+import { BaseGuildVoiceChannel, CategoryChannel, ChannelType, GatewayIntentBits, MessageReaction, PartialMessageReaction, Partials, PartialUser, Snowflake, User } from "discord.js";
+import { CronJob } from "cron";
 import { unpartial, update } from "./bot-utils";
 import checkStreamingStatus from "./check-stream";
 import { DB, DBKey } from "./db";
@@ -18,15 +18,15 @@ export class KTANEClient extends SapphireClient {
 	constructor() {
 		super({
 			defaultPrefix: "!",
-			partials: ["MESSAGE", "REACTION", "CHANNEL"],
+			partials: [Partials.Message, Partials.Reaction, Partials.Channel],
 			intents: [
-				Intents.FLAGS.GUILDS,
-				Intents.FLAGS.GUILD_MESSAGES,
-				Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-				Intents.FLAGS.GUILD_VOICE_STATES,
-				Intents.FLAGS.GUILD_PRESENCES,
+				GatewayIntentBits.Guilds,
+				GatewayIntentBits.GuildMessages,
+				GatewayIntentBits.GuildMessageReactions,
+				GatewayIntentBits.GuildVoiceStates,
+				GatewayIntentBits.GuildPresences,
 
-				Intents.FLAGS.DIRECT_MESSAGES
+				GatewayIntentBits.DirectMessages
 			],
 			loadMessageCommandListeners: true
 		});
@@ -39,7 +39,7 @@ export class KTANEClient extends SapphireClient {
 		return super.login(token);
 	}
 
-	destroy(): void {
+	destroy(): Promise<void> {
 		container.db.database.close();
 
 		return super.destroy();
@@ -77,9 +77,9 @@ client
 		if (!await unpartial(message))
 			return;
 
-		if (message.channel.type == "GUILD_NEWS") {
+		if (message.channel.type == ChannelType.GuildAnnouncement) {
 			message.crosspost().catch(Logger.errorPrefix("Automatic Crosspost"));
-		} else if (message.channel.type == "GUILD_TEXT" && message.guild !== null) {
+		} else if (message.channel.type == ChannelType.GuildText && message.guild !== null) {
 			const id = client.user?.id;
 			const content = message.content.toLowerCase();
 			const members = message.mentions.members;
@@ -112,14 +112,14 @@ client
 		}
 	})
 	.on("messageDelete", message => {
-		if (message.channel.type == "GUILD_TEXT" && message.guild !== null) {
+		if (message.channel.type == ChannelType.GuildText && message.guild !== null) {
 			const requestsID = container.db.getOrUndefined<Snowflake>(message.guild, DBKey.RequestsChannel);
 			if (message.channel.id !== requestsID)
 				return;
-		} else if (message.channel.type !== "DM")
+		} else if (message.channel.type !== ChannelType.DM)
 			return;
 
-		const id = (message.channel.type == "GUILD_TEXT" && message.guild != null) ? message.guild.id : message.channel.id;
+		const id = (message.channel.type == ChannelType.GuildText && message.guild != null) ? message.guild.id : message.channel.id;
 		update<Record<string, string>>(container.db, id, "reportMessages", {}, async (value) => {
 			const reportID = value[message.id];
 			if (reportID === undefined)
@@ -178,7 +178,7 @@ client
 
 			const prefix = tokens.autoManagedCategories[vc.parentId].channelPrefix;
 			const ignore = tokens.autoManagedCategories[vc.parentId].ignoredChannels || [];
-			const channels = [...cat.children.values()].filter(ch => ch.type === "GUILD_VOICE" && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
+			const channels = [...cat.children.cache.values()].filter(ch => ch.type === ChannelType.GuildVoice && ignore.filter(ig => ig === ch.id).length === 0).map(ch => ({ channel: ch, members: ch.members.size }));
 			channels.sort((c1, c2) => c1.channel.name < c2.channel.name ? -1 : c1.channel.name > c2.channel.name ? 1 : 0);
 
 			let logmsg = `Channels are: ${channels.map(obj => `${obj.channel.name}=${obj.members}`).join(", ")}`;
@@ -203,8 +203,9 @@ client
 				while (channels.filter(ch => ch.channel.name === name).length > 0);
 
 				logmsg += `; creating ${name}`;
-				cat.guild.channels.create(name, {
-					type: "GUILD_VOICE",
+				cat.guild.channels.create({
+					name,
+					type: ChannelType.GuildVoice,
 					reason: "AutoManage: create new empty channel",
 					parent: cat
 				})
@@ -257,7 +258,7 @@ async function handleReaction(reaction: MessageReaction | PartialMessageReaction
 		return;
 
 	const channel = message.channel;
-	if (channel == null || (channel.type != "GUILD_TEXT" && channel.type != "GUILD_PUBLIC_THREAD") || message.guild == null) return;
+	if (channel == null || (channel.type != ChannelType.GuildText && channel.type != ChannelType.PublicThread) || message.guild == null) return;
 
 	const emojiKey = (reaction.emoji.id) ? `${reaction.emoji.name}:${reaction.emoji.id}` : reaction.emoji.name;
 	if (emojiKey == null)
@@ -311,10 +312,14 @@ async function handleReaction(reaction: MessageReaction | PartialMessageReaction
 
 client.login(tokens.botToken).catch(Logger.errorPrefix("Failed to login:"));
 
-cron.schedule("*/1 * * * *", () => {
-	// Scan another page for new mods or changes
-	workshopScanner.run().catch((error: unknown) => Logger.error("Unable to run workshop scan:", error));
+CronJob.from({
+	cronTime: "*/1 * * * *",
+	onTick: () => {
+		// Scan another page for new mods or changes
+		workshopScanner.run().catch((error: unknown) => Logger.error("Unable to run workshop scan:", error));
 
-	// Process tasks
-	TaskManager.processTasks();
+		// Process tasks
+		TaskManager.processTasks();
+	},
+	start: true
 });

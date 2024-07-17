@@ -1,6 +1,6 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
 import got from "./utils/got-traces";
-import { Html5Entities } from "html-entities";
+import { decode } from "html-entities";
 import { Database } from "better-sqlite3";
 import { JSDOM } from "jsdom";
 import { sendWebhookMessage } from "./bot-utils";
@@ -146,8 +146,8 @@ class WorkshopScanner {
 				continue;
 			}
 
-			entry_object.title = Html5Entities.decode(entry_object.title);
-			entry_object.description = Html5Entities.decode(entry_object.description);
+			entry_object.title = decode(entry_object.title);
+			entry_object.description = decode(entry_object.description);
 
 			entry_object.author_steamid = steamID[0];
 			entry_object.author_discordid = this.get_author_discord_id(entry_object.author_steamid);
@@ -318,7 +318,7 @@ class WorkshopScanner {
 			return {
 				date: getDate(entry[1]),
 				id: entry[2],
-				description: Html5Entities.decode(entry[3]),
+				description: decode(entry[3]),
 			};
 		}).filter(changelog => parseInt(changelog.id) > since);
 	}
@@ -356,12 +356,12 @@ class WorkshopScanner {
 	}
 
 	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
-		const embed = new Discord.MessageEmbed({
+		const embed = new Discord.EmbedBuilder({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
 			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
-				name: entry.author,
+				name: entry.author ?? "",
 				icon_url: entry.avatar,
 				url: `https://steamcommunity.com/${entry.author_steamid}`
 			},
@@ -373,7 +373,7 @@ class WorkshopScanner {
 
 		embed.setColor("#00aa00");
 
-		const data: Discord.WebhookMessageOptions = {
+		const data: Discord.WebhookMessageCreateOptions = {
 			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${entry.authorMention}:`,
 			embeds: [
 				embed
@@ -390,12 +390,12 @@ class WorkshopScanner {
 	}
 
 	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
-		const embed = new Discord.MessageEmbed({
+		const embed = new Discord.EmbedBuilder({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
 			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
-				name: entry.author,
+				name: entry.author ?? "",
 				icon_url: entry.avatar,
 				url: `https://steamcommunity.com/${entry.author_steamid}`
 			},
@@ -407,7 +407,7 @@ class WorkshopScanner {
 
 		embed.setColor("#0055aa");
 
-		const data: Discord.WebhookMessageOptions = {
+		const data: Discord.WebhookMessageCreateOptions = {
 			content: `:loudspeaker: ${entry.authorMention} has posted an update to **${entry.title}** on the Steam Workshop!`,
 			embeds: [
 				embed
@@ -425,7 +425,7 @@ class WorkshopScanner {
 		return await this.post_discord(data, major_matches.length > 0);
 	}
 
-	async post_discord(options: Discord.WebhookMessageOptions, is_major: boolean): Promise<boolean> {
+	async post_discord(options: Discord.WebhookMessageCreateOptions, is_major: boolean): Promise<boolean> {
 		const webhook_client = is_major ? major_webhook : minor_webhook;
 
 		try {

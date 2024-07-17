@@ -2,11 +2,13 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": "src",
-		"moduleResolution": "Node16",
+		"moduleResolution": "NodeNext",
 		"allowJs": true,
-		"lib": ["ES2019"],
-		"module": "commonjs",
-		"target": "ES2019",
+		"lib": [
+			"ESNext"
+		],
+		"module": "NodeNext",
+		"target": "ESNext",
 		"removeComments": true,
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
@@ -19,6 +21,11 @@
 		// TODO: remove once we migrate to sapphire v3
 		"skipLibCheck": true
 	},
-	"include": ["src", "src/node_modules"],
-	"exclude": ["node_modules"]
+	"include": [
+		"src",
+		"src/node_modules"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }

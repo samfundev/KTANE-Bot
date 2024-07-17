@@ -25,12 +25,12 @@ export default class RoleCommand extends Command {
 				return msg.channel.send(`You can’t self-assign the "${role.name}" role because you don’t have any of its prerequisite roles.`);
 			}
 			if (msg.member.roles.cache.has(role.id)) {
-				return msg.member.roles.remove(role)
-					.then(() => msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`))
+				await msg.member.roles.remove(role);
+				return msg.channel.send(`Removed the "${role.name}" role from ${msg.author.username}.`)
 					.catch(Logger.errorReply("remove role", msg));
 			} else {
-				return msg.member.roles.add(role)
-					.then(() => msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`))
+				await msg.member.roles.add(role);
+				return msg.channel.send(`Gave the "${role.name}" role to ${msg.author.username}.`)
 					.catch(Logger.errorReply("give role", msg));
 			}
 		}

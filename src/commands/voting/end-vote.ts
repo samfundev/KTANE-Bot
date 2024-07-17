@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Command, container } from "@sapphire/framework";
-import { Message, MessageEmbed } from "discord.js";
+import { Message, EmbedBuilder } from "discord.js";
 import { DB } from "../../db";
 import { VoteData } from "#utils/voting";
 
@@ -22,7 +22,7 @@ export default class EndVoteCommand extends Command {
 			return `${index + 1}. ${option} - ${optionTotal} (${totalVotes == 0 ? 0 : Math.floor(optionTotal / totalVotes * 100)}%)`;
 		}).join("\n");
 
-		const embed = new MessageEmbed({
+		const embed = new EmbedBuilder({
 			title: `__${currentVote.topic}__`,
 			description: `\`\`\`\n${description}\`\`\``,
 			footer: {

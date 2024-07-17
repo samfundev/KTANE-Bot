@@ -1,4 +1,4 @@
-import { AllowedPartial, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageOptions } from "discord.js";
+import { AllowedPartial, ChannelType, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageCreateOptions } from "discord.js";
 import { DB } from "./db";
 import tokens from "./get-tokens";
 import Logger from "./log";
@@ -30,11 +30,11 @@ export function isModerator(message: Message): boolean {
 	return message.member.roles.highest.comparePositionTo(role) >= 0;
 }
 
-export async function sendWebhookMessage(client: Client, webhook: WebhookClient, options: WebhookMessageOptions): Promise<Message> {
+export async function sendWebhookMessage(client: Client, webhook: WebhookClient, options: WebhookMessageCreateOptions): Promise<Message> {
 	const message = await webhook.send(options);
 
 	const channel = await client.channels.fetch(message.channel_id);
-	if (channel == null || !channel.isText())
+	if (channel == null || channel.type !== ChannelType.GuildText)
 		throw new Error("Not a text channel.");
 
 	return await channel.messages.fetch(message.id);

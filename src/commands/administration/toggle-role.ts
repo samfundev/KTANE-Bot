@@ -9,7 +9,7 @@ import Logger from "../../log";
 	aliases: ["togglerole", "tr"],
 	description: "Toggles a role for a user.",
 	runIn: "GUILD_ANY",
-	requiredClientPermissions: ["MANAGE_ROLES"],
+	requiredClientPermissions: ["ManageRoles"],
 })
 export default class ToggleRoleCommand extends Command {
 	usage = "<target> <role>";
@@ -28,12 +28,12 @@ export default class ToggleRoleCommand extends Command {
 				}
 
 				if (target.roles.cache.has(roleData.roleID)) {
-					target.roles.remove(role)
-						.then(() => msg.channel.send(`Removed the "${role.name}" role from ${target.user.username}.`))
+					await target.roles.remove(role);
+					msg.channel.send(`Removed the "${role.name}" role from ${target.user.username}.`)
 						.catch(Logger.errorReply("remove the role", msg));
 				} else {
-					target.roles.add(role)
-						.then(() => msg.channel.send(`Gave the "${role.name}" role to ${target.user.username}.`))
+					await target.roles.add(role);
+					msg.channel.send(`Gave the "${role.name}" role to ${target.user.username}.`)
 						.catch(Logger.errorReply("give the role", msg));
 				}
 			}

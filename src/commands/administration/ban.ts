@@ -9,8 +9,8 @@ import TaskManager from "../../task-manager";
 	aliases: ["b"],
 	description: "Bans someone for a specified duration.",
 	runIn: "GUILD_ANY",
-	requiredClientPermissions: ["BAN_MEMBERS"],
-	requiredUserPermissions: ["BAN_MEMBERS"],
+	requiredClientPermissions: ["BanMembers"],
+	requiredUserPermissions: ["BanMembers"],
 })
 export default class BanCommand extends Command {
 	usage = "<target> [duration]";

@@ -10,8 +10,8 @@ import TaskManager from "../../task-manager";
 	aliases: ["mute", "m"],
 	description: "Toggles if someone is allowed to speak in text and voice channels.",
 	runIn: "GUILD_ANY",
-	requiredClientPermissions: ["MANAGE_ROLES"],
-	requiredUserPermissions: ["MUTE_MEMBERS"],
+	requiredClientPermissions: ["ManageRoles"],
+	requiredUserPermissions: ["MuteMembers"],
 })
 export default class MuteCommand extends Command {
 	usage = "<target> [duration]";

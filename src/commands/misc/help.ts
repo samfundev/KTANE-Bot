@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import { Message, MessageEmbed } from "discord.js";
+import { Message, EmbedBuilder } from "discord.js";
 
 @ApplyOptions<Command.Options>({
 	name: "help",
@@ -13,7 +13,7 @@ export default class HelpCommand extends Command {
 	async messageRun(msg: Message, args: Args): Promise<void> {
 		const command = await args.peek("command");
 		await msg.reply({
-			embeds: [new MessageEmbed({
+			embeds: [new EmbedBuilder({
 				title: `${command.name} ${command.usage ?? ""}`,
 				description: `${command.description}\n\n**Aliases:** ${command.aliases.join(", ")}`,
 			}).setColor([52, 152, 219])]

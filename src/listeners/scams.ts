@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { container, Listener } from "@sapphire/framework";
 import remove from "confusables";
-import { Message, MessageEmbed, Snowflake, Util } from "discord.js";
+import { Message, EmbedBuilder, Snowflake, ChannelType, escapeMarkdown, resolveColor } from "discord.js";
 import { isModerator, unpartial } from "../bot-utils";
 import { DBKey } from "../db";
 import checkMessage from "../phishing-domains";
@@ -61,17 +61,17 @@ export default class ScamMessageListener extends Listener {
 				return;
 
 			const channel = await client.channels.fetch(channelID);
-			if (channel?.isText()) {
+			if (channel?.type === ChannelType.GuildText) {
 				await channel.send({
 					content: `Scam message deleted in ${message.channel}.`,
 					embeds: [
-						new MessageEmbed({
-							description: Util.escapeMarkdown(message.content),
+						new EmbedBuilder({
+							description: escapeMarkdown(message.content),
 							author: {
 								iconURL: author.displayAvatarURL(),
 								name: `${author.username}#${author.discriminator} (${author.id})`
 							},
-							color: Util.resolveColor("RED")
+							color: resolveColor("Red")
 						})
 					]
 				});

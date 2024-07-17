@@ -9,8 +9,8 @@ import { VoteData } from "#utils/voting";
 	aliases: ["v"],
 	description: "Submits a vote in a vote.",
 	runIn: "GUILD_ANY",
-	requiredClientPermissions: ["MANAGE_ROLES"],
-	requiredUserPermissions: ["MUTE_MEMBERS"],
+	requiredClientPermissions: ["ManageRoles"],
+	requiredUserPermissions: ["MuteMembers"],
 })
 export default class VoteCommand extends Command {
 	usage = "<option ...>";

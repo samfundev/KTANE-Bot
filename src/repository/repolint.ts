@@ -1,10 +1,10 @@
 import child_process, { ExecException } from "child_process";
 import { container } from "@sapphire/framework";
-import { Message, MessageEmbed } from "discord.js";
+import { Message, EmbedBuilder, ChannelType } from "discord.js";
 import { createWriteStream } from "fs";
 import got from "../utils/got-traces";
 import path from "path";
-import stream from "stream";
+import { pipeline } from "stream/promises";
 import { promisify } from "util";
 import { joinLimit, update } from "../bot-utils";
 import tokens from "../get-tokens";
@@ -12,7 +12,6 @@ import Logger from "../log";
 import TaskManager from "../task-manager";
 import { mkdir, rm } from "fs/promises";
 
-const pipeline = promisify(stream.pipeline);
 const exec = promisify(child_process.exec);
 
 function pluralize(count: number, noun: string) {
@@ -35,7 +34,7 @@ export default async function lintMessage(message: Message): Promise<void> {
 	const directory = `lint_${message.id}`;
 	await mkdir(directory, { recursive: true });
 
-	const notInDM = message.channel.type !== "DM";
+	const notInDM = message.channel.type !== ChannelType.DM;
 	if (notInDM) await message.react("💭");
 
 	try {
@@ -141,7 +140,7 @@ async function generateReport(message: Message, files: FileProblems[]): Promise<
 		return null;
 	}
 
-	const embed = new MessageEmbed()
+	const embed = new EmbedBuilder()
 		.setTitle("Linting Completed")
 		.setDescription(`Found ${pluralize(total, "problem")} in ${pluralize(files.length, "file")}.`)
 		.setColor(hsv2rgb((1 - Math.min(total, 15) / 15) * 120, 1, 1));
@@ -153,7 +152,7 @@ async function generateReport(message: Message, files: FileProblems[]): Promise<
 		if (embed.length + field.name.length + field.value.length > 6000)
 			break;
 
-		embed.addField(field.name, field.value);
+		embed.addFields(field);
 	}
 
 	return await message.reply({ embeds: [embed] });

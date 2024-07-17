@@ -8,8 +8,8 @@ import GuildMessage from "../../guild-message";
 	aliases: ["setchannel"],
 	description: ["Marks a channel for the bot to use.", "<type> can be requests or auditlog."].join("\n"),
 	runIn: "GUILD_ANY",
-	requiredClientPermissions: ["MANAGE_ROLES"],
-	requiredUserPermissions: ["MUTE_MEMBERS"],
+	requiredClientPermissions: ["ManageRoles"],
+	requiredUserPermissions: ["MuteMembers"],
 })
 export default class SetChannelCommand extends Command {
 	usage = "<type> <channel>";

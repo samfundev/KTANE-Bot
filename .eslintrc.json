@@ -18,10 +18,22 @@
         "plugin:@typescript-eslint/recommended-requiring-type-checking"
     ],
     "rules": {
-        "semi": ["error", "always"],
-        "indent": ["error", "tab", { "SwitchCase": 1 }],
+        "semi": [
+            "error",
+            "always"
+        ],
+        "indent": [
+            "error",
+            "tab",
+            {
+                "SwitchCase": 1
+            }
+        ],
         "no-console": "error",
-        "no-mixed-spaces-and-tabs": ["error", "smart-tabs"],
+        "no-mixed-spaces-and-tabs": [
+            "error",
+            "smart-tabs"
+        ],
         "yoda": "error",
         "quotes": "error",
         "@typescript-eslint/no-unsafe-assignment": "warn",
@@ -33,6 +45,12 @@
             "error",
             {
                 "ignoreStatic": true
+            }
+        ],
+        "@typescript-eslint/no-misused-promises": [
+            "error",
+            {
+                "checksVoidReturn": false
             }
         ]
     }

@@ -1,12 +1,12 @@
 import { Command, Precondition } from "@sapphire/framework";
 import { ApplyOptions } from "@sapphire/decorators";
-import { Message } from "discord.js";
+import { ChannelType, Message } from "discord.js";
 
 @ApplyOptions<Precondition.Options>({ position: 0 })
 export default class ChannelPrecondition extends Precondition {
 	messageRun(message: Message, command: Command): Precondition.Result {
 		// Don't block any DM commands
-		if (message.guild == null || message.channel.type == "DM")
+		if (message.guild == null || message.channel.type == ChannelType.DM)
 			return this.ok();
 
 		// Commands are allowed in these channels
