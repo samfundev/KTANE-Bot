@@ -1,9 +1,9 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import { Message } from "discord.js";
-import tokens from "../../get-tokens";
-import GuildMessage from "../../guild-message";
-import Logger from "../../log";
+import tokens from "../../get-tokens.js";
+import GuildMessage from "../../guild-message.js";
+import Logger from "../../log.js";
 import { getRole } from "#utils/role";
 
 @ApplyOptions<Command.Options>({

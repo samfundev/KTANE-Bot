@@ -1,9 +1,9 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import { Message } from "discord.js";
-import { unpartial } from "../bot-utils";
-import { DBKey } from "../db";
-import { scanForTutorials } from "../repository/tutorial-scanner";
+import { unpartial } from "../bot-utils.js";
+import { DBKey } from "../db.js";
+import { scanForTutorials } from "../repository/tutorial-scanner.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCreate" })
 export default class TutorialMessageListener extends Listener {

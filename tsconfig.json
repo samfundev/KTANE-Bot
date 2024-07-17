@@ -2,12 +2,12 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": "src",
-		"moduleResolution": "NodeNext",
+		"moduleResolution": "Bundler",
 		"allowJs": true,
 		"lib": [
 			"ESNext"
 		],
-		"module": "NodeNext",
+		"module": "ESNext",
 		"target": "ESNext",
 		"removeComments": true,
 		"forceConsistentCasingInFileNames": true,
@@ -18,7 +18,6 @@
 		"strict": true,
 		"sourceMap": true,
 		"experimentalDecorators": true,
-		// TODO: remove once we migrate to sapphire v3
 		"skipLibCheck": true
 	},
 	"include": [

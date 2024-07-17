@@ -1,5 +1,5 @@
 import { Argument } from "@sapphire/framework";
-import { parseLanguage } from "../language";
+import { parseLanguage } from "../language.js";
 
 export class LanguageArgument extends Argument<string> {
 	public run(parameter: string): Argument.Result<string> {

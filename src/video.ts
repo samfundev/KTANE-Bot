@@ -2,12 +2,12 @@ import { container } from "@sapphire/framework";
 import { ChannelType, Snowflake, WebhookClient } from "discord.js";
 import got from "got";
 import { CronJob } from "cron";
-import { sendWebhookMessage } from "./bot-utils";
-import { DB } from "./db";
-import { DBKey } from "./db";
-import tokens from "./get-tokens";
-import Logger from "./log";
-import { respondToVideos } from "./repository/tutorial-scanner";
+import { sendWebhookMessage } from "./bot-utils.js";
+import { DB } from "./db.js";
+import { DBKey } from "./db.js";
+import tokens from "./get-tokens.js";
+import Logger from "./log.js";
+import { respondToVideos } from "./repository/tutorial-scanner.js";
 
 export type VideoChannel = {
 	name: string,

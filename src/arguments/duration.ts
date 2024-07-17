@@ -1,5 +1,5 @@
 import { Argument } from "@sapphire/framework";
-import { parseDuration } from "../duration";
+import { parseDuration } from "../duration.js";
 
 export class DurationArgument extends Argument<number> {
 	public run(parameter: string): Argument.Result<number> {

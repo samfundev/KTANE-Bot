@@ -2,8 +2,8 @@ import { ApplyOptions } from "@sapphire/decorators";
 import { Args } from "@sapphire/framework";
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { escapeMarkdown, Message } from "discord.js";
-import { LFG, QueryParser } from "../lfg";
-import Logger from "../log";
+import { LFG, QueryParser } from "../lfg.js";
+import Logger from "../log.js";
 
 @ApplyOptions<Subcommand.Options>({
 	name: "lfg",

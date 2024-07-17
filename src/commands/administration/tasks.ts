@@ -1,8 +1,8 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import { Message } from "discord.js";
-import { formatDuration } from "../../duration";
-import TaskManager from "../../task-manager";
+import { formatDuration } from "../../duration.js";
+import TaskManager from "../../task-manager.js";
 
 @ApplyOptions<Command.Options>({
 	name: "tasks",

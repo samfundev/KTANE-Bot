@@ -1,9 +1,9 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import tokens from "../../get-tokens";
-import GuildMessage from "../../guild-message";
-import Logger from "../../log";
-import TaskManager from "../../task-manager";
+import tokens from "../../get-tokens.js";
+import GuildMessage from "../../guild-message.js";
+import Logger from "../../log.js";
+import TaskManager from "../../task-manager.js";
 
 @ApplyOptions<Command.Options>({
 	name: "reaction",

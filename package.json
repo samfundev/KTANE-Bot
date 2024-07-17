@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A bot for the KTANE Discord server.",
   "main": "src/bot.ts",
+  "type": "module",
   "imports": {
     "#utils/*": "./src/utils/*.ts"
   },

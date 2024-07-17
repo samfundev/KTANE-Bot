@@ -3,16 +3,16 @@
 import { SapphireClient, container } from "@sapphire/framework";
 import { BaseGuildVoiceChannel, CategoryChannel, ChannelType, GatewayIntentBits, MessageReaction, PartialMessageReaction, Partials, PartialUser, Snowflake, User } from "discord.js";
 import { CronJob } from "cron";
-import { unpartial, update } from "./bot-utils";
-import checkStreamingStatus from "./check-stream";
-import { DB, DBKey } from "./db";
-import tokens from "./get-tokens";
-import { LFG } from "./lfg";
-import Logger from "./log";
-import lintMessage from "./repository/repolint";
-import TaskManager from "./task-manager";
-import { scanVideos, setupVideoTask } from "./video";
-import WorkshopScanner from "./workshop";
+import { unpartial, update } from "./bot-utils.js";
+import checkStreamingStatus from "./check-stream.js";
+import { DB, DBKey } from "./db.js";
+import tokens from "./get-tokens.js";
+import { LFG } from "./lfg.js";
+import Logger from "./log.js";
+import lintMessage from "./repository/repolint.js";
+import TaskManager from "./task-manager.js";
+import { scanVideos, setupVideoTask } from "./video.js";
+import WorkshopScanner from "./workshop.js";
 
 export class KTANEClient extends SapphireClient {
 	constructor() {

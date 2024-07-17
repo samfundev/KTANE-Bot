@@ -1,8 +1,8 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import tokens from "../../get-tokens";
-import GuildMessage from "../../guild-message";
-import Logger from "../../log";
+import tokens from "../../get-tokens.js";
+import GuildMessage from "../../guild-message.js";
+import Logger from "../../log.js";
 
 @ApplyOptions<Command.Options>({
 	name: "toggle-role",

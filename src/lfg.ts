@@ -1,11 +1,11 @@
 import { container } from "@sapphire/framework";
 import { createHash } from "crypto";
 import { Message, EmbedBuilder, Snowflake, User } from "discord.js";
-import { KTANEClient } from "./bot";
-import { joinLimit } from "./bot-utils";
-import { DB } from "./db";
-import { compareLanguage } from "./language";
-import Logger from "./log";
+import { KTANEClient } from "./bot.js";
+import { joinLimit } from "./bot-utils.js";
+import { DB } from "./db.js";
+import { compareLanguage } from "./language.js";
+import Logger from "./log.js";
 
 export class LFG {
 	static get client(): KTANEClient {

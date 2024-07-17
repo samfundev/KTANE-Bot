@@ -1,9 +1,9 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
-import { update } from "../../bot-utils";
-import GuildMessage from "../../guild-message";
-import Logger from "../../log";
-import { setupVideoTask, VideoChannel } from "../../video";
+import { update } from "../../bot-utils.js";
+import GuildMessage from "../../guild-message.js";
+import Logger from "../../log.js";
+import { setupVideoTask, VideoChannel } from "../../video.js";
 
 @ApplyOptions<Command.Options>({
 	name: "yt-channel",

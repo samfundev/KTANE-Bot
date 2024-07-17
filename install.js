@@ -1,5 +1,5 @@
-const { existsSync, copyFileSync, writeFileSync } = require("fs");
-const { join } = require("path");
+import { existsSync, copyFileSync, writeFileSync } from "fs";
+import { join } from "path";
 
 const databasePath = "database.sqlite3";
 if (!existsSync(databasePath)) {

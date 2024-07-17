@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
-import got from "./utils/got-traces";
+import got from "./utils/got-traces.js";
 import * as psl from "psl";
-import Logger from "./log";
+import Logger from "./log.js";
 
 let phishingDomains: Set<string> = new Set();
 let lastUpdate: number | null = null;

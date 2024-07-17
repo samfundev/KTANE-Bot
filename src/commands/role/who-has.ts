@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import tokens from "../../get-tokens";
-import GuildMessage from "../../guild-message";
+import tokens from "../../get-tokens.js";
+import GuildMessage from "../../guild-message.js";
 import { getRole, shuffle } from "#utils/role";
 
 @ApplyOptions<Command.Options>({

@@ -1,6 +1,6 @@
 import { ActivityType, Presence } from "discord.js";
-import tokens from "./get-tokens";
-import Logger from "./log";
+import tokens from "./get-tokens.js";
+import Logger from "./log.js";
 
 export default async function checkStreamingStatus(presence: Presence | null, fetch: boolean): Promise<void> {
 	if (tokens.debugging || presence == null) return;

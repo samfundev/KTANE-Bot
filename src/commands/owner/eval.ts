@@ -4,7 +4,7 @@ import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
 import { Message } from "discord.js";
 import util from "util";
-import Logger from "../../log";
+import Logger from "../../log.js";
 
 @ApplyOptions<Command.Options>({
 	name: "eval",

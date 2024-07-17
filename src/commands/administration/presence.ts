@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import { Message } from "discord.js";
-import checkStreamingStatus from "../../check-stream";
+import checkStreamingStatus from "../../check-stream.js";
 
 @ApplyOptions<Command.Options>({
 	name: "presence",

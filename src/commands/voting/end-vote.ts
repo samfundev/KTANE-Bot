@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Command, container } from "@sapphire/framework";
 import { Message, EmbedBuilder } from "discord.js";
-import { DB } from "../../db";
+import { DB } from "../../db.js";
 import { VoteData } from "#utils/voting";
 
 @ApplyOptions<Command.Options>({

@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Command } from "@sapphire/framework";
 import { Message } from "discord.js";
-import tokens from "../../get-tokens";
+import tokens from "../../get-tokens.js";
 
 @ApplyOptions<Command.Options>({
 	name: "role-list",

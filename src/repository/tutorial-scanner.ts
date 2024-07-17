@@ -1,9 +1,9 @@
 import { Message, MessageReplyOptions } from "discord.js";
 import { distance } from "fastest-levenshtein";
-import got from "../utils/got-traces";
+import got from "../utils/got-traces.js";
 import archiver from "archiver";
 import { container } from "@sapphire/framework";
-import { update } from "../bot-utils";
+import { update } from "../bot-utils.js";
 
 async function getModuleNames() {
 	const json = await got("https://ktane.timwi.de/json/raw").json<{ KtaneModules: { Name: string }[] }>();

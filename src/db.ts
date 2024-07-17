@@ -3,6 +3,8 @@
 import { Snowflake } from "discord.js";
 import Database from "better-sqlite3";
 import { join } from "path";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 type DiscordObject = { id: Snowflake };
 
@@ -18,6 +20,7 @@ export class DB {
 	static global: DiscordObject = { id: "global" };
 
 	constructor() {
+		const __dirname = dirname(fileURLToPath(import.meta.url));
 		this.database = new Database(join(__dirname, "..", "database.sqlite3"));
 	}
 

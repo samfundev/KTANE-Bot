@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import { ChannelType, Message } from "discord.js";
-import tokens from "../../get-tokens";
+import tokens from "../../get-tokens.js";
 
 @ApplyOptions<Command.Options>({
 	name: "maintainers",

@@ -1,4 +1,4 @@
-import { DB } from "./db";
+import { DB } from "./db.js";
 
 declare module "@sapphire/framework" {
 	interface Command {

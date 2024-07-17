@@ -2,9 +2,9 @@ import { ApplyOptions } from "@sapphire/decorators";
 import { container, Listener } from "@sapphire/framework";
 import remove from "confusables";
 import { Message, EmbedBuilder, Snowflake, ChannelType, escapeMarkdown, resolveColor } from "discord.js";
-import { isModerator, unpartial } from "../bot-utils";
-import { DBKey } from "../db";
-import checkMessage from "../phishing-domains";
+import { isModerator, unpartial } from "../bot-utils.js";
+import { DBKey } from "../db.js";
+import checkMessage from "../phishing-domains.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCreate" })
 export default class ScamMessageListener extends Listener {

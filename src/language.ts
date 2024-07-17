@@ -1,6 +1,6 @@
 import { container } from "@sapphire/framework";
 import langs from "langs";
-import { DB } from "./db";
+import { DB } from "./db.js";
 
 export function parseLanguage(phrase: string): string | null {
 	const lowercasePhrase = phrase.toLowerCase();

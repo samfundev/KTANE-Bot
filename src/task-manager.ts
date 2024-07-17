@@ -1,9 +1,9 @@
 import { container } from "@sapphire/framework";
 import { Snowflake, TextChannel } from "discord.js";
-import { KTANEClient } from "./bot";
-import { DB } from "./db";
-import tokens from "./get-tokens";
-import logger from "./log";
+import { KTANEClient } from "./bot.js";
+import { DB } from "./db.js";
+import tokens from "./get-tokens.js";
+import logger from "./log.js";
 
 class TaskManager {
 	static get client(): KTANEClient {

@@ -1,10 +1,10 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import { ChannelType, EmbedBuilder, TextChannel, WebhookClient } from "discord.js";
-import { sendWebhookMessage } from "../../bot-utils";
-import tokens from "../../get-tokens";
-import GuildMessage from "../../guild-message";
-import Logger from "../../log";
+import { sendWebhookMessage } from "../../bot-utils.js";
+import tokens from "../../get-tokens.js";
+import GuildMessage from "../../guild-message.js";
+import Logger from "../../log.js";
 
 @ApplyOptions<Command.Options>({
 	name: "make-major",

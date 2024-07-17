@@ -1,7 +1,7 @@
 import { AllowedPartial, ChannelType, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageCreateOptions } from "discord.js";
-import { DB } from "./db";
-import tokens from "./get-tokens";
-import Logger from "./log";
+import { DB } from "./db.js";
+import tokens from "./get-tokens.js";
+import Logger from "./log.js";
 
 type Partials = PartialMessageReaction | PartialMessage | PartialDMChannel;
 

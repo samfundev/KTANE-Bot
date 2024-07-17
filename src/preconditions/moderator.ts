@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Command, Precondition } from "@sapphire/framework";
 import { Message } from "discord.js";
-import { isModerator } from "../bot-utils";
+import { isModerator } from "../bot-utils.js";
 
 @ApplyOptions<Precondition.Options>({ position: 1 })
 export default class ModeratorPrecondition extends Precondition {

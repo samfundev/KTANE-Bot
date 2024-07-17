@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Listener, MessageCommandDeniedPayload, UserError } from "@sapphire/framework";
-import Logger from "../log";
+import Logger from "../log.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCommandDenied" })
 export default class CommandBlockedListener extends Listener {

@@ -1,11 +1,11 @@
 import Discord, { Client, DiscordAPIError } from "discord.js";
-import got from "./utils/got-traces";
+import got from "./utils/got-traces.js";
 import { decode } from "html-entities";
 import { Database } from "better-sqlite3";
 import { JSDOM } from "jsdom";
-import { sendWebhookMessage } from "./bot-utils";
-import tokens from "./get-tokens";
-import Logger from "./log";
+import { sendWebhookMessage } from "./bot-utils.js";
+import tokens from "./get-tokens.js";
+import Logger from "./log.js";
 import { container } from "@sapphire/framework";
 
 const major_webhook = new Discord.WebhookClient(tokens.majorWebhook);

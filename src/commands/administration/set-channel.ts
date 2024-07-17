@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
-import { DBKey } from "../../db";
-import GuildMessage from "../../guild-message";
+import { DBKey } from "../../db.js";
+import GuildMessage from "../../guild-message.js";
 
 @ApplyOptions<Command.Options>({
 	name: "set-channel",
