@@ -15,7 +15,7 @@ export default class MaintainersCommand extends Command {
 			return;
 		}
 
-		const content = await args.rest("string");
+		const content = await args.rest({ name: "content", type: "string" });
 
 		const author = message.author;
 		const webhook = await message.channel.createWebhook({

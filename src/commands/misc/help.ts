@@ -11,7 +11,7 @@ export default class HelpCommand extends Command {
 	usage = "<command>";
 
 	async messageRun(msg: Message, args: Args): Promise<void> {
-		const command = await args.peek("command");
+		const command = await args.peek({ name: "command", type: "command" });
 		await msg.reply({
 			embeds: [new EmbedBuilder({
 				title: `${command.name} ${command.usage ?? ""}`,

@@ -16,7 +16,7 @@ export default class VoteCommand extends Command {
 	usage = "<option ...>";
 
 	async messageRun(msg: Message, args: Args): Promise<Message> {
-		const vote = await args.repeat("number");
+		const vote = await args.repeat({ name: "vote", type: "number" });
 
 		if (msg.guild !== null) {
 			await msg.delete();

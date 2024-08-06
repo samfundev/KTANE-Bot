@@ -20,10 +20,12 @@ export default class SetChannelCommand extends Command {
 	};
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const type = await args.peek("enum", {
+		const type = await args.peek({
+			name: "type",
+			type: "enum",
 			enum: Object.keys(this.channelTypes)
 		});
-		const channel = await args.peek("guildChannel");
+		const channel = await args.peek({ name: "channel", type: "guildChannel" });
 
 		const channelType = this.channelTypes[type];
 		if (channelType === undefined) {

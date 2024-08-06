@@ -12,8 +12,8 @@ export default class CreateVoteCommand extends Command {
 	usage = "<topic> <option ...>";
 
 	async messageRun(msg: Message, args: Args): Promise<Message> {
-		const topic = await args.pick("string");
-		const options = await args.repeat("string");
+		const topic = await args.pick({ name: "topic", type: "string" });
+		const options = await args.repeat({ name: "options", type: "string" });
 
 		const currentVote = container.db.get(DB.global, "vote", null);
 		if (currentVote != null) {

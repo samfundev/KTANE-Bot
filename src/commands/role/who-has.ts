@@ -14,7 +14,7 @@ export class WhoHasRoleCommand extends Command {
 	usage = "<role>";
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const roleString = await args.pick("string");
+		const roleString = await args.pick({ name: "roleString", type: "string" });
 		const roleInf = getRole(roleString, tokens.roleIDs.assignable, msg.guild.roles.cache);
 		if (roleInf === null) {
 			await msg.reply("Unknown role.");

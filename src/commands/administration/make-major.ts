@@ -17,7 +17,7 @@ export default class MakeMajorCommand extends Command {
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
 		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === ChannelType.GuildAnnouncement) as TextChannel;
-		const messageID = await args.pick("string");
+		const messageID = await args.pick({ name: "messageID", type: "string" });
 
 		channel.messages.fetch(messageID).then(async message => {
 			if (message.embeds.length != 1) {

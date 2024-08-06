@@ -15,8 +15,8 @@ import TaskManager from "../../task-manager.js";
 })
 export default class ReactionCommand extends Command {
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const target = await args.pick("member");
-		const duration = await args.pick("duration").catch(() => null);
+		const target = await args.pick({ name: "target", type: "member" });
+		const duration = await args.pick({ name: "duration", type: "duration" }).catch(() => null);
 
 		if (target.roles.highest.comparePositionTo(msg.member.roles.highest) >= 0) {
 			await msg.reply(`${target.user.username} has a equal or higher role compared to you.`);

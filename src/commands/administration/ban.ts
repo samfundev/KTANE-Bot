@@ -16,8 +16,8 @@ export default class BanCommand extends Command {
 	usage = "<target> [duration]";
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const target = await args.pick("member");
-		const duration = await args.pick("duration").catch(() => null);
+		const target = await args.pick({ name: "target", type: "member" });
+		const duration = await args.pick({ name: "duration", type: "duration" }).catch(() => null);
 
 		msg.guild.members.ban(target)
 			.then(() => {

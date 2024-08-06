@@ -16,7 +16,7 @@ class EvalCommand extends Command {
 	usage = "<code>";
 
 	async messageRun(message: Message, args: Args) {
-		const code = await args.rest("string");
+		const code = await args.rest({ name: "code", type: "string" });
 
 		const { client } = container;
 		if (client.token === null)

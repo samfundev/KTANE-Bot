@@ -15,8 +15,8 @@ export default class YTChannelCommand extends Command {
 	usage = "<user> <channel id>";
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const user = await args.pick("user");
-		const id = await args.pick("string");
+		const user = await args.pick({ name: "user", type: "user" });
+		const id = await args.pick({ name: "id", type: "string" });
 
 		const channel: VideoChannel = {
 			name: user.username,

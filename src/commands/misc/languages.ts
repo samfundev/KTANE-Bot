@@ -12,7 +12,7 @@ export default class LanguagesCommand extends Command {
 	usage = "<language ...>";
 
 	async messageRun(message: Message, args: Args): Promise<void> {
-		const languages = await args.repeat("language");
+		const languages = await args.repeat({ name: "languages", type: "language" });
 
 		const storedLanguages = container.db.get<Record<string, string[]>>(DB.global, "languages", {});
 

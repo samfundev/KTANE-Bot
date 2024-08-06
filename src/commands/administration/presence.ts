@@ -12,7 +12,7 @@ export default class PresenceCommand extends Command {
 	usage = "<target>";
 
 	async messageRun(_msg: Message, args: Args): Promise<void> {
-		const target = await args.pick("member");
+		const target = await args.pick({ name: "target", type: "member" });
 
 		await checkStreamingStatus(target.presence, false);
 	}

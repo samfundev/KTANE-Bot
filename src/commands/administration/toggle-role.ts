@@ -15,8 +15,8 @@ export default class ToggleRoleCommand extends Command {
 	usage = "<target> <role>";
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
-		const target = await args.pick("member");
-		const role = await args.pick("string");
+		const target = await args.pick({ name: "target", type: "member" });
+		const role = await args.pick({ name: "role", type: "string" });
 
 		const targetRole = role.toLowerCase();
 		for (const roleData of tokens.roleIDs.modAssignable) {

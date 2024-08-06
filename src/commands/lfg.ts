@@ -24,7 +24,7 @@ export default class LFGBaseCommand extends Subcommand {
 	}
 
 	async help(msg: Message, args: Args): Promise<void> {
-		const topic = await args.pick("string").catch(() => "basics");
+		const topic = await args.pick({ name: "topic", type: "string" }).catch(() => "basics");
 		if (!Object.keys(this.topics).includes(topic)) {
 			await msg.reply(`Unknown topic: ${topic}. Available topics: ${Object.keys(this.topics).join(", ")}.`);
 			return;
@@ -34,13 +34,13 @@ export default class LFGBaseCommand extends Subcommand {
 	}
 
 	async invite(message: Message, args: Args): Promise<void> {
-		const players = await args.repeat("number");
+		const players = await args.repeat({ name: "players", type: "number" });
 
 		LFG.invite(message, players).catch(Logger.errorReply("invite users", message));
 	}
 
 	async join(message: Message, args: Args): Promise<void> {
-		const query = await args.rest("string");
+		const query = await args.rest({ name: "query", type: "string" });
 
 		const games = QueryParser.parse(query ?? "");
 		// If the parser returns a string, that's an error we should show the user.

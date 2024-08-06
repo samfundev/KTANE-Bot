@@ -14,7 +14,7 @@ export default class TasksCommand extends Command {
 	usage = "<target>";
 
 	async messageRun(msg: Message, args: Args): Promise<void> {
-		const target = await args.pick("member");
+		const target = await args.pick({ name: "target", type: "member" });
 
 		const tasks = TaskManager.tasks.filter(task => task.type !== "removeReaction" && task.memberID === target.id);
 		if (tasks.length === 0) {

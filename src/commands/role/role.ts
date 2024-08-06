@@ -16,7 +16,7 @@ export default class RoleCommand extends Command {
 	usage = "<role>";
 
 	async messageRun(msg: GuildMessage, args: Args): Promise<Message | null> {
-		const role = await args.pick("string");
+		const role = await args.pick({ name: "role", type: "string" });
 
 		const roleInf = getRole(role, tokens.roleIDs.assignable, msg.guild.roles.cache);
 		if (roleInf !== null) {
