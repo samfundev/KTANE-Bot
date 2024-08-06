@@ -1,23 +1,23 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
-import { Message } from "discord.js";
 import { DB } from "../../db.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
 @ApplyOptions<Command.Options>({
 	name: "createvote",
 	aliases: ["cv"],
 	description: "Creates a new vote.",
 })
-export default class CreateVoteCommand extends Command {
+export default class CreateVoteCommand extends MixedCommand {
 	usage = "<topic> <option ...>";
 
-	async messageRun(msg: Message, args: Args): Promise<Message> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
 		const topic = await args.pick({ name: "topic", type: "string" });
 		const options = await args.repeat({ name: "options", type: "string" });
 
 		const currentVote = container.db.get(DB.global, "vote", null);
 		if (currentVote != null) {
-			return msg.reply("A vote is already running.");
+			await msg.reply("A vote is already running.");
 		}
 
 		container.db.set(DB.global, "vote", {
@@ -27,6 +27,6 @@ export default class CreateVoteCommand extends Command {
 			voted: []
 		});
 
-		return msg.channel.send("Vote created.");
+		await msg.reply("Vote created.");
 	}
 }

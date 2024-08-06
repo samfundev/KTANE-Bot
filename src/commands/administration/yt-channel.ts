@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
 import { update } from "../../bot-utils.js";
-import GuildMessage from "../../guild-message.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 import Logger from "../../log.js";
 import { setupVideoTask, VideoChannel } from "../../video.js";
 
@@ -11,10 +11,10 @@ import { setupVideoTask, VideoChannel } from "../../video.js";
 	description: ["Adds a YouTube channel to the bot.", "<user> is the user whose channel is being added.", "<channel id> should be a YT channel ID: UC_x5XG1OV2P6uZZ5FSM9Ttw"].join("\n"),
 	runIn: "GUILD_ANY",
 })
-export default class YTChannelCommand extends Command {
+export default class YTChannelCommand extends MixedCommand {
 	usage = "<user> <channel id>";
 
-	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
 		const user = await args.pick({ name: "user", type: "user" });
 		const id = await args.pick({ name: "id", type: "string" });
 

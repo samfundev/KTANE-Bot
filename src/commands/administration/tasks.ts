@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import { Message } from "discord.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 import { formatDuration } from "../../duration.js";
 import TaskManager from "../../task-manager.js";
 
@@ -10,10 +10,10 @@ import TaskManager from "../../task-manager.js";
 	description: "Tells you all the tasks scheduled for a user.",
 	runIn: "GUILD_ANY",
 })
-export default class TasksCommand extends Command {
+export default class TasksCommand extends MixedCommand {
 	usage = "<target>";
 
-	async messageRun(msg: Message, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
 		const target = await args.pick({ name: "target", type: "member" });
 
 		const tasks = TaskManager.tasks.filter(task => task.type !== "removeReaction" && task.memberID === target.id);

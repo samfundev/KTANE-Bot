@@ -1,19 +1,21 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Command, container } from "@sapphire/framework";
-import { Message, EmbedBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { DB } from "../../db.js";
 import { VoteData } from "#utils/voting";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
 @ApplyOptions<Command.Options>({
 	name: "endvote",
 	aliases: ["ev"],
 	description: "Ends the current vote.",
 })
-export default class EndVoteCommand extends Command {
-	async messageRun(msg: Message): Promise<Message> {
+export default class EndVoteCommand extends MixedCommand {
+	async run(msg: MixedInteraction): Promise<void> {
 		const currentVote = container.db.getOrUndefined<VoteData>(DB.global, "vote");
 		if (currentVote === undefined) {
-			return msg.reply("There is no vote running.");
+			await msg.reply("There is no vote running.");
+			return;
 		}
 
 		const totalVotes = currentVote.votes.reduce((a: number, b: number) => a + b, 0);
@@ -34,7 +36,7 @@ export default class EndVoteCommand extends Command {
 
 		embed.setColor("#00ff00");
 
-		return msg.channel.send({
+		await msg.reply({
 			embeds: [embed]
 		});
 	}

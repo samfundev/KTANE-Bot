@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { Message } from "discord.js";
+import { MixedInteraction } from "./mixed-command";
 import { inspect } from "util";
 
 const levels: { [level: string]: (...data: unknown[]) => void } = {
@@ -20,8 +20,8 @@ export default class Logger {
 	static errorPrefix(prefix: unknown) {
 		return (...data: unknown[]): void => Logger.log("error", prefix, ...data);
 	}
-	static errorReply(reason: string, message: Message) {
-		return (...data: unknown[]): Promise<Message> => {
+	static errorReply(reason: string, message: MixedInteraction) {
+		return (...data: unknown[]): Promise<unknown> => {
 			Logger.error(reason, ...data);
 			return message.reply(`Failed to ${reason}.`);
 		};

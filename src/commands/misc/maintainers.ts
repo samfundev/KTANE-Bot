@@ -1,7 +1,8 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
-import { ChannelType, Message } from "discord.js";
+import { ChannelType } from "discord.js";
 import tokens from "../../get-tokens.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
 @ApplyOptions<Command.Options>({
 	name: "maintainers",
@@ -9,9 +10,9 @@ import tokens from "../../get-tokens.js";
 	description: "Sends a ping to other maintainers.",
 	runIn: ChannelType.GuildText,
 })
-export default class MaintainersCommand extends Command {
-	async messageRun(message: Message, args: Args): Promise<void> {
-		if (!(message.member?.roles.cache.has(tokens.roleIDs.maintainer) ?? false) || message.channel.type === ChannelType.DM || message.channel.isThread()) {
+export default class MaintainersCommand extends MixedCommand {
+	async run(message: MixedInteraction, args: Args): Promise<void> {
+		if (!message.inGuild() || !(message.member?.roles.cache.has(tokens.roleIDs.maintainer) ?? false) || message.channel.isThread()) {
 			return;
 		}
 

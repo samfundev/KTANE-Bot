@@ -1,8 +1,9 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
-import { Message } from "discord.js";
+import { InteractionResponse, Message } from "discord.js";
 import { DB } from "../../db.js";
 import { VoteData } from "#utils/voting";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
 @ApplyOptions<Command.Options>({
 	name: "vote",
@@ -12,10 +13,10 @@ import { VoteData } from "#utils/voting";
 	requiredClientPermissions: ["ManageRoles"],
 	requiredUserPermissions: ["MuteMembers"],
 })
-export default class VoteCommand extends Command {
+export default class VoteCommand extends MixedCommand {
 	usage = "<option ...>";
 
-	async messageRun(msg: Message, args: Args): Promise<Message> {
+	async run(msg: MixedInteraction, args: Args): Promise<Message | InteractionResponse> {
 		const vote = await args.repeat({ name: "vote", type: "number" });
 
 		if (msg.guild !== null) {

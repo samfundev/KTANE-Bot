@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
-import { Message } from "discord.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 import { DB } from "../../db.js";
 
 @ApplyOptions<Command.Options>({
@@ -8,10 +8,10 @@ import { DB } from "../../db.js";
 	aliases: ["langs", "languages", "lang", "language"],
 	description: "Set your languages.",
 })
-export default class LanguagesCommand extends Command {
+export default class LanguagesCommand extends MixedCommand {
 	usage = "<language ...>";
 
-	async messageRun(message: Message, args: Args): Promise<void> {
+	async run(message: MixedInteraction, args: Args): Promise<void> {
 		const languages = await args.repeat({ name: "languages", type: "language" });
 
 		const storedLanguages = container.db.get<Record<string, string[]>>(DB.global, "languages", {});

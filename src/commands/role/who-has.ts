@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import tokens from "../../get-tokens.js";
-import GuildMessage from "../../guild-message.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 import { getRole, shuffle } from "#utils/role";
 
 @ApplyOptions<Command.Options>({
@@ -10,10 +10,12 @@ import { getRole, shuffle } from "#utils/role";
 	description: "Lists of (at most 10) users who have the specified role.",
 	runIn: "GUILD_ANY",
 })
-export class WhoHasRoleCommand extends Command {
+export class WhoHasRoleCommand extends MixedCommand {
 	usage = "<role>";
 
-	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
+		if (!msg.inGuild()) return;
+
 		const roleString = await args.pick({ name: "roleString", type: "string" });
 		const roleInf = getRole(roleString, tokens.roleIDs.assignable, msg.guild.roles.cache);
 		if (roleInf === null) {

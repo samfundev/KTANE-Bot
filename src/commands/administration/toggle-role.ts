@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command } from "@sapphire/framework";
 import tokens from "../../get-tokens.js";
-import GuildMessage from "../../guild-message.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 import Logger from "../../log.js";
 
 @ApplyOptions<Command.Options>({
@@ -11,10 +11,12 @@ import Logger from "../../log.js";
 	runIn: "GUILD_ANY",
 	requiredClientPermissions: ["ManageRoles"],
 })
-export default class ToggleRoleCommand extends Command {
+export default class ToggleRoleCommand extends MixedCommand {
 	usage = "<target> <role>";
 
-	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
+		if (!msg.inGuild()) return;
+
 		const target = await args.pick({ name: "target", type: "member" });
 		const role = await args.pick({ name: "role", type: "string" });
 

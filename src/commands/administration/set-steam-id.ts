@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
-import { Message } from "discord.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
 @ApplyOptions<Command.Options>({
 	name: "set-steam-id",
@@ -8,10 +8,10 @@ import { Message } from "discord.js";
 	description: "Sets a Steam ID to Discord ID pair for the announcements.",
 	runIn: "GUILD_ANY",
 })
-export default class SetSteamIDCommand extends Command {
+export default class SetSteamIDCommand extends MixedCommand {
 	usage = "<steam id> <discord id>";
 
-	async messageRun(msg: Message, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
 		const steamid = await args.pick({ name: "steamid", type: "string" });
 		const discordid = await args.pick({ name: "discordid", type: "string" });
 

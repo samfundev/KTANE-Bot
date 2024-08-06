@@ -1,7 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, Command, container } from "@sapphire/framework";
 import { DBKey } from "../../db.js";
-import GuildMessage from "../../guild-message.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
 @ApplyOptions<Command.Options>({
 	name: "set-channel",
@@ -11,7 +11,7 @@ import GuildMessage from "../../guild-message.js";
 	requiredClientPermissions: ["ManageRoles"],
 	requiredUserPermissions: ["MuteMembers"],
 })
-export default class SetChannelCommand extends Command {
+export default class SetChannelCommand extends MixedCommand {
 	usage = "<type> <channel>";
 
 	channelTypes: { [type: string]: DBKey | undefined } = {
@@ -19,7 +19,9 @@ export default class SetChannelCommand extends Command {
 		auditlog: DBKey.AuditLog,
 	};
 
-	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
+		if (!msg.inGuild()) return;
+
 		const type = await args.peek({
 			name: "type",
 			type: "enum",

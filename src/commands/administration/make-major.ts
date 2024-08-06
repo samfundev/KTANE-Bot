@@ -3,7 +3,7 @@ import { Args, Command } from "@sapphire/framework";
 import { ChannelType, EmbedBuilder, TextChannel, WebhookClient } from "discord.js";
 import { sendWebhookMessage } from "../../bot-utils.js";
 import tokens from "../../get-tokens.js";
-import GuildMessage from "../../guild-message.js";
+import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 import Logger from "../../log.js";
 
 @ApplyOptions<Command.Options>({
@@ -12,10 +12,12 @@ import Logger from "../../log.js";
 	description: "Makes a minor announcement message a major announcement.",
 	runIn: "GUILD_ANY"
 })
-export default class MakeMajorCommand extends Command {
+export default class MakeMajorCommand extends MixedCommand {
 	usage = "<message id>";
 
-	async messageRun(msg: GuildMessage, args: Args): Promise<void> {
+	async run(msg: MixedInteraction, args: Args): Promise<void> {
+		if (!msg.inGuild()) return;
+
 		const channel = msg.guild.channels.cache.find(channel => channel.name == "mods-minor" && channel.type === ChannelType.GuildAnnouncement) as TextChannel;
 		const messageID = await args.pick({ name: "messageID", type: "string" });
 
