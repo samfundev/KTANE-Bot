@@ -41,7 +41,7 @@ export async function respondToVideos(videos: { title: string, url: string }[]):
 		if (response.includes("\"TutorialVideos\":")) continue;
 
 		const lines = response.split("\n");
-		const url = video.url.replace("https://www.youtube.com/watch?v=", "https://youtu.be/");
+		const url = video.url.replace("https://youtu.be/", "https://www.youtube.com/watch?v=");
 		lines.splice(lines.length - 2, 0, `  "TutorialVideos": [ {\n    "Language": "English",\n    "Url": "${url}"\n  } ],`);
 		files.push({ name: `${moduleName}.json`, attachment: Buffer.from(lines.join("\n")) });
 	}
