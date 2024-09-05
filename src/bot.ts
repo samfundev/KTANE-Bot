@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { SapphireClient, container } from "@sapphire/framework";
 import { BaseGuildVoiceChannel, CategoryChannel, ChannelType, GatewayIntentBits, MessageReaction, PartialMessageReaction, Partials, PartialUser, Snowflake, User } from "discord.js";
 import { CronJob } from "cron";
@@ -13,6 +11,8 @@ import lintMessage from "./repository/repolint.js";
 import TaskManager from "./task-manager.js";
 import { scanVideos, setupVideoTask } from "./video.js";
 import WorkshopScanner from "./workshop.js";
+import * as Sentry from "@sentry/node";
+Sentry.init({ dsn: tokens.sentryDSN });
 
 export class KTANEClient extends SapphireClient {
 	constructor() {
