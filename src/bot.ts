@@ -25,6 +25,7 @@ export class KTANEClient extends SapphireClient {
 				GatewayIntentBits.GuildMessageReactions,
 				GatewayIntentBits.GuildVoiceStates,
 				GatewayIntentBits.GuildPresences,
+				GatewayIntentBits.MessageContent,
 
 				GatewayIntentBits.DirectMessages
 			],
