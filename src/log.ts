@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { captureException } from "@sentry/node";
 import { MixedInteraction } from "./mixed-command";
 import { inspect } from "util";
 
@@ -13,6 +14,12 @@ export default class Logger {
 		const logMessage = `[${new Date().toISOString()}] [${level}] ${data.map(data => typeof data == "string" ? data : inspect(data)).join(" ")}`;
 
 		levels[level](logMessage);
+
+		for (const element of data) {
+			if (element instanceof Error) {
+				captureException(element);
+			}
+		}
 	}
 	static info(...data: unknown[]): void { Logger.log("info", ...data); }
 	static error(...data: unknown[]): void { Logger.log("error", ...data); }

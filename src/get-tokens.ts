@@ -8,7 +8,6 @@ interface tokens {
     majorWebhook: { id: Snowflake, token: string },
     minorWebhook: { id: Snowflake, token: string },
     youtubeAPIKey: string,
-    sentryDSN: string | undefined;
     roleIDs: {
         streaming: Snowflake,
         voiceMuted: Snowflake,

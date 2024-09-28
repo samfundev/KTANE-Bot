@@ -13,6 +13,7 @@
     "start": "tsx src/bot.ts"
   },
   "dependencies": {
+    "@kaname-png/plugin-sentry": "^1.3.3",
     "@sapphire/decorators": "^6.1.0",
     "@sapphire/framework": "file:../framework",
     "@sapphire/plugin-subcommands": "^6.0.3",

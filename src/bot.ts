@@ -11,8 +11,15 @@ import lintMessage from "./repository/repolint.js";
 import TaskManager from "./task-manager.js";
 import { scanVideos, setupVideoTask } from "./video.js";
 import WorkshopScanner from "./workshop.js";
+import '@kaname-png/plugin-sentry/register';
 import * as Sentry from "@sentry/node";
-Sentry.init({ dsn: tokens.sentryDSN });
+import { existsSync } from "fs";
+
+if (existsSync(".env")) process.loadEnvFile();
+
+Sentry.init({
+	environment: process.env.NODE_ENV === "production" ? "production" : "development",
+});
 
 export class KTANEClient extends SapphireClient {
 	constructor() {
@@ -29,7 +36,13 @@ export class KTANEClient extends SapphireClient {
 
 				GatewayIntentBits.DirectMessages
 			],
-			loadMessageCommandListeners: true
+			loadMessageCommandListeners: true,
+			sentry: {
+				loadSentryErrorListeners: true,
+				options: {
+					enabled: false
+				}
+			}
 		});
 	}
 
