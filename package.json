@@ -15,7 +15,7 @@
   "dependencies": {
     "@kaname-png/plugin-sentry": "^1.3.3",
     "@sapphire/decorators": "^6.1.0",
-    "@sapphire/framework": "file:../framework",
+    "@sapphire/framework": "github:samfundev/framework#build",
     "@sapphire/plugin-subcommands": "^6.0.3",
     "@sentry/node": "^8.28.0",
     "archiver": "^5.3.1",
