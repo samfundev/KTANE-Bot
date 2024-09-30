@@ -1,6 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { container, Listener } from "@sapphire/framework";
-import remove from "confusables";
+import { remove } from "confusables";
 import { Message, EmbedBuilder, Snowflake, ChannelType, escapeMarkdown, resolveColor } from "discord.js";
 import { isModerator, unpartial } from "../bot-utils.js";
 import { DBKey } from "../db.js";
