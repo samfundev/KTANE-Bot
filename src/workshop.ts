@@ -7,6 +7,7 @@ import { sendWebhookMessage } from "./bot-utils.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
 import { container } from "@sapphire/framework";
+import { DB } from "./db.js";
 
 const major_webhook = new Discord.WebhookClient(tokens.majorWebhook);
 const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook);
@@ -48,12 +49,27 @@ interface EntryObject {
 	author_steamid: string;
 	author_discordid: string | false;
 	avatar: string | undefined;
+	image: string;
 }
 
 interface Changelog {
 	date: Date;
 	id: string;
 	description: string;
+}
+
+interface QueryFilesResponse {
+	response: {
+		publishedfiledetails?: {
+			publishedfileid: string
+			creator: string;
+			title: string;
+			file_description: string;
+			time_updated: number;
+			preview_url: string;
+		}[];
+		next_cursor: string;
+	}
 }
 
 class WorkshopScanner {
@@ -78,82 +94,67 @@ class WorkshopScanner {
 		this.initialized = true;
 	}
 
-	get_page_index(): number {
-		/*
-		if(isset($_GET["page"]))
-		{
-			return (int)$_GET["page"];
-		}*/
-
-		const sql = "SELECT page_id FROM page_id LIMIT 0, 1";
-
-		const page_id = this.DB.prepare(sql).get() as { page_id: number } | undefined;
-		if (page_id !== undefined) {
-			return page_id.page_id;
-		}
-
-		return 0;
+	getLastScan(): number {
+		return container.db.get(DB.global, "lastWorkshopScan", 0);
 	}
 
-	set_page_index(page_index: number): void {
-		this.DB.prepare("UPDATE page_id SET page_id = ?").run(page_index);
+	setLastScan(lastScan: number): void {
+		container.db.set(DB.global, "lastWorkshopScan", lastScan);
 	}
 
-	async scrape_workshop_list(page_number: number, number_per_page: number): Promise<string | false> {
-		const steam_appid = 341800;
-		const sort_mode = "mostrecent";
-		const workshop_url = `https://steamcommunity.com/workshop/browse/?appid=${steam_appid}&browsesort=${sort_mode}&section=readytouseitems&actualsort=${sort_mode}&p=${page_number}&numperpage=${number_per_page}`;
+	async queryFiles(lastScan: number, updates: boolean) {
+		const files = [];
+		let cursor = "*";
+		while (true) {
+			const response = await fetch(`https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?${new URLSearchParams({
+				key: process.env.STEAM_API_KEY!,
+				appid: "341800",
+				query_type: updates ? "21" : "1",
+				numperpage: "100",
+				return_metadata: "true",
+				strip_description_bbcode: "true",
+				cursor
+			})}`);
 
-		Logger.info(`Beginning scrape of page ${page_number}`);
+			const data = await response.json();
+			const { response: { publishedfiledetails, next_cursor } } = data as QueryFilesResponse;
+			if (!publishedfiledetails || publishedfiledetails.length === 0) return files;
 
-		const { statusCode, body }: { statusCode: number, body: string } = await got(workshop_url);
-		if (statusCode != 200) {
-			Logger.error(`Failed to retrieve the workshop page at ${decodeURI(workshop_url)}`);
-			return false;
-		}
+			for (const file of publishedfiledetails) {
+				if (file.time_updated < lastScan / 1000) return files;
 
-		Logger.info(`Received workshop page at ${decodeURI(workshop_url)}`);
-		return body;
-	}
-
-	async find_workshop_mods(workshop_page: string): Promise<false | Map<string, EntryObject>> {
-		const htmlDocument = new JSDOM(workshop_page).window.document;
-
-		const itemsElement = htmlDocument.querySelector(".workshopBrowseItems");
-		if (itemsElement === null) {
-			Logger.error("Failed to find workshop items element");
-			return false;
-		}
-
-		const entries_to_check = new Map<string, EntryObject>();
-		for (let i = 0; i < itemsElement.children.length; i += 2) {
-			const authorLink = itemsElement.children[i].querySelector(".workshop_author_link");
-			if (authorLink === null) continue;
-
-			const author = authorLink.textContent;
-			const steamID = authorLink.getAttribute("href")?.match(/(id|profiles)\/[^/]+/);
-			if (author === null || steamID == null) continue;
-
-			const script = itemsElement.children[i + 1];
-			const jsonMatch = script.textContent?.match(/{.+}/);
-			if (jsonMatch == null) continue;
-
-			let entry_object: EntryObject;
-			try {
-				entry_object = JSON.parse(jsonMatch[0]) as EntryObject;
-			} catch (exception) {
-				Logger.error(`Failed to JSON-parse a workshop entry, skipping; scraped contents were: ${jsonMatch[0]}`);
-				continue;
+				files.push(file);
 			}
 
-			entry_object.title = decode(entry_object.title);
-			entry_object.description = decode(entry_object.description);
+			cursor = next_cursor;
+		}
+	}
 
-			entry_object.author_steamid = steamID[0];
-			entry_object.author_discordid = this.get_author_discord_id(entry_object.author_steamid);
+	async find_workshop_mods(lastScan: number): Promise<false | EntryObject[]> {
+		const entries_to_check: EntryObject[] = [];
+		const files = (await this.queryFiles(lastScan, false))
+			.concat(await this.queryFiles(lastScan, true))
+			.sort((a, b) => a.time_updated - b.time_updated);
+
+		if (files.length === 0) return false;
+
+		for (const file of files) {
+			if (entries_to_check.some(entry => entry.id === file.publishedfileid)) continue;
+
+			let entry_object: EntryObject = {
+				id: file.publishedfileid,
+				title: file.title,
+				description: file.file_description,
+				image: file.preview_url,
+				author_steamid: file.creator,
+				author_discordid: this.get_author_discord_id(file.creator),
+				author: undefined,
+				authorMention: "",
+				avatar: undefined
+			};
 
 			const getSteamAuthor = async () => {
-				entry_object.author = author !== "" ? author : await this.get_steam_name(entry_object.author_steamid);
+				entry_object.author = await this.get_steam_name(entry_object.author_steamid);
 				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
 			};
 
@@ -184,29 +185,17 @@ class WorkshopScanner {
 			else
 				continue;
 
-			entries_to_check.set(entry_object.id, entry_object);
+			entries_to_check.push(entry_object);
 		}
 
-		if (entries_to_check.size === 0) {
+		if (entries_to_check.length === 0) {
 			Logger.error("Failed to find any workshop entries");
 			return false;
 		}
 
-		Logger.info(`Found ${entries_to_check.size} workshop entry matches`);
+		Logger.info(`Found ${entries_to_check.length} workshop entry matches`);
 
 		return entries_to_check;
-	}
-
-	find_workshop_images(workshop_page: string): string[] | false {
-		const workshop_image_entries = matchAll(/workshopItemPreviewImage.+src="(.+)"/g, workshop_page);
-		if (workshop_image_entries.length == 0) {
-			Logger.error("Failed to find any workshop image entries");
-			return false;
-		}
-
-		Logger.info(`Found ${workshop_image_entries.length} workshop image entry matches`);
-
-		return workshop_image_entries.map(entry => entry[1]);
 	}
 
 	get_author_discord_id(author_steam_id: string): string | false {
@@ -236,14 +225,14 @@ class WorkshopScanner {
 	}
 
 	async get_steam_information(author_steam_id: string): Promise<boolean> {
-		const xml_url = `https://steamcommunity.com/${author_steam_id}?xml=1`;
+		const xml_url = `https://steamcommunity.com/profiles/${author_steam_id}?xml=1`;
 		const { statusCode, body } = await got(xml_url);
 		if (statusCode != 200) {
 			Logger.error(`Failed to retrieve the steam avatar at ${decodeURI(xml_url)}`);
 			return false;
 		}
 
-		const xml_document = new JSDOM(body).window.document;
+		const xml_document = new JSDOM(body, { contentType: "text/xml" }).window.document;
 
 		// Users who haven't set up their profile yet don't have an avatar, so we can't get any information for them.
 		const avatarTags = xml_document.getElementsByTagName("avatarMedium");
@@ -261,12 +250,13 @@ class WorkshopScanner {
 		return true;
 	}
 
-	async check_mod(mod_id: string, entry: EntryObject, image: string): Promise<void> {
+	async check_mod(entry: EntryObject): Promise<boolean> {
+		const mod_id = entry.id;
 		const last_changelog_id = this.get_last_changelog_id(mod_id);
 
 		const changelogs = await this.get_latest_changelogs(mod_id, last_changelog_id);
 		if (changelogs === null || changelogs.length === 0) {
-			return;
+			return changelogs !== null;
 		}
 
 		let newMod = this.is_mod_new(mod_id) === true;
@@ -275,7 +265,7 @@ class WorkshopScanner {
 			this.update_mod(mod_id, changelogs[0].id);
 
 		if (success === false)
-			return;
+			return false;
 
 		for (const changelog of changelogs.reverse()) {
 			if (matchAll(/no bot announcement|\[no ?announce\]|\[ignore\]/ig, changelog.description).length > 0) {
@@ -284,15 +274,19 @@ class WorkshopScanner {
 			}
 
 			const result = newMod ?
-				await this.post_discord_new_mod(mod_id, entry, changelog, image) :
-				await this.post_discord_update_mod(mod_id, entry, changelog, image);
+				await this.post_discord_new_mod(entry, changelog) :
+				await this.post_discord_update_mod(entry, changelog);
 			if (result !== false) {
 				Logger.info("Discord post added.");
 
 				// If a new mod was just posted, it's not a new mod anymore.
 				newMod = false;
+			} else {
+				return false;
 			}
 		}
+
+		return true;
 	}
 
 	// Returns the latest changelogs after the changelog ID passed in the since argument. Newest first.
@@ -355,10 +349,10 @@ class WorkshopScanner {
 		return run.changes === 1;
 	}
 
-	async post_discord_new_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
+	async post_discord_new_mod(entry: EntryObject, changelog: Changelog): Promise<boolean> {
 		const embed = new Discord.EmbedBuilder({
 			title: entry.title,
-			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${mod_id}`,
+			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${entry.id}`,
 			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
 				name: entry.author ?? "",
@@ -366,7 +360,7 @@ class WorkshopScanner {
 				url: `https://steamcommunity.com/${entry.author_steamid}`
 			},
 			image: {
-				url: image
+				url: entry.image
 			},
 			timestamp: changelog.date
 		});
@@ -389,10 +383,10 @@ class WorkshopScanner {
 		return await this.post_discord(data, true);
 	}
 
-	async post_discord_update_mod(mod_id: string, entry: EntryObject, changelog: Changelog, image: string): Promise<boolean> {
+	async post_discord_update_mod(entry: EntryObject, changelog: Changelog): Promise<boolean> {
 		const embed = new Discord.EmbedBuilder({
 			title: entry.title,
-			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${mod_id}#${changelog.id}`,
+			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${entry.id}#${changelog.id}`,
 			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
 				name: entry.author ?? "",
@@ -400,7 +394,7 @@ class WorkshopScanner {
 				url: `https://steamcommunity.com/${entry.author_steamid}`
 			},
 			thumbnail: {
-				url: image
+				url: entry.image
 			},
 			timestamp: changelog.date
 		});
@@ -450,40 +444,22 @@ class WorkshopScanner {
 			this.init();
 		}
 
-		const page_index = this.get_page_index();
-		const expected_entry_count = 30;
-		const workshop_page = await this.scrape_workshop_list(page_index, expected_entry_count);
+		const lastScan = this.getLastScan();
+		const currentScan = Date.now();
 
-		if (workshop_page === false) {
-			this.set_page_index(1);
-			return;
-		}
-
-		const entries_to_check = await this.find_workshop_mods(workshop_page);
+		const entries_to_check = await this.find_workshop_mods(lastScan);
 		if (entries_to_check === false) {
-			this.set_page_index(1);
 			return;
 		}
 
-		const entries_to_image = this.find_workshop_images(workshop_page);
-		if (entries_to_image === false) {
-			this.set_page_index(1);
-			return;
+		for (const entry of entries_to_check) {
+			// If mod check fails, we can't set the last scan time.
+			if (!(await this.check_mod(entry))) {
+				return;
+			}
 		}
 
-		if (entries_to_check.size != entries_to_image.length) {
-			Logger.warn(`The number of entries (${entries_to_check.size}) doesn't match the number of images (${entries_to_image.length}). Page will be rescanned. Body: ${workshop_page}`);
-			return;
-		}
-
-		let image_index = 0;
-		for (const [mod_id, entry] of entries_to_check.entries()) {
-			const image = entries_to_image[image_index];
-			await this.check_mod(mod_id, entry, image);
-			image_index++;
-		}
-
-		this.set_page_index(page_index + 1);
+		this.setLastScan(currentScan);
 	}
 }
 
