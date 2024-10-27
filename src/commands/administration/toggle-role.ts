@@ -1,21 +1,24 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command } from "@sapphire/framework";
+import { Args } from "@sapphire/framework";
 import tokens from "../../get-tokens.js";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 import Logger from "../../log.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "toggle-role",
 	aliases: ["togglerole", "tr"],
 	description: "Toggles a role for a user.",
 	runIn: "GUILD_ANY",
 	requiredClientPermissions: ["ManageRoles"],
+	slashOptions: [
+		{ name: "target", type: ApplicationCommandOptionType.User, description: "The user you want to toggle the role for." },
+		{ name: "role", type: ApplicationCommandOptionType.String, description: "The role you want to toggle." }
+	]
 })
 export default class ToggleRoleCommand extends MixedCommand {
-	usage = "<target> <role>";
-
-	async run(msg: MixedInteraction, args: Args): Promise<void> {
-		if (!msg.inGuild()) return;
+	async run(msg: MixedInteraction<true>, args: Args): Promise<void> {
+		if (!msg.channel) return;
 
 		const target = await args.pick({ name: "target", type: "member" });
 		const role = await args.pick({ name: "role", type: "string" });

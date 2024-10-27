@@ -1,25 +1,27 @@
 // From: https://github.com/discord-akairo/discord-akairo/blob/16d84c6215376c279ae9148d2a9de62328af9aa5/test/commands/eval.js
 
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command, container } from "@sapphire/framework";
-import { Message } from "discord.js";
+import { Args, container } from "@sapphire/framework";
+import { ApplicationCommandOptionType, Message } from "discord.js";
 import util from "util";
 import Logger from "../../log.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "eval",
 	aliases: ["e"],
-	description: "Toggles if someone is allowed to react.",
-	preconditions: ["OwnerOnly"]
+	description: "Evalutes some code.",
+	preconditions: ["OwnerOnly"],
+	slashOptions: [
+		{ name: "code", type: ApplicationCommandOptionType.String, description: "The code you want to evaluate." }
+	]
 })
-class EvalCommand extends Command {
-	usage = "<code>";
-
-	async messageRun(message: Message, args: Args) {
+class EvalCommand extends MixedCommand {
+	async run(message: MixedInteraction, args: Args) {
 		const code = await args.rest({ name: "code", type: "string" });
 
 		const { client } = container;
-		if (client.token === null)
+		if (client.token === null || message.channel === null)
 			return;
 
 		if (!code) return message.reply("No code provided!");

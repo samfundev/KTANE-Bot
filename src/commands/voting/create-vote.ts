@@ -1,16 +1,19 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command, container } from "@sapphire/framework";
+import { Args, container } from "@sapphire/framework";
 import { DB } from "../../db.js";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "createvote",
 	aliases: ["cv"],
 	description: "Creates a new vote.",
+	slashOptions: [
+		{ name: "topic", type: ApplicationCommandOptionType.String, description: "The topic of the vote." },
+		{ name: "options", type: ApplicationCommandOptionType.String, description: "The options for the vote." }
+	]
 })
 export default class CreateVoteCommand extends MixedCommand {
-	usage = "<topic> <option ...>";
-
 	async run(msg: MixedInteraction, args: Args): Promise<void> {
 		const topic = await args.pick({ name: "topic", type: "string" });
 		const options = await args.repeat({ name: "options", type: "string" });

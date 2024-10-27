@@ -1,28 +1,29 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command } from "@sapphire/framework";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { Args } from "@sapphire/framework";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 import Logger from "../../log.js";
 import TaskManager from "../../task-manager.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "ban",
 	aliases: ["b"],
 	description: "Bans someone for a specified duration.",
 	runIn: "GUILD_ANY",
 	requiredClientPermissions: ["BanMembers"],
 	requiredUserPermissions: ["BanMembers"],
+	slashOptions: [
+		{ name: "target", type: ApplicationCommandOptionType.User, description: "The user you want to ban." },
+		{ name: "duration", type: ApplicationCommandOptionType.String, description: "The duration of the ban.", required: false }
+	]
 })
 export default class BanCommand extends MixedCommand {
-	usage = "<target> [duration]";
-
-	async run(msg: MixedInteraction, args: Args): Promise<void> {
-		if (!msg.inGuild()) return;
-
+	async run(msg: MixedInteraction<true>, args: Args): Promise<void> {
 		const target = await args.pick({ name: "target", type: "member" });
 		const duration = await args.pick({ name: "duration", type: "duration" }).catch(() => null);
 
 		msg.guild.members.ban(target)
-			.then(() => {
+			.then(async () => {
 				// Remove any old tasks so we don't have multiple tasks to unban someone.
 				TaskManager.removeTask("unbanMember", task => task.memberID === target.id);
 

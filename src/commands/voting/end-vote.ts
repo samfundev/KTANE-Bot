@@ -1,14 +1,15 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Command, container } from "@sapphire/framework";
+import { container } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
 import { DB } from "../../db.js";
 import { VoteData } from "#utils/voting";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "endvote",
 	aliases: ["ev"],
 	description: "Ends the current vote.",
+	slashOptions: []
 })
 export default class EndVoteCommand extends MixedCommand {
 	async run(msg: MixedInteraction): Promise<void> {

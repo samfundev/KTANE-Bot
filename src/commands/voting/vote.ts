@@ -1,21 +1,23 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command, container } from "@sapphire/framework";
+import { Args, container } from "@sapphire/framework";
 import { InteractionResponse, Message } from "discord.js";
 import { DB } from "../../db.js";
 import { VoteData } from "#utils/voting";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "vote",
 	aliases: ["v"],
 	description: "Submits a vote in a vote.",
 	runIn: "GUILD_ANY",
 	requiredClientPermissions: ["ManageRoles"],
 	requiredUserPermissions: ["MuteMembers"],
+	slashOptions: [
+		{ name: "option", type: ApplicationCommandOptionType.String, description: "The options you want to vote for." }
+	]
 })
 export default class VoteCommand extends MixedCommand {
-	usage = "<option ...>";
-
 	async run(msg: MixedInteraction, args: Args): Promise<Message | InteractionResponse> {
 		const vote = await args.repeat({ name: "vote", type: "number" });
 

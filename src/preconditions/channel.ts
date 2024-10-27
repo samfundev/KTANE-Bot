@@ -1,10 +1,14 @@
-import { Command, Precondition } from "@sapphire/framework";
+import { Precondition } from "@sapphire/framework";
 import { ApplyOptions } from "@sapphire/decorators";
-import { ChannelType, Message } from "discord.js";
+import { ChannelType, ChatInputCommandInteraction, Message } from "discord.js";
+import { MixedCommand } from "../mixed-command";
 
 @ApplyOptions<Precondition.Options>({ position: 0 })
 export default class ChannelPrecondition extends Precondition {
-	messageRun(message: Message, command: Command): Precondition.Result {
+	run(message: Message | ChatInputCommandInteraction, command: MixedCommand): Precondition.Result {
+		if (!message.channel)
+			return this.error({ message: "Command must be in a channel." });
+
 		// Don't block any DM commands
 		if (message.guild == null || message.channel.type == ChannelType.DM)
 			return this.ok();
@@ -21,6 +25,22 @@ export default class ChannelPrecondition extends Precondition {
 		if (command != null && (command.name == "maintainers" && message.channel.name.startsWith("repo-")))
 			return this.ok();
 
-		return this.error({ message: "Commands aren't allowed in that channel." });
+		// ephemeral commands can be used in any channel if it's an interaction
+		if (command != null && command.options.ephemeral) {
+			if (message instanceof ChatInputCommandInteraction)
+				return this.ok();
+
+			return this.error({ message: "That command can be used as a slash command or go to <#394275199509594113>." });
+		}
+
+		return this.error({ message: "That command isn't allowed in this channel. Go to <#394275199509594113>." });
+	}
+
+	messageRun(messsage: Message, command: MixedCommand): Precondition.Result {
+		return this.run(messsage, command);
+	}
+
+	chatInputRun(interaction: ChatInputCommandInteraction, command: MixedCommand): Precondition.Result {
+		return this.run(interaction, command);
 	}
 }

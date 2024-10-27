@@ -1,21 +1,19 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Command } from "@sapphire/framework";
 import { TextChannel } from "discord.js";
 import tokens from "../../get-tokens.js";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 import Logger from "../../log.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "refresh-rolemenu",
 	aliases: ["refreshrm", "refreshrolemenu"],
 	description: "Refreshes a role menu.",
 	runIn: "GUILD_ANY",
-	preconditions: ["OwnerOnly"]
+	preconditions: ["OwnerOnly"],
+	slashOptions: []
 })
 export default class RefreshRoleMenuCommand extends MixedCommand {
-	run(msg: MixedInteraction): void {
-		if (!msg.inGuild()) return;
-
+	run(msg: MixedInteraction<true>): void {
 		for (const [menuMessageID, emojis] of Object.entries(tokens.reactionMenus)) {
 			const [channelID, msgID] = menuMessageID.split("/");
 			const channel = msg.guild.channels.cache.get(channelID) as TextChannel;

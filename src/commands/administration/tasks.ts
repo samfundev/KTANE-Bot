@@ -1,18 +1,20 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command } from "@sapphire/framework";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { Args } from "@sapphire/framework";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 import { formatDuration } from "../../duration.js";
 import TaskManager from "../../task-manager.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "tasks",
 	aliases: ["t"],
 	description: "Tells you all the tasks scheduled for a user.",
 	runIn: "GUILD_ANY",
+	slashOptions: [
+		{ name: "target", type: ApplicationCommandOptionType.User, description: "The user you want to see tasks for." }
+	]
 })
 export default class TasksCommand extends MixedCommand {
-	usage = "<target>";
-
 	async run(msg: MixedInteraction, args: Args): Promise<void> {
 		const target = await args.pick({ name: "target", type: "member" });
 

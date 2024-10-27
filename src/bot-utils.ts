@@ -1,4 +1,4 @@
-import { AllowedPartial, ChannelType, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageCreateOptions } from "discord.js";
+import { AllowedPartial, ChannelType, ChatInputCommandInteraction, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageCreateOptions } from "discord.js";
 import { DB } from "./db.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
@@ -19,7 +19,7 @@ export async function unpartial(target: AllowedPartial | Partials): Promise<bool
 	}
 }
 
-export function isModerator(message: Message): boolean {
+export function isModerator(message: Message | ChatInputCommandInteraction<"cached">): boolean {
 	if (message.guild == null || message.member == null)
 		return false;
 

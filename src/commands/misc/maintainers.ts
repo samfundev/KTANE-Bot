@@ -1,18 +1,22 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command } from "@sapphire/framework";
+import { Args } from "@sapphire/framework";
 import { ChannelType } from "discord.js";
 import tokens from "../../get-tokens.js";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "maintainers",
 	aliases: ["maintainer"],
 	description: "Sends a ping to other maintainers.",
 	runIn: ChannelType.GuildText,
+	slashOptions: [
+		{ name: "content", type: ApplicationCommandOptionType.String, description: "The content of the message to send." }
+	]
 })
 export default class MaintainersCommand extends MixedCommand {
-	async run(message: MixedInteraction, args: Args): Promise<void> {
-		if (!message.inGuild() || !(message.member?.roles.cache.has(tokens.roleIDs.maintainer) ?? false) || message.channel.isThread()) {
+	async run(message: MixedInteraction<true>, args: Args): Promise<void> {
+		if (!message.channel || !(message.member?.roles.cache.has(tokens.roleIDs.maintainer) ?? false) || message.channel.isThread()) {
 			return;
 		}
 

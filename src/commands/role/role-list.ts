@@ -1,20 +1,22 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Command } from "@sapphire/framework";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 import tokens from "../../get-tokens.js";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "role-list",
 	aliases: ["rolelist", "rl", "roles"],
 	description: "Lists of all the roles that can be used with the role command.",
 	runIn: "GUILD_ANY",
 	cooldownDelay: 60000,
 	cooldownLimit: 1,
+	slashOptions: [],
+	ephemeral: true
 })
 export default class RoleListCommand extends MixedCommand {
-	async run(msg: MixedInteraction): Promise<void> {
-		if (!msg.inGuild()) return;
-
-		await msg.channel.send(`Roles:\n${tokens.roleIDs.assignable.map(role => ` - ${role.aliases.join(", ")}`).join("\n")}`);
+	async run(msg: MixedInteraction<true>): Promise<void> {
+		await msg.reply({
+			content: `Roles:\n${tokens.roleIDs.assignable.map(role => ` - ${role.aliases.join(", ")}`).join("\n")}`,
+			ephemeral: true
+		});
 	}
 }

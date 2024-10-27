@@ -1,16 +1,19 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, Command, container } from "@sapphire/framework";
-import { MixedCommand, MixedInteraction } from "../../mixed-command.js";
+import { Args, container } from "@sapphire/framework";
+import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
 import { DB } from "../../db.js";
+import { ApplicationCommandOptionType } from "discord.js";
 
-@ApplyOptions<Command.Options>({
+@ApplyOptions<MixedOptions>({
 	name: "languages",
 	aliases: ["langs", "languages", "lang", "language"],
 	description: "Set your languages.",
+	slashOptions: [
+		{ name: "languages", type: ApplicationCommandOptionType.String, description: "The languages you speak." }
+	],
+	ephemeral: true
 })
 export default class LanguagesCommand extends MixedCommand {
-	usage = "<language ...>";
-
 	async run(message: MixedInteraction, args: Args): Promise<void> {
 		const languages = await args.repeat({ name: "languages", type: "language" });
 
@@ -20,6 +23,6 @@ export default class LanguagesCommand extends MixedCommand {
 
 		container.db.set(DB.global, "languages", storedLanguages);
 
-		await message.reply(`Your languages are now set to ${languages.join(", ")}`);
+		await message.reply({ content: `Your languages are now set to ${languages.join(", ")}`, ephemeral: true });
 	}
 }
