@@ -1,4 +1,4 @@
-import { AllowedPartial, ChannelType, ChatInputCommandInteraction, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageCreateOptions } from "discord.js";
+import { AllowedPartial, ChatInputCommandInteraction, Client, Message, PartialDMChannel, PartialMessage, PartialMessageReaction, WebhookClient, WebhookMessageCreateOptions } from "discord.js";
 import { DB } from "./db.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
@@ -34,7 +34,7 @@ export async function sendWebhookMessage(client: Client, webhook: WebhookClient,
 	const message = await webhook.send(options);
 
 	const channel = await client.channels.fetch(message.channel_id);
-	if (channel == null || channel.type !== ChannelType.GuildText)
+	if (channel == null || !channel.isTextBased()) 
 		throw new Error("Not a text channel.");
 
 	return await channel.messages.fetch(message.id);
