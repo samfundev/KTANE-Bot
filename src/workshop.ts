@@ -44,11 +44,7 @@ interface EntryObject {
 	id: string;
 	title: string;
 	description: string;
-	author: string | undefined;
-	authorMention: string;
 	author_steamid: string;
-	author_discordid: string | false;
-	avatar: string | undefined;
 	image: string;
 }
 
@@ -56,6 +52,12 @@ interface Changelog {
 	date: Date;
 	id: string;
 	description: string;
+}
+
+interface Author {
+	name?: string;
+	avatar?: string;
+	discordId?: string;
 }
 
 interface QueryFilesResponse {
@@ -147,43 +149,7 @@ class WorkshopScanner {
 				description: file.file_description,
 				image: file.preview_url,
 				author_steamid: file.creator,
-				author_discordid: this.get_author_discord_id(file.creator),
-				author: undefined,
-				authorMention: "",
-				avatar: undefined
 			};
-
-			const getSteamAuthor = async () => {
-				entry_object.author = await this.get_steam_name(entry_object.author_steamid);
-				entry_object.avatar = await this.get_steam_avatar(entry_object.author_steamid);
-			};
-
-			if (entry_object.author_discordid !== false) {
-				await this.client.users.fetch(entry_object.author_discordid)
-					.then(user => {
-						entry_object.author = user.username;
-						entry_object.avatar = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
-					})
-					.catch(async error => {
-						if (error instanceof DiscordAPIError) {
-							this.DB.prepare(`DELETE FROM author_lookup WHERE discord_id=${entry_object.author_discordid}`).run();
-							Logger.warn(`Unable to find user with ID ${entry_object.author_discordid}. ID removed from database.`);
-						} else {
-							Logger.error("Could not fetch Discord avatar.", error);
-						}
-
-						await getSteamAuthor();
-					});
-			} else {
-				await getSteamAuthor();
-			}
-
-			if (entry_object.author_discordid !== false)
-				entry_object.authorMention = `<@${entry_object.author_discordid}>`;
-			else if (entry_object.author !== undefined)
-				entry_object.authorMention = entry_object.author;
-			else
-				continue;
 
 			entries_to_check.push(entry_object);
 		}
@@ -236,8 +202,7 @@ class WorkshopScanner {
 
 		// Users who haven't set up their profile yet don't have an avatar, so we can't get any information for them.
 		const avatarTags = xml_document.getElementsByTagName("avatarMedium");
-		if (avatarTags.length == 0)
-			return false;
+		if (avatarTags.length == 0) return false;
 
 		const avatar = avatarTags[0].textContent;
 		const steamID = xml_document.getElementsByTagName("steamID")[0].textContent;
@@ -273,9 +238,14 @@ class WorkshopScanner {
 				continue;
 			}
 
+			const author = await this.getAuthor(entry, changelog);
+
+			// Remove the contributor from the description
+			changelog.description = changelog.description.replace(/^Contrib\. \[.+\]\( ?https:\/\/steamcommunity\.com\/profiles\/\d+ ?\)\n\n/, "");
+
 			const result = newMod ?
-				await this.post_discord_new_mod(entry, changelog) :
-				await this.post_discord_update_mod(entry, changelog);
+				await this.post_discord_new_mod(entry, changelog, author) :
+				await this.post_discord_update_mod(entry, changelog, author);
 			if (result !== false) {
 				Logger.info("Discord post added.");
 
@@ -349,14 +319,47 @@ class WorkshopScanner {
 		return run.changes === 1;
 	}
 
-	async post_discord_new_mod(entry: EntryObject, changelog: Changelog): Promise<boolean> {
+	async getAuthor(entry_object: EntryObject, changelog: Changelog): Promise<{ name?: string, avatar?: string, discordId?: string }> {
+		let steamId = entry_object.author_steamid;
+
+		// Grab the contributor's Steam ID from the changelog if it's there.
+		const contributor = changelog.description.match(/https:\/\/steamcommunity.com\/profiles\/(\d+)/);
+		if (contributor) {
+			steamId = contributor[1];
+		}
+
+		const discordId = this.get_author_discord_id(steamId);
+		if (discordId !== false) {
+			const user = await this.client.users.fetch(discordId).catch(error => error)
+			if (!(user instanceof Error)) {
+				return {
+					name: user.username,
+					avatar: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`,
+					discordId: user.id,
+				}
+			} else if (user instanceof DiscordAPIError) {
+				this.DB.prepare(`DELETE FROM author_lookup WHERE discord_id=${discordId}`).run();
+				Logger.warn(`Unable to find user with ID ${discordId}. ID removed from database.`);
+			} else {
+				Logger.error("Could not fetch Discord avatar.", user);
+			}
+		}
+
+		return {
+			name: await this.get_steam_name(steamId),
+			avatar: await this.get_steam_avatar(steamId),
+		}
+	}
+
+	async post_discord_new_mod(entry: EntryObject, changelog: Changelog, author: Author): Promise<boolean> {
+		const mention = author.discordId ? `<@${author.discordId}>` : author.name;
 		const embed = new Discord.EmbedBuilder({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${entry.id}`,
 			description: entry.description.replace(/<br\s*\/?>/g, "\n").replace("\n\n", "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
-				name: entry.author ?? "",
-				icon_url: entry.avatar,
+				name: author.name ?? "",
+				icon_url: author.avatar,
 				url: `https://steamcommunity.com/${entry.author_steamid}`
 			},
 			image: {
@@ -368,29 +371,30 @@ class WorkshopScanner {
 		embed.setColor("#00aa00");
 
 		const data: Discord.WebhookMessageCreateOptions = {
-			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${entry.authorMention}:`,
+			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${mention}:`,
 			embeds: [
 				embed
 			],
 		};
 
-		if (entry.author_discordid !== false) {
+		if (author.discordId !== undefined) {
 			data.allowedMentions = {
-				users: [entry.author_discordid]
+				users: [author.discordId]
 			};
 		}
 
 		return await this.post_discord(data, true);
 	}
 
-	async post_discord_update_mod(entry: EntryObject, changelog: Changelog): Promise<boolean> {
+	async post_discord_update_mod(entry: EntryObject, changelog: Changelog, author: Author): Promise<boolean> {
+		const mention = author.discordId ? `<@${author.discordId}>` : author.name;
 		const embed = new Discord.EmbedBuilder({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${entry.id}#${changelog.id}`,
 			description: changelog.description.replace(/<br\s*\/?>/g, "\n").replace(/<a.*?>(.+?)<\/a>/g, "$1").substring(0, 1000),
 			author: {
-				name: entry.author ?? "",
-				icon_url: entry.avatar,
+				name: author.name ?? "",
+				icon_url: author.avatar,
 				url: `https://steamcommunity.com/${entry.author_steamid}`
 			},
 			thumbnail: {
@@ -402,15 +406,15 @@ class WorkshopScanner {
 		embed.setColor("#0055aa");
 
 		const data: Discord.WebhookMessageCreateOptions = {
-			content: `:loudspeaker: ${entry.authorMention} has posted an update to **${entry.title}** on the Steam Workshop!`,
+			content: `:loudspeaker: ${mention} has posted an update to **${entry.title}** on the Steam Workshop!`,
 			embeds: [
 				embed
 			],
 		};
 
-		if (entry.author_discordid !== false) {
+		if (author.discordId !== undefined) {
 			data.allowedMentions = {
-				users: [entry.author_discordid]
+				users: [author.discordId]
 			};
 		}
 
