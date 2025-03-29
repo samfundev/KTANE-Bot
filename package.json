@@ -31,7 +31,7 @@
     "jsdom": "^19.0.0",
     "langs": "^2.0.0",
     "psl": "^1.8.0",
-    "tsx": "^4.16.2"
+    "tsx": "^4.19.3"
   },
   "repository": "samfundev/KTANE-Bot",
   "author": "samfundev",
