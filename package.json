@@ -8,7 +8,6 @@
     "#utils/*": "./src/utils/*.ts"
   },
   "scripts": {
-    "install": "node install.js",
     "dev": "tsx --watch src/bot.ts",
     "start": "tsx src/bot.ts"
   },
