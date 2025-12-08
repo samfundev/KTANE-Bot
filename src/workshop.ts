@@ -68,6 +68,7 @@ interface QueryFilesResponse {
 			title: string;
 			file_description: string;
 			time_updated: number;
+			time_created: number;
 			preview_url: string;
 		}[];
 		next_cursor: string;
@@ -123,7 +124,7 @@ class WorkshopScanner {
 			if (!publishedfiledetails || publishedfiledetails.length === 0) return files;
 
 			for (const file of publishedfiledetails) {
-				if (file.time_updated < lastScan / 1000) return files;
+				if ((updates ? file.time_updated : file.time_created) < lastScan / 1000) return files;
 
 				files.push(file);
 			}
