@@ -118,6 +118,7 @@ class WorkshopScanner {
 				strip_description_bbcode: "true",
 				cursor
 			})}`);
+			if (!response.ok) return null;
 
 			const data = await response.json();
 			const { response: { publishedfiledetails, next_cursor } } = data as QueryFilesResponse;
@@ -135,9 +136,13 @@ class WorkshopScanner {
 
 	async find_workshop_mods(lastScan: number): Promise<false | EntryObject[]> {
 		const entries_to_check: EntryObject[] = [];
-		const files = (await this.queryFiles(lastScan, false))
-			.concat(await this.queryFiles(lastScan, true))
-			.sort((a, b) => a.time_updated - b.time_updated);
+		const newFiles = await this.queryFiles(lastScan, false);
+		const updatedFiles = await this.queryFiles(lastScan, true);
+		if (newFiles === null || updatedFiles === null) {
+			return false;
+		}
+
+		const files = newFiles.concat(updatedFiles).sort((a, b) => a.time_updated - b.time_updated);
 
 		if (files.length === 0) return false;
 
