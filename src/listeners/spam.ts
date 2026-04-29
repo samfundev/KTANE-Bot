@@ -52,7 +52,7 @@ export default class SpamMessageListener extends Listener {
 			const channel = await client.channels.fetch(channelID);
 			if (channel?.type === ChannelType.GuildText) {
 				await channel.send({
-					content: `Spam messages deleted from ${author.username}.`,
+					content: `Spam messages deleted from <@${author.id}>.`,
 					embeds: [
 						new EmbedBuilder({
 							description: escapeMarkdown(message.content),
