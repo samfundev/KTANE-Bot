@@ -1,36 +1,23 @@
 import { defineConfig } from "eslint/config";
 import js from "@eslint/js";
-import tseslint from 'typescript-eslint';
+import tseslint from "typescript-eslint";
 
 export default defineConfig([
 	js.configs.recommended,
 	tseslint.configs.recommendedTypeChecked,
 	{
-		ignores: [
-			"dist/*",
-			"*.js",
-		],
+		ignores: ["dist/*", "*.js"],
 	},
 	{
 		languageOptions: {
 			parserOptions: {
-				projectService: true
+				projectService: true,
 			},
 		},
 
 		rules: {
-			semi: ["error", "always"],
-			indent: [
-				"error",
-				"tab",
-				{
-					SwitchCase: 1,
-				},
-			],
 			"no-console": "error",
-			"no-mixed-spaces-and-tabs": ["error", "smart-tabs"],
 			yoda: "error",
-			quotes: "error",
 
 			// TypeScript ESLint rules
 			"@typescript-eslint/no-unsafe-assignment": "warn",

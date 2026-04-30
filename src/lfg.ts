@@ -15,7 +15,9 @@ export class LFG {
 	static players: Player[];
 
 	static loadPlayers(): void {
-		this.players = container.db.get(DB.global, "lfg_players", []).map(Player.fromData);
+		this.players = container.db
+			.get(DB.global, "lfg_players", [])
+			.map(Player.fromData);
 	}
 
 	static savePlayers(): void {
@@ -23,38 +25,55 @@ export class LFG {
 	}
 
 	static join(user: User, games: Game[]): void {
-		const oldPlayer = this.players.find(player => player.user == user.id);
+		const oldPlayer = this.players.find((player) => player.user == user.id);
 		if (oldPlayer === undefined) {
-			const newPlayers = this.players.filter(player => player.user != user.id);
-			newPlayers.push(new Player(user.id, user.username + "#" + user.discriminator, games));
+			const newPlayers = this.players.filter(
+				(player) => player.user != user.id,
+			);
+			newPlayers.push(
+				new Player(user.id, user.username + "#" + user.discriminator, games),
+			);
 			this.players = newPlayers;
 		} else {
 			oldPlayer.games = games;
 		}
 
-		this.updateMessages().catch(Logger.errorPrefix("Failed to update LFG messages:"));
+		this.updateMessages().catch(
+			Logger.errorPrefix("Failed to update LFG messages:"),
+		);
 	}
 
 	static leave(user: Snowflake): void {
-		this.players = this.players.filter(player => player.user != user);
-		this.updateMessages().catch(Logger.errorPrefix("Failed to update LFG messages:"));
+		this.players = this.players.filter((player) => player.user != user);
+		this.updateMessages().catch(
+			Logger.errorPrefix("Failed to update LFG messages:"),
+		);
 	}
 
-	static async invite(message: Message, playerNumbers: number[]): Promise<void> {
-		const player = this.players.find(player => player.user == message.author.id);
+	static async invite(
+		message: Message,
+		playerNumbers: number[],
+	): Promise<void> {
+		const player = this.players.find(
+			(player) => player.user == message.author.id,
+		);
 		if (player == undefined) {
 			await message.reply("You need to run `!lfg join` first.");
 			return;
 		}
 
-		const matched = this.players.filter(otherPlayer => player.matches(otherPlayer));
+		const matched = this.players.filter((otherPlayer) =>
+			player.matches(otherPlayer),
+		);
 		if (matched.length == 0) {
 			await message.reply("Wait for another player to matched up with you.");
 			return;
 		}
 
-		if (playerNumbers.some(number => number < 1 || number > matched.length)) {
-			await message.reply(`Players should by specified by a number between 1-${matched.length}.`);
+		if (playerNumbers.some((number) => number < 1 || number > matched.length)) {
+			await message.reply(
+				`Players should by specified by a number between 1-${matched.length}.`,
+			);
 			return;
 		}
 
@@ -67,30 +86,48 @@ export class LFG {
 			ids.push(id);
 		}
 
-		await message.reply(`Invited ${ids.map(id => `<@${id}>`).join(", ")}.`);
+		await message.reply(`Invited ${ids.map((id) => `<@${id}>`).join(", ")}.`);
 	}
 
 	static async updateMessages(): Promise<void> {
 		for (const player of this.players) {
-			const matched = this.players.filter(otherPlayer => player.matches(otherPlayer));
+			const matched = this.players.filter((otherPlayer) =>
+				player.matches(otherPlayer),
+			);
 			const hasMatch = matched.length > 0;
 
 			const embed = new EmbedBuilder({
 				title: hasMatch ? "Found a Game!" : "Looking for a Game...",
 				footer: {
-					text: "Use `!lfg leave` when you're done." + (hasMatch ? " Use `!lfg invite 1 3 5` to send an invite to those numbered users." : "")
-				}
+					text:
+						"Use `!lfg leave` when you're done." +
+						(hasMatch
+							? " Use `!lfg invite 1 3 5` to send an invite to those numbered users."
+							: ""),
+				},
 			});
 
-			if (hasMatch) embed.addFields({ name: "Players:", value: joinLimit(matched.map((match, index) => `${index + 1}. ${match.username} - ${match.getQuery()}`), "\n", 1024) });
+			if (hasMatch)
+				embed.addFields({
+					name: "Players:",
+					value: joinLimit(
+						matched.map(
+							(match, index) =>
+								`${index + 1}. ${match.username} - ${match.getQuery()}`,
+						),
+						"\n",
+						1024,
+					),
+				});
 			embed.addFields({ name: "Query:", value: player.getQuery() });
 
 			embed.setColor(hasMatch ? "Green" : "Red");
 
 			// To prevent us from sending the embed to the user, we hash it and compare it to the hash of the last embed we sent.
-			const embedHash = createHash("md5").update(JSON.stringify(embed.toJSON())).digest("hex");
-			if (embedHash == player.hash)
-				continue;
+			const embedHash = createHash("md5")
+				.update(JSON.stringify(embed.toJSON()))
+				.digest("hex");
+			if (embedHash == player.hash) continue;
 
 			const user = await this.client.users.fetch(player.user);
 			if (player.message != null && user.dmChannel != null) {
@@ -140,19 +177,31 @@ class Player {
 		1. They aren't the same player.
 		2. They speak a language in common.
 		3. They have a game they both want to play. */
-		return this.user != otherPlayer.user &&
+		return (
+			this.user != otherPlayer.user &&
 			compareLanguage(this.user, otherPlayer.user) &&
-			this.games.some(game => otherPlayer.games.some(otherGame => game.matches(otherGame)));
+			this.games.some((game) =>
+				otherPlayer.games.some((otherGame) => game.matches(otherGame)),
+			)
+		);
 	}
 
 	static fromData(data: any): Player {
-		const player = new Player(data.user, data.username, data.games.map(Game.fromData));
+		const player = new Player(
+			data.user,
+			data.username,
+			data.games.map(Game.fromData),
+		);
 		player.message = data.message;
 		player.hash = data.hash;
 
 		if (data.username == undefined) {
-			LFG.client.users.fetch(data.user)
-				.then(user => player.username = user.username + "#" + user.discriminator)
+			LFG.client.users
+				.fetch(data.user)
+				.then(
+					(user) =>
+						(player.username = user.username + "#" + user.discriminator),
+				)
 				.catch(Logger.error);
 		}
 
@@ -160,7 +209,7 @@ class Player {
 	}
 
 	getQuery(): string {
-		return this.games.map(game => game.stringify()).join("; ");
+		return this.games.map((game) => game.stringify()).join("; ");
 	}
 }
 
@@ -174,8 +223,7 @@ export class Game {
 	}
 
 	matches(otherGame: Game): boolean {
-		if (this.name != otherGame.name)
-			return false;
+		if (this.name != otherGame.name) return false;
 
 		return this.compareTags(otherGame.tags) && otherGame.compareTags(this.tags);
 	}
@@ -193,19 +241,19 @@ export class Game {
 				return !otherTags.includes("modded") && !otherTags.includes("vanilla");
 
 			// If a user marks them self as a defuser or expert, don't match them with people the same role.
-			if ((tag == "defuser" || tag == "expert") && otherHasTag)
-				return false;
+			if ((tag == "defuser" || tag == "expert") && otherHasTag) return false;
 
 			// Otherwise, just if the tag isn't present with the other game.
-			if (!otherHasTag)
-				return false;
+			if (!otherHasTag) return false;
 		}
 
 		return true;
 	}
 
 	stringify(): string {
-		return this.tags.length == 0 ? this.name : `${this.name}: ${this.tags.join(", ")}`;
+		return this.tags.length == 0
+			? this.name
+			: `${this.name}: ${this.tags.join(", ")}`;
 	}
 
 	static fromData(data: any): Game {
@@ -220,8 +268,7 @@ export class QueryParser {
 		const games: Game[] = [];
 		let currentGame;
 		for (const tag of query.toLowerCase().split(" ")) {
-			if (tag === "")
-				continue;
+			if (tag === "") continue;
 
 			const gameTag = this.normalize(tag, this.games);
 			if (gameTag != null) {
@@ -261,7 +308,13 @@ export class QueryParser {
 	}
 
 	static stringify(tags: string[][]): string {
-		return tags.map(aliases => aliases.length == 1 ? aliases[0] : `${aliases[0]} (${aliases.slice(1).join(" ")})`).join(", ");
+		return tags
+			.map((aliases) =>
+				aliases.length == 1
+					? aliases[0]
+					: `${aliases[0]} (${aliases.slice(1).join(" ")})`,
+			)
+			.join(", ");
 	}
 
 	static games: string[][] = [
@@ -286,6 +339,6 @@ export class QueryParser {
 		["mixed", "mix"],
 		["defuser", "def"],
 		["expert", "exp"],
-		["challenge_bomb"]
+		["challenge_bomb"],
 	];
 }

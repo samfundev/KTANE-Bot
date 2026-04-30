@@ -5,27 +5,23 @@
 	"minorWebhook": { "id": "", "token": "" },
 	"youtubeAPIKey": "",
 	"roleIDs": {
-        "streaming": "",
-        "voiceMuted": "",
-        "noReaction": "",
-        "moderator": "",
-        "maintainer": "",
-		"assignable": [
-			{ "aliases": [""], "roleID": "" }
-		],
-        "modAssignable": [
-            { "aliases": [""], "roleID": "" }
-        ]
+		"streaming": "",
+		"voiceMuted": "",
+		"noReaction": "",
+		"moderator": "",
+		"maintainer": "",
+		"assignable": [{ "aliases": [""], "roleID": "" }],
+		"modAssignable": [{ "aliases": [""], "roleID": "" }]
 	},
-    "autoManagedCategories": {
-        "": { "channelPrefix": "", "names": null }
-    },
-    "reactionMenus": {
-        "": {
-            "": ""
-        }
+	"autoManagedCategories": {
+		"": { "channelPrefix": "", "names": null }
 	},
-    "requestsChannel": "",
+	"reactionMenus": {
+		"": {
+			"": ""
+		}
+	},
+	"requestsChannel": "",
 	"repoLintPath": "",
 	"debugging": false
 }

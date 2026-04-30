@@ -1,5 +1,9 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
+import {
+	MixedCommand,
+	MixedInteraction,
+	MixedOptions,
+} from "../../mixed-command.js";
 import tokens from "../../get-tokens.js";
 
 @ApplyOptions<MixedOptions>({
@@ -10,13 +14,13 @@ import tokens from "../../get-tokens.js";
 	cooldownDelay: 60000,
 	cooldownLimit: 1,
 	slashOptions: [],
-	ephemeral: true
+	ephemeral: true,
 })
 export default class RoleListCommand extends MixedCommand {
 	async run(msg: MixedInteraction<true>): Promise<void> {
 		await msg.reply({
-			content: `Roles:\n${tokens.roleIDs.assignable.map(role => ` - ${role.aliases.join(", ")}`).join("\n")}`,
-			ephemeral: true
+			content: `Roles:\n${tokens.roleIDs.assignable.map((role) => ` - ${role.aliases.join(", ")}`).join("\n")}`,
+			ephemeral: true,
 		});
 	}
 }

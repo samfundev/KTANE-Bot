@@ -2,7 +2,10 @@ import { ActivityType, Presence } from "discord.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
 
-export default async function checkStreamingStatus(presence: Presence | null, fetch: boolean): Promise<void> {
+export default async function checkStreamingStatus(
+	presence: Presence | null,
+	fetch: boolean,
+): Promise<void> {
 	if (tokens.debugging || presence == null) return;
 
 	let member = presence.member;
@@ -14,23 +17,30 @@ export default async function checkStreamingStatus(presence: Presence | null, fe
 	if (fetch) {
 		try {
 			member = await member.fetch(true);
-		} catch { // Failed to fetch member, we can't check the streaming status.
+		} catch {
+			// Failed to fetch member, we can't check the streaming status.
 			return;
 		}
 	}
 
 	const activities = presence.activities;
-	const streamingKTANE = activities.some(game => game.type === ActivityType.Streaming && game.state === "Keep Talking and Nobody Explodes");
+	const streamingKTANE = activities.some(
+		(game) =>
+			game.type === ActivityType.Streaming &&
+			game.state === "Keep Talking and Nobody Explodes",
+	);
 	const hasRole = member.roles.cache.has(tokens.roleIDs.streaming);
 	let actionTaken = null;
 	if (hasRole && !streamingKTANE) {
 		await member.roles.remove(tokens.roleIDs.streaming).catch(Logger.error);
 		actionTaken = "; removing streaming role";
-	}
-	else if (!hasRole && streamingKTANE) {
+	} else if (!hasRole && streamingKTANE) {
 		await member.roles.add(tokens.roleIDs.streaming).catch(Logger.error);
 		actionTaken = "; adding streaming role";
 	}
 	if (actionTaken !== null)
-		Logger.info(member.user.username, `${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`);
+		Logger.info(
+			member.user.username,
+			`${streamingKTANE ? "is streaming KTANE" : "is streaming NON-KTANE"}${actionTaken}`,
+		);
 }

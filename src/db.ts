@@ -25,24 +25,30 @@ export class DB {
 	}
 
 	private getRow(object: DiscordObject): { settings: string } | undefined {
-		return this.database.prepare("SELECT settings FROM settings WHERE id = ?").get(object.id) as { settings: string } | undefined;
+		return this.database
+			.prepare("SELECT settings FROM settings WHERE id = ?")
+			.get(object.id) as { settings: string } | undefined;
 	}
 
 	private getKey(key: DBKey | string): string {
-		return (typeof key === "string") ? key : DBKey[key];
+		return typeof key === "string" ? key : DBKey[key];
 	}
 
 	get<V>(object: DiscordObject, key: DBKey | string, defaultValue: V): V {
 		key = this.getKey(key);
 
-		const json = JSON.parse(this.getRow(object)?.settings ?? "{}") as { [key: string]: V };
+		const json = JSON.parse(this.getRow(object)?.settings ?? "{}") as {
+			[key: string]: V;
+		};
 		return json[key] ?? defaultValue;
 	}
 
 	getOrUndefined<V>(object: DiscordObject, key: DBKey | string): V | undefined {
 		key = this.getKey(key);
 
-		const json = JSON.parse(this.getRow(object)?.settings ?? "{}") as { [key: string]: V };
+		const json = JSON.parse(this.getRow(object)?.settings ?? "{}") as {
+			[key: string]: V;
+		};
 		return json[key];
 	}
 
@@ -51,11 +57,15 @@ export class DB {
 
 		const row = this.getRow(object);
 		if (row === undefined) {
-			this.database.prepare("INSERT INTO settings (id, settings) VALUES (?, ?)").run(object.id, JSON.stringify({ [key]: value }));
+			this.database
+				.prepare("INSERT INTO settings (id, settings) VALUES (?, ?)")
+				.run(object.id, JSON.stringify({ [key]: value }));
 		} else {
 			const json = JSON.parse(row.settings) as { [key: string]: V };
 			json[key] = value;
-			this.database.prepare("UPDATE settings SET settings = ? WHERE id = ?").run(JSON.stringify(json), object.id);
+			this.database
+				.prepare("UPDATE settings SET settings = ? WHERE id = ?")
+				.run(JSON.stringify(json), object.id);
 		}
 	}
 
@@ -69,7 +79,9 @@ export class DB {
 
 		const json = JSON.parse(row.settings) as { [key: string]: unknown };
 		delete json[key];
-		this.database.prepare("UPDATE settings SET settings = ? WHERE id = ?").run(JSON.stringify(json), object.id);
+		this.database
+			.prepare("UPDATE settings SET settings = ? WHERE id = ?")
+			.run(JSON.stringify(json), object.id);
 	}
 
 	clear(object: DiscordObject): void {

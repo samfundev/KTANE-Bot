@@ -1,7 +1,11 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, container } from "@sapphire/framework";
 import { DB } from "../../db.js";
-import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
+import {
+	MixedCommand,
+	MixedInteraction,
+	MixedOptions,
+} from "../../mixed-command.js";
 import { ApplicationCommandOptionType } from "discord.js";
 
 @ApplyOptions<MixedOptions>({
@@ -9,9 +13,17 @@ import { ApplicationCommandOptionType } from "discord.js";
 	aliases: ["cv"],
 	description: "Creates a new vote.",
 	slashOptions: [
-		{ name: "topic", type: ApplicationCommandOptionType.String, description: "The topic of the vote." },
-		{ name: "options", type: ApplicationCommandOptionType.String, description: "The options for the vote." }
-	]
+		{
+			name: "topic",
+			type: ApplicationCommandOptionType.String,
+			description: "The topic of the vote.",
+		},
+		{
+			name: "options",
+			type: ApplicationCommandOptionType.String,
+			description: "The options for the vote.",
+		},
+	],
 })
 export default class CreateVoteCommand extends MixedCommand {
 	async run(msg: MixedInteraction, args: Args): Promise<void> {
@@ -27,7 +39,7 @@ export default class CreateVoteCommand extends MixedCommand {
 			topic,
 			options,
 			votes: new Array(options.length).fill(0),
-			voted: []
+			voted: [],
 		});
 
 		await msg.reply("Vote created.");

@@ -8,10 +8,17 @@ import { scanForTutorials } from "../repository/tutorial-scanner.js";
 @ApplyOptions<Listener.Options>({ event: "messageCreate" })
 export default class TutorialMessageListener extends Listener {
 	async run(message: Message): Promise<void> {
-		if (!await unpartial(message) || message.guild === null || message.author.bot)
+		if (
+			!(await unpartial(message)) ||
+			message.guild === null ||
+			message.author.bot
+		)
 			return;
 
-		const requestsID = await this.container.db.getOrUndefined(message.guild, DBKey.RequestsChannel);
+		const requestsID = await this.container.db.getOrUndefined(
+			message.guild,
+			DBKey.RequestsChannel,
+		);
 		if (message.channel.id === requestsID) {
 			await scanForTutorials(message);
 		}

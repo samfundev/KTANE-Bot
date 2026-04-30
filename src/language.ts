@@ -16,7 +16,11 @@ export function parseLanguage(phrase: string): string | null {
 }
 
 export function compareLanguage(user1: string, user2: string): boolean {
-	const storedLanguages: { [id: string]: string[] } = container.db.get(DB.global, "languages", {});
+	const storedLanguages: { [id: string]: string[] } = container.db.get(
+		DB.global,
+		"languages",
+		{},
+	);
 
 	const languages1 = storedLanguages[user1] ?? ["English"];
 	const languages2 = storedLanguages[user2] ?? ["English"];

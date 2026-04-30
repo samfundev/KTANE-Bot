@@ -1,6 +1,6 @@
 export type VoteData = {
-	topic: string
-	options: string[]
-	votes: number[]
-	voted: string[]
-}
+	topic: string;
+	options: string[];
+	votes: number[];
+	voted: string[];
+};

@@ -11,7 +11,7 @@ const levels: { [level: string]: (...data: unknown[]) => void } = {
 
 export default class Logger {
 	static log(level = "log", ...data: unknown[]): void {
-		const logMessage = `[${new Date().toISOString()}] [${level}] ${data.map(data => typeof data == "string" ? data : inspect(data)).join(" ")}`;
+		const logMessage = `[${new Date().toISOString()}] [${level}] ${data.map((data) => (typeof data == "string" ? data : inspect(data))).join(" ")}`;
 
 		levels[level](logMessage);
 
@@ -21,9 +21,15 @@ export default class Logger {
 			}
 		}
 	}
-	static info(...data: unknown[]): void { Logger.log("info", ...data); }
-	static error(...data: unknown[]): void { Logger.log("error", ...data); }
-	static warn(...data: unknown[]): void { Logger.log("warn", ...data); }
+	static info(...data: unknown[]): void {
+		Logger.log("info", ...data);
+	}
+	static error(...data: unknown[]): void {
+		Logger.log("error", ...data);
+	}
+	static warn(...data: unknown[]): void {
+		Logger.log("warn", ...data);
+	}
 	static errorPrefix(prefix: unknown) {
 		return (...data: unknown[]): void => Logger.log("error", prefix, ...data);
 	}

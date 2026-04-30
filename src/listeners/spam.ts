@@ -1,7 +1,14 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { container, Listener } from "@sapphire/framework";
 import { remove } from "confusables";
-import { Message, EmbedBuilder, Snowflake, ChannelType, escapeMarkdown, resolveColor } from "discord.js";
+import {
+	Message,
+	EmbedBuilder,
+	Snowflake,
+	ChannelType,
+	escapeMarkdown,
+	resolveColor,
+} from "discord.js";
 import { isModerator, unpartial } from "../bot-utils.js";
 import { DB, DBKey } from "../db.js";
 import checkMessage from "../phishing-domains.js";
@@ -13,12 +20,21 @@ export default class SpamMessageListener extends Listener {
 
 	async run(message: Message): Promise<void> {
 		const { client } = this.container;
-		if (!await unpartial(message) || !message.deletable || message.guild === null || message.member === null || message.author.bot || isModerator(message))
+		if (
+			!(await unpartial(message)) ||
+			!message.deletable ||
+			message.guild === null ||
+			message.member === null ||
+			message.author.bot ||
+			isModerator(message)
+		)
 			return;
 
 		if (this.isRapidChannelPosting(message)) {
 			await message.member.timeout(1000 * 60 * 60 * 24, "Spam messages.");
-			await message.member.send("You've been automatically timed out for possible spam messages. If this action was done incorrectly, please message the moderation team through <@575252669443211264>.");
+			await message.member.send(
+				"You've been automatically timed out for possible spam messages. If this action was done incorrectly, please message the moderation team through <@575252669443211264>.",
+			);
 
 			// Delete all recent messages.
 			const userID = message.author.id;
@@ -26,12 +42,10 @@ export default class SpamMessageListener extends Listener {
 			if (posts) {
 				for (const post of posts) {
 					const channel = await client.channels.fetch(post.channelID);
-					if (!channel?.isTextBased())
-						continue;
+					if (!channel?.isTextBased()) continue;
 
 					const message = await channel.messages.fetch(post.id);
-					if (message)
-						await message.delete();
+					if (message) await message.delete();
 				}
 			}
 
@@ -42,12 +56,13 @@ export default class SpamMessageListener extends Listener {
 				warning = undefined;
 			}
 
-			if (warning !== undefined)
-				return;
+			if (warning !== undefined) return;
 
-			const channelID = container.db.getOrUndefined<Snowflake>(message.guild, DBKey.AuditLog);
-			if (channelID === undefined)
-				return;
+			const channelID = container.db.getOrUndefined<Snowflake>(
+				message.guild,
+				DBKey.AuditLog,
+			);
+			if (channelID === undefined) return;
 
 			const channel = await client.channels.fetch(channelID);
 			if (channel?.type === ChannelType.GuildText) {
@@ -58,11 +73,11 @@ export default class SpamMessageListener extends Listener {
 							description: escapeMarkdown(message.content),
 							author: {
 								iconURL: author.displayAvatarURL(),
-								name: `${author.username}#${author.discriminator} (${author.id})`
+								name: `${author.username}#${author.discriminator} (${author.id})`,
 							},
-							color: resolveColor("Red")
-						})
-					]
+							color: resolveColor("Red"),
+						}),
+					],
 				});
 
 				this.lastWarning[author.id] = Date.now();
@@ -70,9 +85,14 @@ export default class SpamMessageListener extends Listener {
 		}
 	}
 
-	private readonly recentPosts: { [user: Snowflake]: { channelID: Snowflake, id: Snowflake, timestamp: number }[] | undefined } = {};
+	private readonly recentPosts: {
+		[user: Snowflake]:
+			| { channelID: Snowflake; id: Snowflake; timestamp: number }[]
+			| undefined;
+	} = {};
 	private readonly channelBurstThreshold = 3;
-	private readonly channelBurstWindowMS = 2500 * (this.channelBurstThreshold - 1);
+	private readonly channelBurstWindowMS =
+		2500 * (this.channelBurstThreshold - 1);
 
 	private isRapidChannelPosting(message: Message): boolean {
 		const userID = message.author.id;
@@ -80,16 +100,15 @@ export default class SpamMessageListener extends Listener {
 		const earliestTimestamp = timestamp - this.channelBurstWindowMS;
 
 		let posts = this.recentPosts[userID];
-		if (!posts)
-			posts = this.recentPosts[userID] = [];
+		if (!posts) posts = this.recentPosts[userID] = [];
 
 		posts.push({ channelID: message.channel.id, id: message.id, timestamp });
 
 		// Remove posts that are outside the window.
-		posts = posts.filter(post => post.timestamp >= earliestTimestamp);
+		posts = posts.filter((post) => post.timestamp >= earliestTimestamp);
 		this.recentPosts[userID] = posts;
 
-		const uniqueChannelIDs = new Set(posts.map(post => post.channelID));
-		return (uniqueChannelIDs.size >= this.channelBurstThreshold);
+		const uniqueChannelIDs = new Set(posts.map((post) => post.channelID));
+		return uniqueChannelIDs.size >= this.channelBurstThreshold;
 	}
 }

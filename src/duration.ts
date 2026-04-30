@@ -17,11 +17,13 @@ export function formatDuration(number: number): string {
 }
 
 export function parseDuration(duration: string): number | null {
-	if (duration == null)
-		return null;
+	if (duration == null) return null;
 
 	const matches = /(\d+(?:\.\d+)?)([a-z])/.exec(duration);
-	if (matches == null || !Object.prototype.hasOwnProperty.call(durations, matches[2]))
+	if (
+		matches == null ||
+		!Object.prototype.hasOwnProperty.call(durations, matches[2])
+	)
 		return null;
 
 	return 1000 * 60 * durations[matches[2]] * parseFloat(matches[1]);

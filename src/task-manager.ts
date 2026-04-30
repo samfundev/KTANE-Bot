@@ -23,50 +23,60 @@ class TaskManager {
 	}
 
 	static addTask(task: ScheduledTask): void {
-		this.modifyTasks(tasks => {
+		this.modifyTasks((tasks) => {
 			tasks.push(task);
 			return tasks;
 		});
 	}
 
-	static removeTask<T extends TaskTypes>(type: T, filter: (task: Extract<ScheduledTask, { type: T }>) => boolean): void;
-	static removeTask(type: TaskTypes, filter: (task: ScheduledTask) => boolean): void {
-		this.modifyTasks(tasks => tasks.filter(task => task.type !== type || task.timestamp > Date.now() || !filter(task)));
+	static removeTask<T extends TaskTypes>(
+		type: T,
+		filter: (task: Extract<ScheduledTask, { type: T }>) => boolean,
+	): void;
+	static removeTask(
+		type: TaskTypes,
+		filter: (task: ScheduledTask) => boolean,
+	): void {
+		this.modifyTasks((tasks) =>
+			tasks.filter(
+				(task) =>
+					task.type !== type || task.timestamp > Date.now() || !filter(task),
+			),
+		);
 	}
 
 	static processTasks(): void {
-		if (tokens.debugging)
-			return;
+		if (tokens.debugging) return;
 
-		this.modifyTasks(tasks => {
-			if (tasks.length == 0)
-				return tasks;
+		this.modifyTasks((tasks) => {
+			if (tasks.length == 0) return tasks;
 
-			return tasks.filter(task => {
-				if (task.timestamp > Date.now())
-					return true;
+			return tasks.filter((task) => {
+				if (task.timestamp > Date.now()) return true;
 
 				switch (task.type) {
 					case "removeReaction": {
-						const textChannel = this.client.channels.cache.get(task.channelID) as TextChannel;
+						const textChannel = this.client.channels.cache.get(
+							task.channelID,
+						) as TextChannel;
 
-						textChannel.messages.fetch(task.messageID)
-							.then(async message => {
+						textChannel.messages
+							.fetch(task.messageID)
+							.then(async (message) => {
 								const reaction = message.reactions.cache.get(task.emojiKey);
-								if (!reaction)
-									return Promise.reject("Reaction missing.");
+								if (!reaction) return Promise.reject("Reaction missing.");
 
 								return await reaction.fetch();
 							})
-							.then(reaction => reaction.users.remove(task.userID)).catch(logger.error);
+							.then((reaction) => reaction.users.remove(task.userID))
+							.catch(logger.error);
 						break;
 					}
 					case "unbanMember": {
 						const guild = this.client.guilds.cache.get(task.guildID);
-						if (!guild)
-							return true;
+						if (!guild) return true;
 
-						guild.members.unban(task.memberID).catch(reason => {
+						guild.members.unban(task.memberID).catch((reason) => {
 							logger.error("failed to unban", task.memberID, reason);
 							this.sendOwnerMessage("Failed to unban a user. Check the logs.");
 						});
@@ -74,13 +84,22 @@ class TaskManager {
 					}
 					case "removeRole": {
 						const guild = this.client.guilds.cache.get(task.guildID);
-						if (!guild)
-							return true;
+						if (!guild) return true;
 
-						guild.members.fetch(task.memberID).then(member => member.roles.remove(task.roleID)).catch(reason => {
-							logger.error("failed to remove role", task.memberID, task.roleID, reason);
-							this.sendOwnerMessage("Failed to remove a role. Check the logs.");
-						});
+						guild.members
+							.fetch(task.memberID)
+							.then((member) => member.roles.remove(task.roleID))
+							.catch((reason) => {
+								logger.error(
+									"failed to remove role",
+									task.memberID,
+									task.roleID,
+									reason,
+								);
+								this.sendOwnerMessage(
+									"Failed to remove a role. Check the logs.",
+								);
+							});
 						break;
 					}
 				}
@@ -92,7 +111,10 @@ class TaskManager {
 
 	static sendOwnerMessage(text: string): void {
 		if (typeof container.ownerID == "string")
-			this.client.users.fetch(container.ownerID).then(user => user.send(text)).catch(logger.errorPrefix("Failed to send owner message:"));
+			this.client.users
+				.fetch(container.ownerID)
+				.then((user) => user.send(text))
+				.catch(logger.errorPrefix("Failed to send owner message:"));
 	}
 }
 

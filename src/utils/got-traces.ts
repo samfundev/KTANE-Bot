@@ -7,17 +7,17 @@ export default got.extend({
 		(options, next) => {
 			options.context = { stack: new Error().stack };
 			return next(options);
-		}
+		},
 	],
 	hooks: {
 		beforeError: [
-			error => {
+			(error) => {
 				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 				// @ts-ignore
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 				error.source = error.options.context.stack.split("\n");
 				return error;
-			}
-		]
-	}
+			},
+		],
+	},
 });

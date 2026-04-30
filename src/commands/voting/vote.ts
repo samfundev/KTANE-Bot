@@ -3,7 +3,11 @@ import { Args, container } from "@sapphire/framework";
 import { InteractionResponse, Message } from "discord.js";
 import { DB } from "../../db.js";
 import { VoteData } from "#utils/voting";
-import { MixedCommand, MixedInteraction, MixedOptions } from "../../mixed-command.js";
+import {
+	MixedCommand,
+	MixedInteraction,
+	MixedOptions,
+} from "../../mixed-command.js";
 import { ApplicationCommandOptionType } from "discord.js";
 
 @ApplyOptions<MixedOptions>({
@@ -14,11 +18,18 @@ import { ApplicationCommandOptionType } from "discord.js";
 	requiredClientPermissions: ["ManageRoles"],
 	requiredUserPermissions: ["MuteMembers"],
 	slashOptions: [
-		{ name: "option", type: ApplicationCommandOptionType.String, description: "The options you want to vote for." }
-	]
+		{
+			name: "option",
+			type: ApplicationCommandOptionType.String,
+			description: "The options you want to vote for.",
+		},
+	],
 })
 export default class VoteCommand extends MixedCommand {
-	async run(msg: MixedInteraction, args: Args): Promise<Message | InteractionResponse> {
+	async run(
+		msg: MixedInteraction,
+		args: Args,
+	): Promise<Message | InteractionResponse> {
 		const vote = await args.repeat({ name: "vote", type: "number" });
 
 		if (msg.guild !== null) {
@@ -27,7 +38,10 @@ export default class VoteCommand extends MixedCommand {
 			return msg.reply("You should only vote in DMs.");
 		}
 
-		const currentVote = container.db.getOrUndefined<VoteData>(DB.global, "vote");
+		const currentVote = container.db.getOrUndefined<VoteData>(
+			DB.global,
+			"vote",
+		);
 		if (currentVote === undefined) {
 			return msg.reply("There is no vote running.");
 		}

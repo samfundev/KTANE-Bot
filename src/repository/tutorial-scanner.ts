@@ -6,8 +6,10 @@ import { container } from "@sapphire/framework";
 import { update } from "../bot-utils.js";
 
 async function getModuleNames() {
-	const json = await got("https://ktane.timwi.de/json/raw").json<{ KtaneModules: { Name: string }[] }>();
-	return json.KtaneModules.map(module => module.Name);
+	const json = await got("https://ktane.timwi.de/json/raw").json<{
+		KtaneModules: { Name: string }[];
+	}>();
+	return json.KtaneModules.map((module) => module.Name);
 }
 
 function closest(target: string, options: string[]): string | null {
@@ -25,7 +27,9 @@ function closest(target: string, options: string[]): string | null {
 	return bestIndex !== -1 ? options[bestIndex] : null;
 }
 
-export async function respondToVideos(videos: { title: string, url: string }[]): Promise<MessageReplyOptions | null> {
+export async function respondToVideos(
+	videos: { title: string; url: string }[],
+): Promise<MessageReplyOptions | null> {
 	const moduleNames = await getModuleNames();
 
 	const files = [];
@@ -36,14 +40,26 @@ export async function respondToVideos(videos: { title: string, url: string }[]):
 		const moduleName = closest(matches[1], moduleNames);
 		if (moduleName === null) continue;
 
-		const response = await got(`https://raw.githubusercontent.com/Timwi/KtaneContent/master/JSON/${moduleName}.json`).text();
+		const response = await got(
+			`https://raw.githubusercontent.com/Timwi/KtaneContent/master/JSON/${moduleName}.json`,
+		).text();
 
-		if (response.includes("\"TutorialVideos\":")) continue;
+		if (response.includes('"TutorialVideos":')) continue;
 
 		const lines = response.split("\n");
-		const url = video.url.replace("https://youtu.be/", "https://www.youtube.com/watch?v=");
-		lines.splice(lines.length - 2, 0, `  "TutorialVideos": [ {\n    "Language": "English",\n    "Url": "${url}"\n  } ],`);
-		files.push({ name: `${moduleName}.json`, attachment: Buffer.from(lines.join("\n")) });
+		const url = video.url.replace(
+			"https://youtu.be/",
+			"https://www.youtube.com/watch?v=",
+		);
+		lines.splice(
+			lines.length - 2,
+			0,
+			`  "TutorialVideos": [ {\n    "Language": "English",\n    "Url": "${url}"\n  } ],`,
+		);
+		files.push({
+			name: `${moduleName}.json`,
+			attachment: Buffer.from(lines.join("\n")),
+		});
 	}
 
 	switch (files.length) {
@@ -52,7 +68,7 @@ export async function respondToVideos(videos: { title: string, url: string }[]):
 		case 1:
 			return {
 				content: "JSON with the tutorial added:",
-				files
+				files,
 			};
 		default: {
 			const zip = archiver("zip");
@@ -69,7 +85,7 @@ export async function respondToVideos(videos: { title: string, url: string }[]):
 
 			return {
 				content: "JSON for Tutorials:",
-				files: [{ name: "Tutorials.zip", attachment: Buffer.concat(buffers) }]
+				files: [{ name: "Tutorials.zip", attachment: Buffer.concat(buffers) }],
 			};
 		}
 	}
@@ -79,7 +95,7 @@ export async function scanForTutorials(message: Message): Promise<void> {
 	// Sometimes discord.js will get the message before Discord adds the embeds.
 	if (message.embeds.length === 0) {
 		// I don't know if there's a proper way to do this besides just waiting and fetching the mesage again.
-		await new Promise(resolve => setTimeout(resolve, 1000));
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
 		message = await message.fetch(true);
 	}
@@ -87,15 +103,27 @@ export async function scanForTutorials(message: Message): Promise<void> {
 	if (message.guild === null) return;
 
 	const videos = message.embeds
-		.filter(embed => embed.video !== null && embed.title !== null && embed.url !== null)
-		.map(embed => ({ title: embed.title as string, url: embed.url as string }));
+		.filter(
+			(embed) =>
+				embed.video !== null && embed.title !== null && embed.url !== null,
+		)
+		.map((embed) => ({
+			title: embed.title as string,
+			url: embed.url as string,
+		}));
 	const response = await respondToVideos(videos);
 	if (response === null) return;
 
 	const report = await message.reply(response);
 
-	await update<Record<string, string>>(container.db, message.guild.id, "reportMessages", {}, (value) => {
-		value[message.id] = report.id;
-		return value;
-	});
+	await update<Record<string, string>>(
+		container.db,
+		message.guild.id,
+		"reportMessages",
+		{},
+		(value) => {
+			value[message.id] = report.id;
+			return value;
+		},
+	);
 }

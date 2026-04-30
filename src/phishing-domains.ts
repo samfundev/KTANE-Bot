@@ -30,8 +30,13 @@ export default async function checkMessage(message: Message): Promise<boolean> {
 	if (difference >= 60 * 60) {
 		try {
 			// Add a bit of wiggle room, just in case.
-			const response = await got(`https://phish.sinking.yachts/v2/recent/${Math.floor(difference) + 60}`);
-			const recentChanges = JSON.parse(response.body) as { type: "add" | "delete", domains: string[] }[];
+			const response = await got(
+				`https://phish.sinking.yachts/v2/recent/${Math.floor(difference) + 60}`,
+			);
+			const recentChanges = JSON.parse(response.body) as {
+				type: "add" | "delete";
+				domains: string[];
+			}[];
 
 			// Add any new domains.
 			for (const change of recentChanges) {
@@ -48,7 +53,7 @@ export default async function checkMessage(message: Message): Promise<boolean> {
 	}
 
 	// Check the message for URLs and see if their hostname contains a phishing domain.
-	return message.content.split(/\s/).some(part => {
+	return message.content.split(/\s/).some((part) => {
 		try {
 			const url = new URL(part);
 			const domain = psl.get(url.hostname);
