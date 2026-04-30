@@ -5,7 +5,7 @@ import { DB } from "./db.js";
 export function parseLanguage(phrase: string): string | null {
 	const lowercasePhrase = phrase.toLowerCase();
 	for (const language of langs.all()) {
-		for (const value of Object.values(language)) {
+		for (const value of Object.values(language) as string[]) {
 			if (value.toLowerCase() === lowercasePhrase) {
 				return language.name;
 			}

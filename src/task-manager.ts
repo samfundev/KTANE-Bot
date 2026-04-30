@@ -64,7 +64,8 @@ class TaskManager {
 							.fetch(task.messageID)
 							.then(async (message) => {
 								const reaction = message.reactions.cache.get(task.emojiKey);
-								if (!reaction) return Promise.reject("Reaction missing.");
+								if (!reaction)
+									return Promise.reject(new Error("Reaction missing."));
 
 								return await reaction.fetch();
 							})

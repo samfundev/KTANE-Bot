@@ -1,4 +1,10 @@
-import Discord, { Client, DiscordAPIError } from "discord.js";
+import {
+	WebhookClient,
+	Client,
+	DiscordAPIError,
+	EmbedBuilder,
+	WebhookMessageCreateOptions,
+} from "discord.js";
 import got from "./utils/got-traces.js";
 import { decode } from "html-entities";
 import { Database } from "better-sqlite3";
@@ -9,11 +15,11 @@ import Logger from "./log.js";
 import { container } from "@sapphire/framework";
 import { DB } from "./db.js";
 
-const major_webhook = new Discord.WebhookClient(tokens.majorWebhook);
-const minor_webhook = new Discord.WebhookClient(tokens.minorWebhook);
+const major_webhook = new WebhookClient(tokens.majorWebhook);
+const minor_webhook = new WebhookClient(tokens.minorWebhook);
 
 function matchAll(regex: RegExp, string: string) {
-	if (!regex.global) throw "Regex must be global";
+	if (!regex.global) throw new Error("Regex must be global");
 
 	let matches;
 	const allMatches = [];
@@ -159,10 +165,10 @@ class WorkshopScanner {
 			);
 			if (!response.ok) return null;
 
-			const data = await response.json();
+			const data = (await response.json()) as QueryFilesResponse;
 			const {
 				response: { publishedfiledetails, next_cursor },
-			} = data as QueryFilesResponse;
+			} = data;
 			if (!publishedfiledetails || publishedfiledetails.length === 0)
 				return files;
 
@@ -195,7 +201,7 @@ class WorkshopScanner {
 			if (entries_to_check.some((entry) => entry.id === file.publishedfileid))
 				continue;
 
-			let entry_object: EntryObject = {
+			const entry_object: EntryObject = {
 				id: file.publishedfileid,
 				title: file.title,
 				description: file.file_description,
@@ -428,7 +434,7 @@ class WorkshopScanner {
 		if (discordId !== false) {
 			const user = await this.client.users
 				.fetch(discordId)
-				.catch((error) => error);
+				.catch((error) => error as Error);
 			if (!(user instanceof Error)) {
 				return {
 					name: user.username,
@@ -459,7 +465,7 @@ class WorkshopScanner {
 		author: Author,
 	): Promise<boolean> {
 		const mention = author.discordId ? `<@${author.discordId}>` : author.name;
-		const embed = new Discord.EmbedBuilder({
+		const embed = new EmbedBuilder({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${entry.id}`,
 			description: entry.description
@@ -480,7 +486,7 @@ class WorkshopScanner {
 
 		embed.setColor("#00aa00");
 
-		const data: Discord.WebhookMessageCreateOptions = {
+		const data: WebhookMessageCreateOptions = {
 			content: `:new: A new mod has been uploaded to the Steam Workshop! It's called **${entry.title}**, by ${mention}:`,
 			embeds: [embed],
 		};
@@ -500,7 +506,7 @@ class WorkshopScanner {
 		author: Author,
 	): Promise<boolean> {
 		const mention = author.discordId ? `<@${author.discordId}>` : author.name;
-		const embed = new Discord.EmbedBuilder({
+		const embed = new EmbedBuilder({
 			title: entry.title,
 			url: `https://steamcommunity.com/sharedfiles/filedetails/changelog/${entry.id}#${changelog.id}`,
 			description: changelog.description
@@ -520,7 +526,7 @@ class WorkshopScanner {
 
 		embed.setColor("#0055aa");
 
-		const data: Discord.WebhookMessageCreateOptions = {
+		const data: WebhookMessageCreateOptions = {
 			content: `:loudspeaker: ${mention} has posted an update to **${entry.title}** on the Steam Workshop!`,
 			embeds: [embed],
 		};
@@ -538,7 +544,7 @@ class WorkshopScanner {
 	}
 
 	async post_discord(
-		options: Discord.WebhookMessageCreateOptions,
+		options: WebhookMessageCreateOptions,
 		is_major: boolean,
 	): Promise<boolean> {
 		const webhook_client = is_major ? major_webhook : minor_webhook;

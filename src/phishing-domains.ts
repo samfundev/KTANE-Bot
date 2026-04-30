@@ -16,7 +16,7 @@ export default async function checkMessage(message: Message): Promise<boolean> {
 	if (lastUpdate === null) {
 		try {
 			const response = await got("https://phish.sinking.yachts/v2/all");
-			phishingDomains = new Set(JSON.parse(response.body));
+			phishingDomains = new Set(JSON.parse(response.body) as string[]);
 
 			lastUpdate = Date.now();
 		} catch (err) {

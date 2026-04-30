@@ -8,13 +8,13 @@ import Logger from "../log";
 
 @ApplyOptions<Listener.Options>({ event: "chatInputCommandDenied" })
 export default class SlashCommandBlockedListener extends Listener {
-	run(
+	async run(
 		error: UserError,
 		{ interaction, command }: ChatInputCommandDeniedPayload,
-	): void {
+	): Promise<void> {
 		Logger.info(
 			`${interaction.user.username} was blocked from using ${command.name} because ${error.message}.`,
 		);
-		interaction.reply({ content: error.message, ephemeral: true });
+		await interaction.reply({ content: error.message, ephemeral: true });
 	}
 }

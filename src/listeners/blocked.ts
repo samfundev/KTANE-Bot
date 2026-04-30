@@ -8,13 +8,13 @@ import Logger from "../log.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCommandDenied" })
 export default class CommandBlockedListener extends Listener {
-	run(
+	async run(
 		error: UserError,
 		{ message, command }: MessageCommandDeniedPayload,
-	): void {
+	): Promise<void> {
 		Logger.info(
 			`${message.author.username} was blocked from using ${command.name} because ${error.message}.`,
 		);
-		message.author.send(error.message);
+		await message.author.send(error.message);
 	}
 }

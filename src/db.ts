@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import { Snowflake } from "discord.js";
 import Database from "better-sqlite3";
 import { join } from "path";

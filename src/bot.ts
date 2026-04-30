@@ -91,16 +91,6 @@ client
 		);
 
 		scanVideos().catch(Logger.errorPrefix("Failed to scan videos:"));
-
-		if (container.db.get(DB.global, "updating", false)) {
-			container.db.delete(DB.global, "updating");
-
-			if (typeof container.ownerID == "string")
-				client.users
-					.fetch(container.ownerID)
-					.then((user) => user.send("Update is complete."))
-					.catch(Logger.errorPrefix("Failed to send updated message:"));
-		}
 	})
 	.on("disconnect", () => {
 		Logger.warn("Disconnected!");

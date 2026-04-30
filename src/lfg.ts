@@ -186,7 +186,7 @@ class Player {
 		);
 	}
 
-	static fromData(data: any): Player {
+	static fromData(data: Player): Player {
 		const player = new Player(
 			data.user,
 			data.username,
@@ -256,7 +256,7 @@ export class Game {
 			: `${this.name}: ${this.tags.join(", ")}`;
 	}
 
-	static fromData(data: any): Game {
+	static fromData(data: Game): Game {
 		const game = new Game(data.name);
 		game.tags = data.tags;
 		return game;

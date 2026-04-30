@@ -2,7 +2,7 @@
 
 import { ApplyOptions } from "@sapphire/decorators";
 import { Args, container } from "@sapphire/framework";
-import { ApplicationCommandOptionType, Message } from "discord.js";
+import { ApplicationCommandOptionType, ChannelType, Message } from "discord.js";
 import util from "util";
 import Logger from "../../log.js";
 import {
@@ -29,7 +29,13 @@ class EvalCommand extends MixedCommand {
 		const code = await args.rest({ name: "code", type: "string" });
 
 		const { client } = container;
-		if (client.token === null || message.channel === null) return;
+		const channel = message.channel;
+		if (
+			client.token === null ||
+			channel === null ||
+			channel.type !== ChannelType.DM
+		)
+			return;
 
 		if (!code) return message.reply("No code provided!");
 
@@ -79,7 +85,7 @@ class EvalCommand extends MixedCommand {
 		};
 
 		try {
-			let originalOutput = eval(code);
+			let originalOutput = eval(code) as unknown;
 			if (originalOutput && typeof originalOutput.then === "function")
 				originalOutput = await originalOutput;
 
@@ -93,7 +99,7 @@ class EvalCommand extends MixedCommand {
 
 			if (output.length + code.length > 1900) output = "Output too long.";
 
-			const sent = await message.channel.send(
+			const sent = await channel.send(
 				[
 					`📥\u2000**Input**${cb}js`,
 					code,
@@ -118,7 +124,7 @@ class EvalCommand extends MixedCommand {
 			error = `${logs.join("\n")}\n${logs.length && error === "undefined" ? "" : error}`;
 			error = error.replace(tokenRegex, "[TOKEN]");
 
-			const sent = await message.channel.send(
+			const sent = await channel.send(
 				[
 					`📥\u2000**Input**${cb}js`,
 					code,

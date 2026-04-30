@@ -1,6 +1,5 @@
 import { ApplyOptions } from "@sapphire/decorators";
 import { container, Listener } from "@sapphire/framework";
-import { remove } from "confusables";
 import {
 	Message,
 	EmbedBuilder,
@@ -10,9 +9,7 @@ import {
 	resolveColor,
 } from "discord.js";
 import { isModerator, unpartial } from "../bot-utils.js";
-import { DB, DBKey } from "../db.js";
-import checkMessage from "../phishing-domains.js";
-import TaskManager from "../task-manager.js";
+import { DBKey } from "../db.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCreate" })
 export default class SpamMessageListener extends Listener {
