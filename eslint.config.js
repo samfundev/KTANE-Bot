@@ -1,3 +1,4 @@
+import unusedImports from "eslint-plugin-unused-imports";
 import { defineConfig } from "eslint/config";
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
@@ -15,9 +16,15 @@ export default defineConfig([
 			},
 		},
 
+		plugins: {
+			"unused-imports": unusedImports,
+		},
+
 		rules: {
 			"no-console": "error",
 			yoda: "error",
+			"@typescript-eslint/no-unused-vars": "off",
+			"unused-imports/no-unused-imports": "error",
 
 			// TypeScript ESLint rules
 			"@typescript-eslint/no-unsafe-assignment": "warn",
