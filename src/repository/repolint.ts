@@ -1,16 +1,16 @@
 import child_process, { ExecException } from "child_process";
-import { container } from "@sapphire/framework";
 import { Message, EmbedBuilder, ChannelType } from "discord.js";
 import { createWriteStream } from "fs";
 import got from "../utils/got-traces.js";
 import path from "path";
 import { pipeline } from "stream/promises";
 import { promisify } from "util";
-import { joinLimit, update } from "../bot-utils.js";
+import { joinLimit } from "../bot-utils.js";
 import tokens from "../get-tokens.js";
 import Logger from "../log.js";
 import TaskManager from "../task-manager.js";
 import { mkdir, rm } from "fs/promises";
+import { settings } from "../db.js";
 
 const exec = promisify(child_process.exec);
 
@@ -69,16 +69,9 @@ export default async function lintMessage(message: Message): Promise<void> {
 		if (report === null) await message.react("👍");
 		else {
 			const reportID = report.id;
-			await update<Record<string, string>>(
-				container.db,
-				message.guild !== null ? message.guild.id : message.channel.id,
-				"reportMessages",
-				{},
-				(value) => {
-					value[message.id] = reportID;
-					return value;
-				},
-			);
+			const id = message.guild !== null ? message.guild.id : message.channel.id;
+			settings.write[id].reportMessages ??= {};
+			settings.write[id].reportMessages[message.id] = reportID;
 		}
 	} catch (error) {
 		Logger.error("Linting failed.", error);

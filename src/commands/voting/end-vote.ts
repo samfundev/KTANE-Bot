@@ -1,8 +1,6 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { container } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
-import { DB } from "../../db.js";
-import { VoteData } from "#utils/voting";
+import { settings } from "../../db.js";
 import {
 	MixedCommand,
 	MixedInteraction,
@@ -17,10 +15,7 @@ import {
 })
 export default class EndVoteCommand extends MixedCommand {
 	async run(msg: MixedInteraction): Promise<void> {
-		const currentVote = container.db.getOrUndefined<VoteData>(
-			DB.global,
-			"vote",
-		);
+		const currentVote = settings.read.global.vote;
 		if (currentVote === undefined) {
 			await msg.reply("There is no vote running.");
 			return;
@@ -45,7 +40,7 @@ export default class EndVoteCommand extends MixedCommand {
 			},
 		});
 
-		container.db.delete(DB.global, "vote");
+		delete settings.write.global.vote;
 
 		embed.setColor("#00ff00");
 

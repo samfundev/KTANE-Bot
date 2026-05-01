@@ -1,6 +1,5 @@
-import { container } from "@sapphire/framework";
 import langs from "langs";
-import { DB } from "./db.js";
+import { settings } from "./db.js";
 
 export function parseLanguage(phrase: string): string | null {
 	const lowercasePhrase = phrase.toLowerCase();
@@ -16,11 +15,8 @@ export function parseLanguage(phrase: string): string | null {
 }
 
 export function compareLanguage(user1: string, user2: string): boolean {
-	const storedLanguages: { [id: string]: string[] } = container.db.get(
-		DB.global,
-		"languages",
-		{},
-	);
+	const storedLanguages: { [id: string]: string[] } =
+		settings.read.global.languages;
 
 	const languages1 = storedLanguages[user1] ?? ["English"];
 	const languages2 = storedLanguages[user2] ?? ["English"];

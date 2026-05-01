@@ -1,12 +1,12 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, container } from "@sapphire/framework";
-import { DB } from "../../db.js";
+import { Args } from "@sapphire/framework";
 import {
 	MixedCommand,
 	MixedInteraction,
 	MixedOptions,
 } from "../../mixed-command.js";
 import { ApplicationCommandOptionType } from "discord.js";
+import { settings } from "../../db.js";
 
 @ApplyOptions<MixedOptions>({
 	name: "createvote",
@@ -30,17 +30,17 @@ export default class CreateVoteCommand extends MixedCommand {
 		const topic = await args.pick({ name: "topic", type: "string" });
 		const options = await args.repeat({ name: "options", type: "string" });
 
-		const currentVote = container.db.get(DB.global, "vote", null);
+		const currentVote = settings.read.global.vote ?? null;
 		if (currentVote != null) {
 			await msg.reply("A vote is already running.");
 		}
 
-		container.db.set(DB.global, "vote", {
+		settings.write.global.vote = {
 			topic,
 			options,
-			votes: new Array(options.length).fill(0),
+			votes: new Array<number>(options.length).fill(0),
 			voted: [],
-		});
+		};
 
 		await msg.reply("Vote created.");
 	}

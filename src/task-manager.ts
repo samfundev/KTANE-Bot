@@ -1,7 +1,7 @@
 import { container } from "@sapphire/framework";
 import { Snowflake, TextChannel } from "discord.js";
 import { KTANEClient } from "./bot.js";
-import { DB } from "./db.js";
+import { settings } from "./db.js";
 import tokens from "./get-tokens.js";
 import logger from "./log.js";
 
@@ -11,11 +11,11 @@ class TaskManager {
 	}
 
 	static get tasks(): ScheduledTask[] {
-		return container.db.get(DB.global, "scheduledTasks", []);
+		return settings.read.global.scheduledTasks ?? [];
 	}
 
 	static set tasks(newTasks: ScheduledTask[]) {
-		container.db.set(DB.global, "scheduledTasks", newTasks);
+		settings.write.global.scheduledTasks = newTasks;
 	}
 
 	static modifyTasks(func: (tasks: ScheduledTask[]) => ScheduledTask[]): void {
@@ -145,7 +145,10 @@ interface RemoveRoleTask extends BaseTask {
 	roleID: Snowflake;
 }
 
-type ScheduledTask = RemoveReactionTask | UnbanMemberTask | RemoveRoleTask;
+export type ScheduledTask =
+	| RemoveReactionTask
+	| UnbanMemberTask
+	| RemoveRoleTask;
 type TaskTypes = ScheduledTask["type"];
 
 export default TaskManager;

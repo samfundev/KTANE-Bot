@@ -9,7 +9,6 @@ import {
 	WebhookClient,
 	WebhookMessageCreateOptions,
 } from "discord.js";
-import { DB } from "./db.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
 
@@ -53,18 +52,6 @@ export async function sendWebhookMessage(
 		throw new Error("Not a text channel.");
 
 	return await channel.messages.fetch(message.id);
-}
-
-export async function update<T>(
-	database: DB,
-	id: string,
-	key: string,
-	defaultValue: T,
-	updater: (value: T) => T | Promise<T>,
-): Promise<void> {
-	const oldValue = database.get({ id }, key, defaultValue);
-	const newValue = await updater(oldValue);
-	database.set({ id }, key, newValue);
 }
 
 // Join together an array of strings seperated by a string but don't make it longer than the limit.

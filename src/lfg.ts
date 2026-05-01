@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { Message, EmbedBuilder, Snowflake, User } from "discord.js";
 import { KTANEClient } from "./bot.js";
 import { joinLimit } from "./bot-utils.js";
-import { DB } from "./db.js";
+import { settings } from "./db.js";
 import { compareLanguage } from "./language.js";
 import Logger from "./log.js";
 
@@ -15,13 +15,13 @@ export class LFG {
 	static players: Player[];
 
 	static loadPlayers(): void {
-		this.players = container.db
-			.get(DB.global, "lfg_players", [])
-			.map(Player.fromData);
+		this.players = (settings.read.global.lfg_players ?? []).map(
+			Player.fromData,
+		);
 	}
 
 	static savePlayers(): void {
-		container.db.set(DB.global, "lfg_players", this.players);
+		settings.write.global.lfg_players = this.players;
 	}
 
 	static join(user: User, games: Game[]): void {
@@ -157,7 +157,7 @@ export class LFG {
 	}
 }
 
-class Player {
+export class Player {
 	user: Snowflake;
 	username: string;
 	games: Game[];

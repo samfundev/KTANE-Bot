@@ -1,11 +1,12 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, container } from "@sapphire/framework";
+import { Args } from "@sapphire/framework";
 import {
 	MixedCommand,
 	MixedInteraction,
 	MixedOptions,
 } from "../../mixed-command.js";
 import { ApplicationCommandOptionType } from "discord.js";
+import { database } from "../../db.js";
 
 @ApplyOptions<MixedOptions>({
 	name: "set-steam-id",
@@ -30,7 +31,7 @@ export default class SetSteamIDCommand extends MixedCommand {
 		const steamid = await args.pick({ name: "steam_id", type: "string" });
 		const discordid = await args.pick({ name: "discord_id", type: "string" });
 
-		container.db.database
+		database
 			.prepare(
 				"INSERT INTO 'author_lookup' (steam_id, discord_id) VALUES(?, ?) ON CONFLICT(steam_id) DO UPDATE SET discord_id=excluded.discord_id",
 			)

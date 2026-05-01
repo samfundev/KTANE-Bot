@@ -1,5 +1,5 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { container, Listener } from "@sapphire/framework";
+import { Listener } from "@sapphire/framework";
 import {
 	Message,
 	EmbedBuilder,
@@ -9,7 +9,7 @@ import {
 	resolveColor,
 } from "discord.js";
 import { isModerator, unpartial } from "../bot-utils.js";
-import { DBKey } from "../db.js";
+import { settings } from "../db.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCreate" })
 export default class SpamMessageListener extends Listener {
@@ -55,10 +55,7 @@ export default class SpamMessageListener extends Listener {
 
 			if (warning !== undefined) return;
 
-			const channelID = container.db.getOrUndefined<Snowflake>(
-				message.guild,
-				DBKey.AuditLog,
-			);
+			const channelID = settings.read[message.guild.id]?.AuditLog;
 			if (channelID === undefined) return;
 
 			const channel = await client.channels.fetch(channelID);

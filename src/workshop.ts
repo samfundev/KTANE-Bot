@@ -7,13 +7,12 @@ import {
 } from "discord.js";
 import got from "./utils/got-traces.js";
 import { decode } from "html-entities";
-import { Database } from "better-sqlite3";
 import { JSDOM } from "jsdom";
 import { sendWebhookMessage } from "./bot-utils.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
 import { container } from "@sapphire/framework";
-import { DB } from "./db.js";
+import { author_lookup, database, settings, workshop_mods } from "./db.js";
 
 const major_webhook = new WebhookClient(tokens.majorWebhook);
 const minor_webhook = new WebhookClient(tokens.minorWebhook);
@@ -85,7 +84,7 @@ interface EntryObject {
 
 interface Changelog {
 	date: Date;
-	id: string;
+	id: number;
 	description: string;
 }
 
@@ -111,14 +110,12 @@ interface QueryFilesResponse {
 }
 
 class WorkshopScanner {
-	DB: Database;
 	client: Client;
 	initialized: boolean;
 	avatarCache: Map<string, string>;
 	nameCache: Map<string, string>;
 
 	constructor() {
-		this.DB = container.db.database;
 		this.client = container.client;
 		this.initialized = false;
 		this.avatarCache = new Map<string, string>();
@@ -126,24 +123,25 @@ class WorkshopScanner {
 	}
 
 	init(): void {
-		this.DB.prepare(
-			"CREATE TABLE IF NOT EXISTS page_id (page_id INTEGER)",
-		).run();
-		this.DB.prepare(
-			"CREATE TABLE IF NOT EXISTS author_lookup (steam_id TEXT UNIQUE, discord_id TEXT)",
-		).run();
-		this.DB.prepare(
-			"CREATE TABLE IF NOT EXISTS workshop_mods (mod_id INTEGER PRIMARY KEY, last_post_id INTEGER)",
-		).run();
+		database
+			.prepare(
+				"CREATE TABLE IF NOT EXISTS author_lookup (steam_id TEXT UNIQUE, discord_id TEXT)",
+			)
+			.run();
+		database
+			.prepare(
+				"CREATE TABLE IF NOT EXISTS workshop_mods (mod_id INTEGER PRIMARY KEY, last_post_id INTEGER)",
+			)
+			.run();
 		this.initialized = true;
 	}
 
 	getLastScan(): number {
-		return container.db.get(DB.global, "lastWorkshopScan", 0);
+		return settings.read.global.lastWorkshopScan ?? 0;
 	}
 
 	setLastScan(lastScan: number): void {
-		container.db.set(DB.global, "lastWorkshopScan", lastScan);
+		settings.write.global.lastWorkshopScan = lastScan;
 	}
 
 	async queryFiles(lastScan: number, updates: boolean) {
@@ -223,16 +221,7 @@ class WorkshopScanner {
 	}
 
 	get_author_discord_id(author_steam_id: string): string | false {
-		const sql =
-			"SELECT author_lookup.discord_id FROM author_lookup WHERE author_lookup.steam_id = ? LIMIT 0, 1";
-		const discord_id = this.DB.prepare(sql).get(author_steam_id) as
-			| { discord_id: string }
-			| undefined;
-		if (discord_id !== undefined) {
-			return discord_id.discord_id;
-		}
-
-		return false;
+		return author_lookup.read[author_steam_id] ?? false;
 	}
 
 	async get_steam_avatar(author_steam_id: string): Promise<string | undefined> {
@@ -297,11 +286,7 @@ class WorkshopScanner {
 		}
 
 		let newMod = this.is_mod_new(mod_id) === true;
-		const success = newMod
-			? this.insert_mod(mod_id, changelogs[0].id)
-			: this.update_mod(mod_id, changelogs[0].id);
-
-		if (success === false) return false;
+		workshop_mods.write[mod_id] = changelogs[0].id;
 
 		for (const changelog of changelogs.reverse()) {
 			if (
@@ -373,47 +358,23 @@ class WorkshopScanner {
 			.map((entry) => {
 				return {
 					date: getDate(entry[1]),
-					id: entry[2],
+					id: parseInt(entry[2]),
 					description: decode(entry[3]),
 				};
 			})
-			.filter((changelog) => parseInt(changelog.id) > since);
+			.filter((changelog) => changelog.id > since);
 	}
 
 	is_mod_new(mod_id: string): boolean {
-		const sql =
-			"SELECT workshop_mods.mod_id FROM workshop_mods WHERE workshop_mods.mod_id = ? LIMIT 0, 1";
-		const result = this.DB.prepare(sql).get(mod_id);
-		if (result !== undefined) {
-			return false;
+		const result = workshop_mods.read.has(mod_id);
+		if (!result) {
+			Logger.info(`Mod ${mod_id} is new`);
 		}
-		Logger.info(`Mod ${mod_id} is new`);
-		return true;
+		return !result;
 	}
 
 	get_last_changelog_id(mod_id: string): number {
-		const sql =
-			"SELECT workshop_mods.last_post_id FROM workshop_mods WHERE workshop_mods.mod_id = ? LIMIT 0, 1";
-
-		const result = this.DB.prepare(sql).get(mod_id) as
-			| { last_post_id: number }
-			| undefined;
-		if (result !== undefined) return result.last_post_id;
-
-		return 0;
-	}
-
-	insert_mod(mod_id: string, changelog_id: string): boolean {
-		const sql =
-			"INSERT INTO workshop_mods (mod_id, last_post_id) VALUES (?, ?)";
-		const run = this.DB.prepare(sql).run(mod_id, changelog_id);
-		return run.changes === 1;
-	}
-
-	update_mod(mod_id: string, changelog_id: string): boolean {
-		const sql = "UPDATE workshop_mods SET last_post_id = ? WHERE mod_id = ?";
-		const run = this.DB.prepare(sql).run(changelog_id, mod_id);
-		return run.changes === 1;
+		return workshop_mods.read[mod_id] ?? 0;
 	}
 
 	async getAuthor(
@@ -442,9 +403,7 @@ class WorkshopScanner {
 					discordId: user.id,
 				};
 			} else if (user instanceof DiscordAPIError) {
-				this.DB.prepare(
-					`DELETE FROM author_lookup WHERE discord_id=${discordId}`,
-				).run();
+				delete author_lookup.write[discordId];
 				Logger.warn(
 					`Unable to find user with ID ${discordId}. ID removed from database.`,
 				);

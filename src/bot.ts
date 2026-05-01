@@ -8,13 +8,12 @@ import {
 	PartialMessageReaction,
 	Partials,
 	PartialUser,
-	Snowflake,
 	User,
 } from "discord.js";
 import { CronJob } from "cron";
-import { unpartial, update } from "./bot-utils.js";
+import { unpartial } from "./bot-utils.js";
 import checkStreamingStatus from "./check-stream.js";
-import { DB, DBKey } from "./db.js";
+import { database, settings } from "./db.js";
 import tokens from "./get-tokens.js";
 import { LFG } from "./lfg.js";
 import Logger from "./log.js";
@@ -66,13 +65,12 @@ export class KTANEClient extends SapphireClient {
 	}
 
 	destroy(): Promise<void> {
-		container.db.database.close();
+		database.close();
 
 		return super.destroy();
 	}
 }
 
-container.db = new DB();
 container.ownerID = "76052829285916672";
 
 const client = new KTANEClient();
@@ -118,10 +116,7 @@ client
 				return;
 			}
 
-			const requestsID = container.db.getOrUndefined<Snowflake>(
-				message.guild,
-				DBKey.RequestsChannel,
-			);
+			const requestsID = settings.read[message.guild.id]?.RequestsChannel;
 
 			if (message.channel.name.includes("voice-text")) {
 				message.attachments.some((attachment) => {
@@ -151,15 +146,12 @@ client
 			}
 		}
 	})
-	.on("messageDelete", (message) => {
+	.on("messageDelete", async (message) => {
 		if (
 			message.channel.type == ChannelType.GuildText &&
 			message.guild !== null
 		) {
-			const requestsID = container.db.getOrUndefined<Snowflake>(
-				message.guild,
-				DBKey.RequestsChannel,
-			);
+			const requestsID = settings.read[message.guild.id]?.RequestsChannel;
 			if (message.channel.id !== requestsID) return;
 		} else if (message.channel.type !== ChannelType.DM) return;
 
@@ -167,22 +159,17 @@ client
 			message.channel.type == ChannelType.GuildText && message.guild != null
 				? message.guild.id
 				: message.channel.id;
-		update<Record<string, string>>(
-			container.db,
-			id,
-			"reportMessages",
-			{},
-			async (value) => {
-				const reportID = value[message.id];
-				if (reportID === undefined) return value;
+		const value = settings.read[id]?.reportMessages ?? {};
+		const reportID = value[message.id];
+		if (reportID === undefined) return;
 
-				delete value[message.id];
+		delete value[message.id];
 
-				await message.channel.messages.delete(reportID);
+		await message.channel.messages
+			.delete(reportID)
+			.catch(Logger.errorPrefix("Failed to delete report."));
 
-				return value;
-			},
-		).catch(Logger.errorPrefix("Failed to delete report."));
+		settings.write[id].reportMessages = value;
 	})
 	.on("voiceStateUpdate", async (oldState, newState) => {
 		if (!oldState) return;

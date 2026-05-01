@@ -1,10 +1,9 @@
 import { container } from "@sapphire/framework";
-import { ChannelType, Snowflake, WebhookClient } from "discord.js";
+import { ChannelType, WebhookClient } from "discord.js";
 import got from "got";
 import { CronJob } from "cron";
 import { sendWebhookMessage } from "./bot-utils.js";
-import { DB } from "./db.js";
-import { DBKey } from "./db.js";
+import { settings } from "./db.js";
 import tokens from "./get-tokens.js";
 import Logger from "./log.js";
 import { respondToVideos } from "./repository/tutorial-scanner.js";
@@ -31,16 +30,9 @@ export async function scanVideos(): Promise<void> {
 	// Scan for new KTANE-related YouTube videos
 
 	const { client } = container;
-	const videosAnnounced: string[] = container.db.get(
-		DB.global,
-		"videosAnnounced",
-		[],
-	);
-	const videoChannels: VideoChannel[] = container.db.get(
-		DB.global,
-		"videoChannels",
-		[],
-	);
+	const videosAnnounced: string[] = settings.read.global.videosAnnounced ?? [];
+	const videoChannels: VideoChannel[] =
+		settings.read.global.videoChannels ?? [];
 	const announcedItems: playlistItem[] = [];
 	for (const videoChannel of videoChannels) {
 		try {
@@ -80,7 +72,7 @@ export async function scanVideos(): Promise<void> {
 		}
 	}
 
-	container.db.set(DB.global, "videosAnnounced", videosAnnounced);
+	settings.write.global.videosAnnounced = videosAnnounced;
 
 	// Look for tutorial videos to post in the requests channel
 	const tutorialResponse = await respondToVideos(
@@ -91,10 +83,7 @@ export async function scanVideos(): Promise<void> {
 	);
 	if (tutorialResponse !== null) {
 		for (const guild of client.guilds.cache.values()) {
-			const requestsID = container.db.getOrUndefined<Snowflake>(
-				guild,
-				DBKey.RequestsChannel,
-			);
+			const requestsID = settings.read[guild.id]?.RequestsChannel;
 			if (requestsID === undefined) continue;
 
 			const channel = await client.channels.fetch(requestsID);
@@ -114,7 +103,7 @@ export function setupVideoTask(): void {
 
 	// The math below is based on this equation: 10000 (quota limit) = 1440 (minutes in a day) / minutes * channels * 3 (each request is 3 quota), solved for the variable minutes.
 	// This is to prevent going over the YouTube API quota.
-	const channelCount = container.db.get(DB.global, "videoChannels", []).length;
+	const channelCount = settings.read.global.videoChannels?.length ?? 0;
 	scheduledTask = CronJob.from({
 		cronTime: `*/${Math.ceil((54 / 125) * channelCount) + 1} * * * *`,
 		onTick: () => {

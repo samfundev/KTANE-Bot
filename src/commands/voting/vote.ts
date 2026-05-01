@@ -1,8 +1,7 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, container } from "@sapphire/framework";
+import { Args } from "@sapphire/framework";
 import { InteractionResponse, Message } from "discord.js";
-import { DB } from "../../db.js";
-import { VoteData } from "#utils/voting";
+import { settings } from "../../db.js";
 import {
 	MixedCommand,
 	MixedInteraction,
@@ -38,10 +37,7 @@ export default class VoteCommand extends MixedCommand {
 			return msg.reply("You should only vote in DMs.");
 		}
 
-		const currentVote = container.db.getOrUndefined<VoteData>(
-			DB.global,
-			"vote",
-		);
+		const currentVote = settings.read.global.vote;
 		if (currentVote === undefined) {
 			return msg.reply("There is no vote running.");
 		}
@@ -62,7 +58,7 @@ export default class VoteCommand extends MixedCommand {
 
 		currentVote.voted.push(msg.author.id);
 
-		container.db.set(DB.global, "vote", currentVote);
+		settings.write.global.vote = currentVote;
 
 		return msg.reply(`Vote recorded! Voted for: ${vote.join(", ")}`);
 	}

@@ -1,12 +1,12 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, container } from "@sapphire/framework";
-import { DBKey } from "../../db.js";
+import { Args } from "@sapphire/framework";
 import {
 	MixedCommand,
 	MixedInteraction,
 	MixedOptions,
 } from "../../mixed-command.js";
 import { ApplicationCommandOptionType } from "discord.js";
+import { settings } from "../../db.js";
 
 @ApplyOptions<MixedOptions>({
 	name: "set-channel",
@@ -36,9 +36,9 @@ import { ApplicationCommandOptionType } from "discord.js";
 	],
 })
 export default class SetChannelCommand extends MixedCommand {
-	channelTypes: { [type: string]: DBKey | undefined } = {
-		requests: DBKey.RequestsChannel,
-		auditlog: DBKey.AuditLog,
+	channelTypes: { [type: string]: string | undefined } = {
+		requests: "RequestsChannel",
+		auditlog: "AuditLog",
 	};
 
 	async run(msg: MixedInteraction<true>, args: Args): Promise<void> {
@@ -55,7 +55,7 @@ export default class SetChannelCommand extends MixedCommand {
 			return;
 		}
 
-		container.db.set(msg.guild, channelType, channel.id);
+		settings.write.guilds[msg.guild.id][channelType] = channel.id;
 		await msg.reply(`Set ${channel.name} to ${type}.`);
 	}
 }

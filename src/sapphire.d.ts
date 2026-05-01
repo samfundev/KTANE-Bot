@@ -1,8 +1,7 @@
-import { DB } from "./db.js";
+import "@sapphire/pieces";
 
 declare module "@sapphire/pieces" {
 	interface Container {
-		db: DB;
 		ownerID: string;
 	}
 }

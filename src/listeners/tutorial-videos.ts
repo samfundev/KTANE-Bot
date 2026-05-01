@@ -2,7 +2,7 @@ import { ApplyOptions } from "@sapphire/decorators";
 import { Listener } from "@sapphire/framework";
 import { Message } from "discord.js";
 import { unpartial } from "../bot-utils.js";
-import { DBKey } from "../db.js";
+import { settings } from "../db.js";
 import { scanForTutorials } from "../repository/tutorial-scanner.js";
 
 @ApplyOptions<Listener.Options>({ event: "messageCreate" })
@@ -15,10 +15,7 @@ export default class TutorialMessageListener extends Listener {
 		)
 			return;
 
-		const requestsID = await this.container.db.getOrUndefined(
-			message.guild,
-			DBKey.RequestsChannel,
-		);
+		const requestsID = settings.read[message.guild.id]?.RequestsChannel;
 		if (message.channel.id === requestsID) {
 			await scanForTutorials(message);
 		}

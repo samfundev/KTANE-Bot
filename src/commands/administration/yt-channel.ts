@@ -1,14 +1,13 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, container } from "@sapphire/framework";
-import { update } from "../../bot-utils.js";
+import { Args } from "@sapphire/framework";
 import {
 	MixedCommand,
 	MixedInteraction,
 	MixedOptions,
 } from "../../mixed-command.js";
-import Logger from "../../log.js";
 import { setupVideoTask, VideoChannel } from "../../video.js";
 import { ApplicationCommandOptionType } from "discord.js";
+import { settings } from "../../db.js";
 
 @ApplyOptions<MixedOptions>({
 	name: "yt-channel",
@@ -51,21 +50,12 @@ export default class YTChannelCommand extends MixedCommand {
 		if (channel.id.startsWith("UC"))
 			channel.id = `UU${channel.id.substring(2)}`;
 
-		update<VideoChannel[]>(
-			container.db,
-			"global",
-			"videoChannels",
-			[],
-			(channels) => {
-				channels.push(channel);
-				return channels;
-			},
-		)
-			.then(async () => {
-				setupVideoTask();
-				await msg.reply("Added channel successfully.");
-			})
-			.catch(Logger.errorReply("add channel", msg));
+		const channels = settings.read.global.videoChannels ?? [];
+		channels.push(channel);
+		settings.write.global.videoChannels = channels;
+
+		setupVideoTask();
+		await msg.reply("Added channel successfully.");
 		return;
 	}
 }

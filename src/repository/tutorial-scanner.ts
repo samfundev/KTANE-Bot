@@ -2,8 +2,7 @@ import { Message, MessageReplyOptions } from "discord.js";
 import { distance } from "fastest-levenshtein";
 import got from "../utils/got-traces.js";
 import archiver from "archiver";
-import { container } from "@sapphire/framework";
-import { update } from "../bot-utils.js";
+import { settings } from "../db.js";
 
 async function getModuleNames() {
 	const json = await got("https://ktane.timwi.de/json/raw").json<{
@@ -116,14 +115,6 @@ export async function scanForTutorials(message: Message): Promise<void> {
 
 	const report = await message.reply(response);
 
-	await update<Record<string, string>>(
-		container.db,
-		message.guild.id,
-		"reportMessages",
-		{},
-		(value) => {
-			value[message.id] = report.id;
-			return value;
-		},
-	);
+	settings.write.global.reportMessages ??= {};
+	settings.write.global.reportMessages[message.id] = report.id;
 }

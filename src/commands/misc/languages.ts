@@ -1,11 +1,11 @@
 import { ApplyOptions } from "@sapphire/decorators";
-import { Args, container } from "@sapphire/framework";
+import { Args } from "@sapphire/framework";
 import {
 	MixedCommand,
 	MixedInteraction,
 	MixedOptions,
 } from "../../mixed-command.js";
-import { DB } from "../../db.js";
+import { settings } from "../../db.js";
 import { ApplicationCommandOptionType } from "discord.js";
 
 @ApplyOptions<MixedOptions>({
@@ -28,15 +28,7 @@ export default class LanguagesCommand extends MixedCommand {
 			type: "language",
 		});
 
-		const storedLanguages = container.db.get<Record<string, string[]>>(
-			DB.global,
-			"languages",
-			{},
-		);
-
-		storedLanguages[message.author.id] = languages;
-
-		container.db.set(DB.global, "languages", storedLanguages);
+		settings.write.global.languages[message.author.id] = languages;
 
 		await message.reply({
 			content: `Your languages are now set to ${languages.join(", ")}`,
