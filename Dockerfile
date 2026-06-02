@@ -9,18 +9,6 @@ RUN apt-get update && \
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 RUN apt-get install -y nodejs
 
-# Install .NET SDK 8
-RUN apt-get update && \
- apt-get install -y dotnet-sdk-8.0
-
-# Install Java
-RUN apt-get update && \
-apt-get install -y openjdk-17-jdk
-
-# Set JAVA_HOME environment variable
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-ENV PATH="$PATH:${JAVA_HOME}/bin"
-
 # Set working directory
 WORKDIR /app
 

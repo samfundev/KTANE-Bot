@@ -1,18 +1,17 @@
-import child_process, { ExecException } from "child_process";
+import { ExecException } from "child_process";
 import { Message, EmbedBuilder, ChannelType } from "discord.js";
 import { createWriteStream } from "fs";
 import got from "../utils/got-traces.js";
 import path from "path";
 import { pipeline } from "stream/promises";
-import { promisify } from "util";
 import { joinLimit } from "../bot-utils.js";
-import tokens from "../get-tokens.js";
 import Logger from "../log.js";
 import TaskManager from "../task-manager.js";
-import { mkdir, rm } from "fs/promises";
+import { mkdir, readFile, rm } from "fs/promises";
 import { settings } from "../db.js";
-
-const exec = promisify(child_process.exec);
+import { FileProblems, lintFiles } from "ktane-lint";
+import _7z from '7zip-min';
+import { mkdtemp } from 'fs/promises';
 
 function pluralize(count: number, noun: string) {
 	return `${count} ${noun}${count !== 1 ? "s" : ""}`;
@@ -91,8 +90,6 @@ export default async function lintMessage(message: Message): Promise<void> {
 	}
 }
 
-type FileProblems = { name: string; problems: string[]; total: number };
-
 function isExecException(
 	error: unknown,
 ): error is ExecException & { stderr: string } {
@@ -102,43 +99,31 @@ function isExecException(
 }
 
 async function lintFile(zipPath: string): Promise<FileProblems[] | string> {
+	let files: Record<string, string> = {};
 	try {
-		const { stdout } = await exec(
-			`dotnet run -c Release --no-build ${path.resolve(zipPath)}`,
-			{ cwd: tokens.repoLintPath },
-		);
-
-		const files = [];
-		let file: FileProblems | null = null;
-		for (let line of stdout.split("\n")) {
-			line = line.trimEnd();
-			if (line === "") continue;
-
-			if (!line.startsWith("    ")) {
-				file = { name: line, problems: [], total: 0 };
-				files.push(file);
-
-				const match = /\((\d+) problems?\)$/.exec(line);
-				if (match == null) {
-					Logger.error("Unable to match problem count:", line);
-					continue;
-				}
-
-				file.total += parseInt(match[1]);
-			} else if (file !== null) {
-				file.problems.push(line);
-			}
+		const list = await _7z.list(zipPath);
+		const total = list.reduce((total, file) => total + parseInt(file.size!), 0);
+		if (total > 100000000) {
+			return "The total size of the files in the archive must be less than 100 MB.";
 		}
 
-		return files;
+		const temp = await mkdtemp("lint-");
+		await _7z.unpack(zipPath, temp);
+		for (const file of list) {
+			files[file.name] = await readFile(path.join(temp, file.name), "utf-8");
+		}
 	} catch (error) {
-		// RepoLint will use error code 2 to represent an error with the user input.
-		if (isExecException(error) && error.code == 2 && error.stderr !== "") {
-			return error.stderr;
+		// 7z will use error code 2 to represent an error with the user input.
+		if (isExecException(error) && error.code == 2 && error.stderr.includes("Can not open the file as archive")) {
+			files = {
+				[path.basename(zipPath)]: await readFile(zipPath, "utf-8"),
+			}
+		} else {
+			throw error;
 		}
-
-		throw error;
 	}
+
+	return lintFiles(files);
 }
 
 async function generateReport(
@@ -146,7 +131,7 @@ async function generateReport(
 	files: FileProblems[],
 ): Promise<Message | null> {
 	const total = files
-		.map((problem) => problem.total)
+		.map((file) => file.count)
 		.reduce((a, b) => a + b, 0);
 	if (total === 0) {
 		return null;
@@ -163,7 +148,7 @@ async function generateReport(
 		const file = files[i];
 		const field = {
 			name: file.name,
-			value: joinLimit(file.problems, "\n", 1024),
+			value: joinLimit(file.problems.map(problem => `${problem.text} (${problem.rule})`), "\n", 1024),
 		};
 
 		if (embed.length + field.name.length + field.value.length > 6000) break;

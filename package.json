@@ -19,6 +19,7 @@
     "@sapphire/plugin-scheduled-tasks": "^10.0.1",
     "@sapphire/plugin-subcommands": "^6.0.3",
     "@sentry/node": "^8.28.0",
+    "7zip-min": "^3.0.1",
     "archiver": "^5.3.1",
     "better-sqlite3": "^11.1.2",
     "confusables": "^1.0.0",
@@ -28,6 +29,7 @@
     "got": "^11.8.5",
     "html-entities": "^2.5.2",
     "jsdom": "^19.0.0",
+    "ktane-lint": "^1.0.10",
     "langs": "^2.0.0",
     "psl": "^1.8.0",
     "tsx": "^4.16.2"
