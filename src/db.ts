@@ -1,7 +1,7 @@
 import { join } from "path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
+import Database from "bun:sqlite";
 import { VideoChannel } from "./video";
 import { ScheduledTask } from "./task-manager";
 import { VoteData } from "#utils/voting";

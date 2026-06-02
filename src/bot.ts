@@ -23,9 +23,6 @@ import { scanVideos, setupVideoTask } from "./video.js";
 import WorkshopScanner from "./workshop.js";
 import "@kaname-png/plugin-sentry/register";
 import * as Sentry from "@sentry/node";
-import { existsSync } from "fs";
-
-if (existsSync(".env")) process.loadEnvFile();
 
 Sentry.init({
 	environment:

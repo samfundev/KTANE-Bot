@@ -8,18 +8,19 @@
     "#utils/*": "./src/utils/*.ts"
   },
   "scripts": {
-    "dev": "tsx --watch src/bot.ts",
-    "start": "tsx src/bot.ts"
+    "dev": "bun --watch src/bot.ts",
+    "start": "bun src/bot.ts"
   },
   "dependencies": {
+    "7zip-min": "^3.0.1",
     "@kaname-png/plugin-sentry": "^1.3.3",
     "@sapphire/decorators": "^6.1.0",
-    "@sapphire/framework": "github:samfundev/framework#build",
+    "@sapphire/framework": "https://files.samfun.dev/sapphire.tgz",
     "@sapphire/plugin-api": "^6.1.1",
     "@sapphire/plugin-scheduled-tasks": "^10.0.1",
     "@sapphire/plugin-subcommands": "^6.0.3",
     "@sentry/node": "^8.28.0",
-    "7zip-min": "^3.0.1",
+    "@types/bun": "^1.3.14",
     "archiver": "^5.3.1",
     "better-sqlite3": "^11.1.2",
     "confusables": "^1.0.0",

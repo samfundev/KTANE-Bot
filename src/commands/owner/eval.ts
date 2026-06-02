@@ -24,7 +24,7 @@ import {
 		},
 	],
 })
-class EvalCommand extends MixedCommand {
+export class EvalCommand extends MixedCommand {
 	async run(message: MixedInteraction, args: Args) {
 		const code = await args.rest({ name: "code", type: "string" });
 
@@ -143,5 +143,3 @@ class EvalCommand extends MixedCommand {
 		}
 	}
 }
-
-module.exports = EvalCommand;
