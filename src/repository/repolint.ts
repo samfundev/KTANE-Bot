@@ -7,11 +7,12 @@ import { pipeline } from "stream/promises";
 import { joinLimit } from "../bot-utils.js";
 import Logger from "../log.js";
 import TaskManager from "../task-manager.js";
-import { mkdir, readFile, rm } from "fs/promises";
+import { readFile, rm } from "fs/promises";
 import { settings } from "../db.js";
 import { FileProblems, lintFiles } from "ktane-lint";
-import _7z from '7zip-min';
-import { mkdtemp } from 'fs/promises';
+import _7z from "7zip-min";
+import { mkdtemp } from "fs/promises";
+import { tmpdir } from "os";
 
 function pluralize(count: number, noun: string) {
 	return `${count} ${noun}${count !== 1 ? "s" : ""}`;
@@ -34,8 +35,9 @@ export default async function lintMessage(message: Message): Promise<void> {
 	);
 	if (files.length === 0 || message.author.bot) return;
 
-	const directory = `lint_${message.id}`;
-	await mkdir(directory, { recursive: true });
+	await using directory = await mkdtempDisposable(
+		path.join(tmpdir(), `lint_${message.id}_`),
+	);
 
 	const notInDM = message.channel.type !== ChannelType.DM;
 	if (notInDM) await message.react("💭");
@@ -46,7 +48,7 @@ export default async function lintMessage(message: Message): Promise<void> {
 		for (const file of files) {
 			if (file.name === null) continue;
 
-			const filePath = path.join(directory, file.name);
+			const filePath = path.join(directory.path, file.name);
 			await pipeline(got.stream(file.url), createWriteStream(filePath));
 
 			const lintResult = await lintFile(filePath);
@@ -80,12 +82,6 @@ export default async function lintMessage(message: Message): Promise<void> {
 
 		await message.react("⚠️");
 	} finally {
-		try {
-			await rm(directory, { recursive: true, force: true });
-		} catch (error) {
-			Logger.error("rm -rf failed:", error);
-		}
-
 		if (notInDM) await message.reactions.cache.get("💭")?.remove();
 	}
 }
@@ -107,8 +103,8 @@ async function lintFile(zipPath: string): Promise<FileProblems[] | string> {
 			return "The total size of the files in the archive must be less than 100 MB.";
 		}
 
-		const temp = await mkdtemp("lint-");
-		await _7z.unpack(zipPath, temp);
+		await using temp = await mkdtempDisposable(path.join(tmpdir(), "lint-"));
+		await _7z.unpack(zipPath, temp.path);
 		for (const file of list) {
 			// Skip directories in the archive
 			if (file.name.endsWith("/") || file.name.endsWith("\\")) continue;
@@ -163,4 +159,22 @@ async function generateReport(
 	}
 
 	return await message.reply({ embeds: [embed] });
+}
+
+// Needed until https://github.com/oven-sh/bun/pull/31019
+async function mkdtempDisposable(
+	prefix: string,
+	options: Parameters<typeof mkdtemp>[1] = {},
+) {
+	const cwd = process.cwd();
+	const folder = await mkdtemp(prefix, options);
+	const fullPath = path.resolve(cwd, folder);
+	const remove = () => rm(fullPath, { recursive: true, force: true });
+	return {
+		path: folder,
+		remove,
+		async [Symbol.asyncDispose]() {
+			await remove();
+		},
+	};
 }
