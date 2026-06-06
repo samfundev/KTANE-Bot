@@ -110,7 +110,13 @@ async function lintFile(zipPath: string): Promise<FileProblems[] | string> {
 		const temp = await mkdtemp("lint-");
 		await _7z.unpack(zipPath, temp);
 		for (const file of list) {
-			files[file.name] = await readFile(path.join(temp, file.name), "utf-8");
+			// Skip directories in the archive
+			if (file.name.endsWith("/") || file.name.endsWith("\\")) continue;
+
+			files[file.name] = await readFile(
+				path.join(temp.path, file.name),
+				"utf-8",
+			);
 		}
 	} catch (error) {
 		// 7z will use error code 2 to represent an error with the user input.
