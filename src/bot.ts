@@ -78,7 +78,7 @@ client
 	.on("error", Logger.error)
 	.on("warn", Logger.warn)
 	.on("debug", Logger.info)
-	.on("ready", () => {
+	.on("clientReady", () => {
 		if (!client.user) return;
 
 		Logger.info(
