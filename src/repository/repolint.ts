@@ -116,10 +116,14 @@ async function lintFile(zipPath: string): Promise<FileProblems[] | string> {
 		}
 	} catch (error) {
 		// 7z will use error code 2 to represent an error with the user input.
-		if (isExecException(error) && error.code == 2 && error.stderr.includes("Can not open the file as archive")) {
+		if (
+			isExecException(error) &&
+			error.code == 2 &&
+			error.stderr.includes("Can not open the file as archive")
+		) {
 			files = {
 				[path.basename(zipPath)]: await readFile(zipPath, "utf-8"),
-			}
+			};
 		} else {
 			throw error;
 		}
@@ -132,9 +136,7 @@ async function generateReport(
 	message: Message,
 	files: FileProblems[],
 ): Promise<Message | null> {
-	const total = files
-		.map((file) => file.count)
-		.reduce((a, b) => a + b, 0);
+	const total = files.map((file) => file.count).reduce((a, b) => a + b, 0);
 	if (total === 0) {
 		return null;
 	}
@@ -150,7 +152,11 @@ async function generateReport(
 		const file = files[i];
 		const field = {
 			name: file.name,
-			value: joinLimit(file.problems.map(problem => `${problem.text} (${problem.rule})`), "\n", 1024),
+			value: joinLimit(
+				file.problems.map((problem) => `${problem.text} (${problem.rule})`),
+				"\n",
+				1024,
+			),
 		};
 
 		if (embed.length + field.name.length + field.value.length > 6000) break;
