@@ -107,7 +107,7 @@ async function lintFile(zipPath: string): Promise<FileProblems[] | string> {
 		await _7z.unpack(zipPath, temp.path);
 		for (const file of list) {
 			// Skip directories in the archive
-			if (file.name.endsWith("/") || file.name.endsWith("\\")) continue;
+			if (file.attr?.startsWith("D")) continue;
 
 			files[file.name] = await readFile(
 				path.join(temp.path, file.name),
