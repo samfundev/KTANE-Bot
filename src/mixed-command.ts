@@ -1,6 +1,7 @@
 import { Args, Awaitable, Command } from "@sapphire/framework";
 import {
 	APIApplicationCommandOption,
+	APIApplicationCommandSubcommandOption,
 	CacheType,
 	Message,
 	SlashCommandChannelOption,
@@ -18,11 +19,13 @@ export abstract class MixedCommand extends Command<Args, MixedOptions> {
 		interaction.delete = function () {
 			return Promise.resolve(this);
 		};
+		interaction.subcommand = interaction.options.data[0]?.name ?? null;
 
 		return this.run(interaction as MixedInteraction, args);
 	}
 
-	public override messageRun(message: Message, args: Args): Awaitable<unknown> {
+	public override messageRun(message: MixedMessage, args: Args): Awaitable<unknown> {
+		message.subcommand = null;
 		return this.run(message, args);
 	}
 
@@ -56,6 +59,7 @@ export interface MixedOptions extends Command.Options {
 }
 
 type OmitFunctions<T> = {
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 	[P in keyof T as T[P] extends Function ? never : P]: T[P];
 };
 type SlashOption = OmitUnion<
@@ -63,17 +67,23 @@ type SlashOption = OmitUnion<
 		| SlashCommandStringOption
 		| SlashCommandUserOption
 		| SlashCommandChannelOption
+		| APIApplicationCommandSubcommandOption
 	>,
 	"required"
 > & { required?: false };
 export type MixedInteraction<InGuild extends boolean = boolean> =
-	| MixedChatInputInteraction<InGuild extends true ? "cached" : "raw">
-	| Message<InGuild>;
+	| (MixedChatInputInteraction<InGuild extends true ? "cached" : "raw">
+		| MixedMessage<InGuild>) & { subcommand: string | null };
 export type MixedChatInputInteraction<Cached extends CacheType = CacheType> =
 	Command.ChatInputCommandInteraction<Cached> & {
 		author: User;
 		delete: () => Promise<MixedChatInputInteraction>;
+		subcommand: string | null;
 	};
+
+type MixedMessage<InGuild extends boolean = boolean> = Message<InGuild> & {
+	subcommand: string | null;
+};
 
 type OmitUnion<T, K> = {
 	[P in keyof T as Exclude<P, K & keyof any>]: T[P];
