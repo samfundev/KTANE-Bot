@@ -36,7 +36,7 @@ import { settings } from "../../db.js";
 	],
 })
 export default class SetChannelCommand extends MixedCommand {
-	channelTypes: { [type: string]: string | undefined } = {
+	channelTypes: { [type: string]: "RequestsChannel" | "AuditLog" | undefined } = {
 		requests: "RequestsChannel",
 		auditlog: "AuditLog",
 	};
@@ -55,7 +55,7 @@ export default class SetChannelCommand extends MixedCommand {
 			return;
 		}
 
-		settings.write.guilds[msg.guild.id][channelType] = channel.id;
+		settings.write[msg.guild.id][channelType] = channel.id;
 		await msg.reply(`Set ${channel.name} to ${type}.`);
 	}
 }
