@@ -284,9 +284,7 @@ export function createDatabaseClient<TSchema extends SchemaDefinition>(
 
 					const cacheForTable = memoryCache.get(tableName)!;
 					if (!cacheForTable.has(rowId)) {
-						throw new Error(
-							`Row '${rowId}' not found in table '${tableName}' (read).`,
-						);
+						cacheForTable.set(rowId, {}); // create empty object if not found
 					}
 					const rowData = cacheForTable.get(rowId);
 
@@ -310,9 +308,7 @@ export function createDatabaseClient<TSchema extends SchemaDefinition>(
 					loadRow(tableName, rowId);
 					const cacheForTable = memoryCache.get(tableName)!;
 					if (!cacheForTable.has(rowId)) {
-						throw new Error(
-							`Row '${rowId}' not found in table '${tableName}' (write).`,
-						);
+						cacheForTable.set(rowId, {}); // create empty object if not found
 					}
 
 					const { jsonSet } = getStatementsForTable(tableName);
